@@ -5,6 +5,7 @@ import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from cataloging_api.agent.routes import router as agent_router
 from cataloging_api.api.routes import router
 from cataloging_api.config import get_settings
 from cataloging_api.db.session import SessionFactory
@@ -46,3 +47,4 @@ app.include_router(dspace_vocabulary_router)
 app.include_router(vocabulary_promotion_router)
 app.include_router(notifications_router)
 app.include_router(notifications_ws_router)
+app.include_router(agent_router)

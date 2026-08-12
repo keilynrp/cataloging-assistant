@@ -241,16 +241,16 @@ async def get_work_queue(
     return WorkQueueOut.model_validate(queue)
 
 
-@router.get("/api/items", response_model=ItemListOut)
-async def list_items(
-    session: SessionDep,
+async def search_active_items(
+    session: AsyncSession,
+    *,
     q: str | None = None,
     linguistic_family: str | None = None,
     linguistic_branch: str | None = None,
     linguistic_group: str | None = None,
     registered_language: str | None = None,
-    page: int = Query(default=0, ge=0),
-    size: int = Query(default=20, ge=1, le=100),
+    page: int = 0,
+    size: int = 20,
 ) -> ItemListOut:
     filters = [DSpaceItem.is_active.is_(True)]
     if q:
@@ -290,6 +290,29 @@ async def list_items(
         .limit(size)
     )
     return ItemListOut(items=list(result), page=page, size=size, total=total or 0)
+
+
+@router.get("/api/items", response_model=ItemListOut)
+async def list_items(
+    session: SessionDep,
+    q: str | None = None,
+    linguistic_family: str | None = None,
+    linguistic_branch: str | None = None,
+    linguistic_group: str | None = None,
+    registered_language: str | None = None,
+    page: int = Query(default=0, ge=0),
+    size: int = Query(default=20, ge=1, le=100),
+) -> ItemListOut:
+    return await search_active_items(
+        session,
+        q=q,
+        linguistic_family=linguistic_family,
+        linguistic_branch=linguistic_branch,
+        linguistic_group=linguistic_group,
+        registered_language=registered_language,
+        page=page,
+        size=size,
+    )
 
 
 @router.get("/api/items/{item_uuid}/similar", response_model=SimilarItemsOut)

@@ -412,6 +412,29 @@ export function getItemMetadataValidation(uuid: string): Promise<ItemMetadataVal
   return apiFetch(`/api/items/${encodeURIComponent(uuid)}/metadata-validation`);
 }
 
+export type AgentCitation = { label: string; target_path: string };
+
+export type AgentMessage = {
+  message_id: string;
+  role: "user" | "assistant";
+  content: string;
+  citations: AgentCitation[];
+  created_at: string;
+};
+
+export type AgentConversation = {
+  conversation_id: string;
+  started_by: string;
+  started_at: string;
+  status: "open" | "archived";
+};
+
+export type AgentConversationDetail = AgentConversation & { messages: AgentMessage[] };
+
+export function getAgentConversation(id: string): Promise<AgentConversationDetail> {
+  return apiFetch(`/api/agent/conversations/${encodeURIComponent(id)}`);
+}
+
 export function getNotifications(filters: {
   state?: string;
   event_type?: string;

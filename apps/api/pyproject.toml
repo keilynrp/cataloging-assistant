@@ -9,6 +9,7 @@ description = "Read-only DSpace synchronization and cataloguing assistance API"
 requires-python = ">=3.12"
 dependencies = [
   "alembic>=1.16,<2",
+  "anthropic>=0.69,<1",
   "fastapi>=0.116,<1",
   "httpx>=0.28,<1",
   "psycopg[binary]>=3.2,<4",

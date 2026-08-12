@@ -16,7 +16,8 @@ Primera vertical del MVP para **P'UHREPECHA** (`123456789/4`).
 - Revisión humana append-only de hallazgos, almacenada únicamente en PostgreSQL local.
 - Borradores lingüísticos locales con revisiones y detección de fuente obsoleta.
 - Vocabularios aprobados versionados y validación literal con evidencia de procedencia.
-- Sin agente generativo, identidad institucional ni escritura en DSpace.
+- Agente conversacional de solo lectura sobre las herramientas internas existentes.
+- Sin identidad institucional ni escritura en DSpace, ni por humanos ni por el agente.
 
 ## Arranque en WSL
 
@@ -147,6 +148,24 @@ docker-compose run --rm api python -m cataloging_api.sync.cli --resume-page 3
 ```
 
 Una reanudación no marca ausentes como eliminados. La conciliación sólo ocurre tras un recorrido completo exitoso desde la página cero.
+
+## Asistente conversacional
+
+`http://localhost:3000/asistente` abre un chat que responde preguntas sobre
+la colección piloto usando exclusivamente herramientas internas de solo
+lectura (búsqueda, ítem, similares, validación, sugerencias, cola de
+trabajo, perfil, vocabularios, estado de sincronización). Nunca escribe en
+DSpace ni genera hallazgos, borradores o sugerencias por su cuenta — sólo
+enlaza a la ficha correspondiente para que un humano decida allí. La
+integración con el proveedor del modelo vive aislada en
+`cataloging_api/agent/`, el único módulo que importa su SDK (ADR-010).
+
+Requiere `ANTHROPIC_API_KEY` en `.env`; sin ella, crear una conversación
+funciona pero enviar mensajes responde `503`. Igual que el resto de las
+mutaciones, iniciar una conversación y enviar mensajes exige
+`CATALOG_REVIEW_TOKEN`, porque cada mensaje tiene costo real de API. El
+historial de la conversación persiste en PostgreSQL (`agent_conversations`,
+`agent_messages`, append-only).
 
 ## Verificación
 

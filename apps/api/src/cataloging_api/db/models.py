@@ -606,3 +606,60 @@ class NotificationMuteRule(Base):
     event_type: Mapped[str] = mapped_column(String(100), primary_key=True)
     muted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     muted_by: Mapped[str] = mapped_column(String(120))
+
+
+class AgentConversationStatus(enum.StrEnum):
+    open = "open"
+    archived = "archived"
+
+
+class AgentMessageRole(enum.StrEnum):
+    user = "user"
+    assistant = "assistant"
+
+
+class AgentConversation(Base):
+    __tablename__ = "agent_conversations"
+
+    conversation_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    collection_uuid: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), index=True)
+    started_by: Mapped[str] = mapped_column(String(120))
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    status: Mapped[AgentConversationStatus] = mapped_column(
+        Enum(AgentConversationStatus, name="agent_conversation_status"),
+        default=AgentConversationStatus.open,
+        index=True,
+    )
+
+    messages: Mapped[list[AgentMessage]] = relationship(
+        back_populates="conversation", order_by="AgentMessage.created_at"
+    )
+
+
+class AgentMessage(Base):
+    __tablename__ = "agent_messages"
+    __table_args__ = (
+        Index("ix_agent_messages_conversation_created", "conversation_id", "created_at"),
+    )
+
+    message_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    conversation_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("agent_conversations.conversation_id", ondelete="CASCADE"), index=True
+    )
+    role: Mapped[AgentMessageRole] = mapped_column(
+        Enum(AgentMessageRole, name="agent_message_role"), index=True
+    )
+    content: Mapped[str] = mapped_column(Text)
+    tool_calls: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
+    citations: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
+    model: Mapped[str | None] = mapped_column(String(64))
+    usage: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+
+    conversation: Mapped[AgentConversation] = relationship(back_populates="messages")

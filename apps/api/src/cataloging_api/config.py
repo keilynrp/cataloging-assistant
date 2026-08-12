@@ -31,6 +31,8 @@ class Settings(BaseSettings):
     catalog_required_fields: str = ""
     catalog_review_token: str = ""
     catalog_web_origin: str = "http://localhost:3000"
+    anthropic_api_key: str = ""
+    anthropic_model: str = "claude-sonnet-5"
 
     @property
     def required_fields(self) -> tuple[str, ...]:
