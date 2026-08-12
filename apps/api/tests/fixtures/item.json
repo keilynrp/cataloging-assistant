@@ -1,0 +1,17 @@
+{
+  "uuid": "11111111-1111-4111-8111-111111111111",
+  "handle": "123456789/test",
+  "name": "Registro de prueba",
+  "type": "item",
+  "lastModified": "2026-08-10T12:00:00Z",
+  "metadata": {
+    "dc.title": [
+      {"value": "Registro de prueba", "language": "es", "authority": null, "confidence": -1, "place": 0}
+    ],
+    "dc.subject.linguiscgroup": [
+      {"value": "Grupo A", "language": null, "authority": "auth:1", "confidence": 600, "place": 0},
+      {"value": "Grupo B", "language": null, "authority": null, "confidence": -1, "place": 1}
+    ]
+  }
+}
+

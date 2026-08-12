@@ -1,0 +1,1 @@
+"""Read-only DSpace integration."""
