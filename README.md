@@ -117,6 +117,16 @@ proxy de Next.js para que el token nunca llegue al navegador. Una notificación
 no es evidencia catalográfica ni cambia hallazgos, borradores, sugerencias o
 DSpace.
 
+Los hallazgos de diagnóstico nuevos se agregan por corrida de sincronización o
+por reconstrucción (`GET /api/notifications` recibe un aviso por lote, no uno
+por ítem). `GET`/`PUT /api/notifications/preferences` permite silenciar un
+tipo de evento: el evento se sigue registrando en PostgreSQL, sólo se omite su
+entrega. `http://localhost:3000/notifications` ofrece el historial completo
+con filtros por estado y tipo, paginado por cursor. `GET
+/api/notifications/metrics` expone eventos por tipo, entregas por estado,
+backlog/edad/reintentos de la cola de salida y conexiones WebSocket aceptadas
+o rechazadas.
+
 ## Reanudación
 
 `GET /api/sync-runs/latest` muestra el checkpoint. Para reanudar:

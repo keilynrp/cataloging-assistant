@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { PUBLIC_API_URL } from "@/lib/api";
-import type { Notification, NotificationList } from "@/lib/api";
+import type { Notification, NotificationList, NotificationPreference, NotificationPreferenceList } from "@/lib/api";
 
 const RECONNECT_DELAYS_MS = [1000, 2000, 5000, 10000, 30000];
 const POLL_INTERVAL_MS = 30000;
@@ -19,6 +20,16 @@ const STATUS_LABEL: Record<ConnectionStatus, string> = {
   reconnecting: "Reconectando",
 };
 const STATE_LABEL: Record<string, string> = { unread: "Sin leer", read: "Leída", archived: "Archivada" };
+const EVENT_TYPE_LABEL: Record<string, string> = {
+  "sync.completed": "Sincronización completada",
+  "sync.failed": "Sincronización fallida",
+  "items.changed": "Ítems nuevos o modificados",
+  "diagnostics.changed": "Nuevos hallazgos de diagnóstico",
+  "draft.stale": "Borrador local obsoleto",
+  "review.deferred": "Revisión pospuesta",
+  "suggestion.pending": "Sugerencia pendiente",
+  "vocabulary.promoted": "Vocabulario controlado actualizado",
+};
 const RELATIVE_TIME = new Intl.RelativeTimeFormat("es", { numeric: "auto" });
 
 function wsUrl(): string {
@@ -43,6 +54,8 @@ export function NotificationBell() {
   const [items, setItems] = useState<Notification[]>([]);
   const [panelOpen, setPanelOpen] = useState(false);
   const [status, setStatus] = useState<ConnectionStatus>("connecting");
+  const [preferencesOpen, setPreferencesOpen] = useState(false);
+  const [preferences, setPreferences] = useState<NotificationPreference[]>([]);
   const socketRef = useRef<WebSocket | null>(null);
   const mounted = useRef(true);
 
@@ -146,6 +159,34 @@ export function NotificationBell() {
     [refresh],
   );
 
+  const loadPreferences = useCallback(async () => {
+    try {
+      const response = await fetch(`${PUBLIC_API_URL}/api/notifications/preferences`, {
+        cache: "no-store",
+      });
+      if (!response.ok) throw new Error(`status ${response.status}`);
+      const data: NotificationPreferenceList = await response.json();
+      if (mounted.current) setPreferences(data.preferences);
+    } catch {
+      // Preferences stay at their last known state; the toggle can retry.
+    }
+  }, []);
+
+  const togglePreference = useCallback(
+    async (eventType: string, muted: boolean) => {
+      try {
+        await fetch(`/api/notifications/preferences/${encodeURIComponent(eventType)}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ muted }),
+        });
+      } finally {
+        void loadPreferences();
+      }
+    },
+    [loadPreferences],
+  );
+
   const badge = unreadCount > 99 ? "99+" : String(unreadCount);
 
   return (
@@ -223,6 +264,42 @@ export function NotificationBell() {
           ) : (
             <p className="notification-empty">Sin avisos operativos por ahora.</p>
           )}
+          <div className="notification-panel-footer">
+            <Link href="/notifications" onClick={() => setPanelOpen(false)}>
+              Ver historial completo
+            </Link>
+            <button
+              type="button"
+              onClick={() => {
+                setPreferencesOpen((open) => {
+                  const next = !open;
+                  if (next && preferences.length === 0) void loadPreferences();
+                  return next;
+                });
+              }}
+              aria-expanded={preferencesOpen}
+            >
+              Preferencias
+            </button>
+          </div>
+          {preferencesOpen ? (
+            <ul className="notification-preferences">
+              {preferences.map((preference) => (
+                <li key={preference.event_type}>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={!preference.muted}
+                      onChange={(event) =>
+                        void togglePreference(preference.event_type, !event.target.checked)
+                      }
+                    />
+                    {EVENT_TYPE_LABEL[preference.event_type] ?? preference.event_type}
+                  </label>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </div>
       ) : null}
     </div>

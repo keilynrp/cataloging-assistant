@@ -34,3 +34,28 @@ class NotificationActionOut(BaseModel):
 class MarkAllReadOut(BaseModel):
     updated: int
     unread_count: int
+
+
+class PreferenceOut(BaseModel):
+    event_type: str
+    muted: bool
+
+
+class PreferenceListOut(BaseModel):
+    preferences: list[PreferenceOut]
+
+
+class PreferenceUpdate(BaseModel):
+    muted: bool
+    actor: str = "Referente catalográfico"
+
+
+class MetricsOut(BaseModel):
+    events_by_type: dict[str, int]
+    deliveries_by_state: dict[str, int]
+    outbox_pending: int
+    outbox_oldest_pending_age_seconds: float | None
+    outbox_total_attempts: int
+    active_connections: int
+    total_connections_accepted: int
+    total_connections_rejected: int

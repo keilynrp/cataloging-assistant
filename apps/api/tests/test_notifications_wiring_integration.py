@@ -1,18 +1,24 @@
 import uuid
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from cataloging_api.config import get_settings
 from cataloging_api.db.models import (
     CatalogFinding,
     DSpaceCollection,
     DSpaceItem,
     NotificationEvent,
     ReviewDecisionKind,
+    SyncRun,
+    SyncStatus,
 )
-from cataloging_api.db.session import engine
+from cataloging_api.db.session import SessionFactory, engine
+from cataloging_api.diagnostics.engine import VocabularyRule
+from cataloging_api.diagnostics.repository import replace_item_findings
 from cataloging_api.reviews.service import record_review_decision
+from cataloging_api.sync.service import SyncService
 from cataloging_api.vocabularies.service import replace_active_vocabulary
 
 
@@ -115,6 +121,102 @@ async def test_promoting_a_vocabulary_revision_emits_notification_event() -> Non
         assert event is not None
         assert event.event_type == "vocabulary.promoted"
         assert event.target_path == "/controlled-terms"
+    finally:
+        await session.close()
+        await transaction.rollback()
+        await connection.close()
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_replace_item_findings_no_longer_emits_a_per_item_notification() -> None:
+    """NTF-009: diagnostics.changed is now aggregated by the caller (sync run or
+    rebuild), not emitted once per item inside replace_item_findings itself."""
+    collection_uuid = uuid.uuid4()
+    item_uuid = uuid.uuid4()
+    connection = await engine.connect()
+    transaction = await connection.begin()
+    session = AsyncSession(bind=connection, expire_on_commit=False)
+    try:
+        session.add(
+            DSpaceCollection(
+                uuid=collection_uuid,
+                handle="test/ntf-009",
+                name="NTF-009 test",
+                raw_json={"uuid": str(collection_uuid)},
+            )
+        )
+        session.add(
+            DSpaceItem(
+                uuid=item_uuid,
+                collection_uuid=collection_uuid,
+                handle="test/ntf-009-item",
+                name="NTF-009 item",
+                raw_json={"uuid": str(item_uuid)},
+                source_hash="e" * 64,
+            )
+        )
+        await session.flush()
+
+        rule = VocabularyRule(
+            revision_key=f"dc.description.registeredLanguage:{uuid.uuid4()}",
+            name="Lenguas aprobadas",
+            source_uri="https://example.test/languages",
+            version_label="1",
+            approved_by="Referente",
+            terms=frozenset({"Purépecha"}),
+        )
+        result = await replace_item_findings(
+            session,
+            item_uuid=item_uuid,
+            source_hash="e" * 64,
+            metadata_values=(("dc.description.registeredLanguage", "purépecha"),),
+            vocabularies={"dc.description.registeredLanguage": rule},
+        )
+        await session.flush()
+        assert result.has_new_findings is True
+
+        event_count = await session.scalar(
+            select(func.count())
+            .select_from(NotificationEvent)
+            .where(NotificationEvent.event_type == "diagnostics.changed")
+        )
+        assert event_count == 0
+    finally:
+        await session.close()
+        await transaction.rollback()
+        await connection.close()
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_emit_sync_events_emits_one_aggregate_diagnostics_changed_event() -> None:
+    run = SyncRun(
+        run_id=uuid.uuid4(),
+        collection_uuid=uuid.uuid4(),
+        status=SyncStatus.succeeded,
+        items_seen=5,
+        items_changed=3,
+    )
+    connection = await engine.connect()
+    transaction = await connection.begin()
+    session = AsyncSession(bind=connection, expire_on_commit=False)
+    try:
+        service = SyncService(get_settings(), SessionFactory)
+        await service._emit_sync_events(session, run, items_with_new_findings=3)
+        await service._emit_sync_events(session, run, items_with_new_findings=3)
+        await session.flush()
+
+        events = list(
+            await session.scalars(
+                select(NotificationEvent).where(
+                    NotificationEvent.event_type == "diagnostics.changed",
+                    NotificationEvent.aggregate_id == str(run.run_id),
+                )
+            )
+        )
+        assert len(events) == 1
+        assert "3 ítem(s)" in events[0].summary
     finally:
         await session.close()
         await transaction.rollback()

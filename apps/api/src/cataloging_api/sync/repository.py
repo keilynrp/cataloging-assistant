@@ -1,5 +1,6 @@
 import uuid
 from collections.abc import Iterable, Mapping
+from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from sqlalchemy import delete, select, update
@@ -49,13 +50,19 @@ async def upsert_collection(session: AsyncSession, raw: dict[str, object]) -> No
     await session.execute(statement)
 
 
+@dataclass(frozen=True)
+class UpsertResult:
+    changed: bool
+    has_new_findings: bool
+
+
 async def upsert_item(
     session: AsyncSession,
     item: ItemData,
     *,
     required_fields: Iterable[str] = (),
     vocabularies: Mapping[str, VocabularyRule] | None = None,
-) -> bool:
+) -> UpsertResult:
     required = tuple(required_fields)
     rules = dict(vocabularies or {})
     existing = (
@@ -101,17 +108,18 @@ async def upsert_item(
     )
     await session.execute(statement)
     if not changed:
+        has_new_findings = False
         if existing_profile != active_profile:
-            await replace_item_findings(
+            result = await replace_item_findings(
                 session,
                 item_uuid=item.uuid,
                 source_hash=item.source_hash,
                 metadata_values=((value.field, value.value) for value in item.metadata_values),
                 required_fields=required,
                 vocabularies=rules,
-                collection_uuid=item.collection_uuid,
             )
-        return False
+            has_new_findings = result.has_new_findings
+        return UpsertResult(changed=False, has_new_findings=has_new_findings)
 
     await session.execute(
         delete(DSpaceMetadataValue).where(DSpaceMetadataValue.item_uuid == item.uuid)
@@ -151,14 +159,13 @@ async def upsert_item(
                 ],
             )
         )
-    await replace_item_findings(
+    finding_result = await replace_item_findings(
         session,
         item_uuid=item.uuid,
         source_hash=item.source_hash,
         metadata_values=((value.field, value.value) for value in item.metadata_values),
         required_fields=required,
         vocabularies=rules,
-        collection_uuid=item.collection_uuid,
     )
     if existing_hash is not None:
         stale_draft = await session.scalar(
@@ -180,7 +187,7 @@ async def upsert_item(
                 deduplication_key=f"draft.stale:{stale_draft.draft_id}:{item.source_hash}",
                 target_path=f"/items/{item.uuid}",
             )
-    return True
+    return UpsertResult(changed=True, has_new_findings=finding_result.has_new_findings)
 
 
 async def mark_missing_inactive(

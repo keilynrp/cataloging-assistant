@@ -1,8 +1,9 @@
 # VERTICAL-014 — Notificaciones operativas en tiempo real
 
-**Estado:** Backlog P0 (NTF-001 a NTF-007) implementado el 12 de agosto de 2026,
-autorizado explícitamente por el usuario. P1 y P2 permanecen sin iniciar. Esta
-vertical nunca autoriza escrituras en DSpace.
+**Estado:** Backlog P0 (NTF-001 a NTF-007) y P1 (NTF-008 a NTF-011)
+implementados el 12 de agosto de 2026, autorizados explícitamente por el
+usuario. P2 permanece sin iniciar. Esta vertical nunca autoriza escrituras en
+DSpace.
 
 ## Resultado observable
 
@@ -276,3 +277,15 @@ migración `0013_notifications`, el productor/publicador (outbox con
 `FOR UPDATE SKIP LOCKED`), los contratos HTTP, el WebSocket `/ws/notifications`
 y la campana en Next.js quedaron implementados; ver `README.md` para el
 resumen operativo.
+
+El usuario autorizó el inicio del backlog P1 el mismo día. NTF-009 agrupa
+`diagnostics.changed` por corrida de sincronización o por reconstrucción en
+vez de emitir un evento por ítem (`replace_item_findings` ya no genera
+notificaciones; el emisor agregado vive en `SyncService` y
+`DiagnosticsService`). NTF-008 añade `notification_mute_rules`
+(migración `0014`) y `GET`/`PUT /api/notifications/preferences`: silenciar un
+tipo de evento no impide que el evento se registre, sólo omite la entrega.
+NTF-010 añade la página `/notifications` con filtros e historial paginado por
+cursor. NTF-011 añade `GET /api/notifications/metrics` (eventos por tipo,
+entregas por estado, backlog/edad/reintentos de la outbox y conexiones
+WebSocket aceptadas/rechazadas en memoria).

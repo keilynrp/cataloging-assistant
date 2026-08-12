@@ -598,3 +598,11 @@ class NotificationDelivery(Base):
     archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     event: Mapped[NotificationEvent] = relationship()
+
+
+class NotificationMuteRule(Base):
+    __tablename__ = "notification_mute_rules"
+
+    event_type: Mapped[str] = mapped_column(String(100), primary_key=True)
+    muted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    muted_by: Mapped[str] = mapped_column(String(120))

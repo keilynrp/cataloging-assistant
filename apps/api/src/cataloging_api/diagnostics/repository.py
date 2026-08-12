@@ -1,19 +1,24 @@
 import uuid
 from collections.abc import Iterable, Mapping
+from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from cataloging_api.db.models import CatalogFinding, DSpaceItem, NotificationSeverity
+from cataloging_api.db.models import CatalogFinding, DSpaceItem
 from cataloging_api.diagnostics.engine import (
     VocabularyRule,
     diagnostic_profile_version,
     evaluate_metadata,
     group_metadata_values,
 )
-from cataloging_api.notifications.constants import EventType
-from cataloging_api.notifications.producer import record_notification_event
+
+
+@dataclass(frozen=True)
+class FindingsReplaceResult:
+    count: int
+    has_new_findings: bool
 
 
 async def replace_item_findings(
@@ -24,8 +29,7 @@ async def replace_item_findings(
     metadata_values: Iterable[tuple[str, str]],
     required_fields: Iterable[str] = (),
     vocabularies: Mapping[str, VocabularyRule] | None = None,
-    collection_uuid: uuid.UUID | None = None,
-) -> int:
+) -> FindingsReplaceResult:
     required = tuple(required_fields)
     rules = dict(vocabularies or {})
     profile_version = diagnostic_profile_version(
@@ -72,17 +76,4 @@ async def replace_item_findings(
     )
 
     new_fingerprints = {finding.fingerprint for finding in findings} - existing_fingerprints
-    if new_fingerprints:
-        await record_notification_event(
-            session,
-            event_type=EventType.DIAGNOSTICS_CHANGED,
-            aggregate_type="item",
-            aggregate_id=str(item_uuid),
-            collection_uuid=collection_uuid,
-            severity=NotificationSeverity.warning,
-            title="Nuevos hallazgos de diagnóstico",
-            summary=f"{len(new_fingerprints)} hallazgo(s) nuevo(s) detectado(s).",
-            deduplication_key=f"diagnostics.changed:{item_uuid}:{source_hash}:{profile_version}",
-            target_path="/work-queue",
-        )
-    return len(findings)
+    return FindingsReplaceResult(count=len(findings), has_new_findings=bool(new_fingerprints))

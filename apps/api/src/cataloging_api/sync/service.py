@@ -51,6 +51,7 @@ class SyncService:
         owns_client = self._provided_client is None
         seen: set[uuid.UUID] = set()
         errors: list[str] = []
+        items_with_new_findings = 0
         try:
             collection = await client.get_collection(str(collection_uuid))
             async with self.session_factory() as session:
@@ -72,13 +73,16 @@ class SyncService:
                             continue
                         seen.add(snapshot.uuid)
                         run.items_seen += 1
-                        if await upsert_item(
+                        upsert_result = await upsert_item(
                             session,
                             snapshot,
                             required_fields=self.settings.required_fields,
                             vocabularies=vocabularies,
-                        ):
+                        )
+                        if upsert_result.changed:
                             run.items_changed += 1
+                        if upsert_result.has_new_findings:
+                            items_with_new_findings += 1
                     run.pages_processed += 1
                     run.checkpoint_page = page_number + 1
                     await session.merge(run)
@@ -102,9 +106,13 @@ class SyncService:
                 run.finished_at = datetime.now(UTC)
                 run.error_code = "item_errors" if errors else None
                 run.error_detail = "\n".join(errors[:20]) if errors else None
-                run.metrics = {"errors": len(errors), "seen_this_process": len(seen)}
+                run.metrics = {
+                    "errors": len(errors),
+                    "seen_this_process": len(seen),
+                    "items_with_new_findings": items_with_new_findings,
+                }
                 merged_run = await session.merge(run)
-                await self._emit_sync_events(session, merged_run)
+                await self._emit_sync_events(session, merged_run, items_with_new_findings)
                 await session.commit()
         except Exception as exc:
             async with self.session_factory() as session:
@@ -113,7 +121,7 @@ class SyncService:
                 run.error_code = exc.code if isinstance(exc, DSpaceError) else "unexpected_error"
                 run.error_detail = str(exc)[:2000]
                 merged_run = await session.merge(run)
-                await self._emit_sync_events(session, merged_run)
+                await self._emit_sync_events(session, merged_run, items_with_new_findings)
                 await session.commit()
             raise
         finally:
@@ -121,7 +129,9 @@ class SyncService:
                 await client.aclose()
         return run.run_id
 
-    async def _emit_sync_events(self, session: AsyncSession, run: SyncRun) -> None:
+    async def _emit_sync_events(
+        self, session: AsyncSession, run: SyncRun, items_with_new_findings: int
+    ) -> None:
         if run.status == SyncStatus.failed:
             await record_notification_event(
                 session,
@@ -159,6 +169,22 @@ class SyncService:
                 title="Ítems nuevos o modificados",
                 summary=f"{run.items_changed} ítems cambiaron en la colección piloto.",
                 deduplication_key=f"items.changed:{run.run_id}",
+                target_path="/work-queue",
+            )
+        if items_with_new_findings > 0:
+            await record_notification_event(
+                session,
+                event_type=EventType.DIAGNOSTICS_CHANGED,
+                aggregate_type="sync_run",
+                aggregate_id=str(run.run_id),
+                collection_uuid=run.collection_uuid,
+                severity=NotificationSeverity.warning,
+                title="Nuevos hallazgos de diagnóstico",
+                summary=(
+                    f"{items_with_new_findings} ítem(s) con hallazgos nuevos tras esta "
+                    "sincronización."
+                ),
+                deduplication_key=f"diagnostics.changed:sync:{run.run_id}",
                 target_path="/work-queue",
             )
 

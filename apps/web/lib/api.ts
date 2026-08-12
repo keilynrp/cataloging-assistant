@@ -352,6 +352,9 @@ export type NotificationList = {
   unread_count: number;
 };
 
+export type NotificationPreference = { event_type: string; muted: boolean };
+export type NotificationPreferenceList = { preferences: NotificationPreference[] };
+
 async function apiFetch<T>(path: string): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, { cache: "no-store" });
   if (!response.ok) {
@@ -407,4 +410,17 @@ export function getDSpaceVocabularyComparison(id: string): Promise<DSpaceVocabul
 
 export function getItemMetadataValidation(uuid: string): Promise<ItemMetadataValidation> {
   return apiFetch(`/api/items/${encodeURIComponent(uuid)}/metadata-validation`);
+}
+
+export function getNotifications(filters: {
+  state?: string;
+  event_type?: string;
+  cursor?: string;
+  limit?: number;
+}): Promise<NotificationList> {
+  const params = new URLSearchParams({ limit: String(filters.limit ?? 25) });
+  if (filters.state) params.set("state", filters.state);
+  if (filters.event_type) params.set("event_type", filters.event_type);
+  if (filters.cursor) params.set("cursor", filters.cursor);
+  return apiFetch(`/api/notifications?${params.toString()}`);
 }

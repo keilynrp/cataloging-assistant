@@ -48,7 +48,7 @@ async def test_repository_persists_vocabulary_finding_and_profile_revision() -> 
         session.add(item)
         await session.flush()
 
-        count = await replace_item_findings(
+        result = await replace_item_findings(
             session,
             item_uuid=item_uuid,
             source_hash=item.source_hash,
@@ -61,7 +61,8 @@ async def test_repository_persists_vocabulary_finding_and_profile_revision() -> 
         )
         await session.refresh(item)
 
-        assert count == 1
+        assert result.count == 1
+        assert result.has_new_findings is True
         assert finding is not None
         assert (finding.code, finding.severity) == ("CAT-VOCAB-001", "warning")
         assert item.diagnostic_profile_version == diagnostic_profile_version(
@@ -69,7 +70,7 @@ async def test_repository_persists_vocabulary_finding_and_profile_revision() -> 
             (rule.profile_key,),
         )
 
-        count = await replace_item_findings(
+        result = await replace_item_findings(
             session,
             item_uuid=item_uuid,
             source_hash=item.source_hash,
@@ -77,7 +78,8 @@ async def test_repository_persists_vocabulary_finding_and_profile_revision() -> 
             vocabularies={FIELD: rule},
         )
         await session.flush()
-        assert count == 0
+        assert result.count == 0
+        assert result.has_new_findings is False
         assert (
             await session.scalar(
                 select(func.count())

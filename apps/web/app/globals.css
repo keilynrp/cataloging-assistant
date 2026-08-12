@@ -265,6 +265,13 @@ progress { accent-color: var(--accent); display: block; height: 9px; width: 100%
 .notification-item-actions { display: flex; gap: 8px; }
 .notification-item-actions button, .notification-item-actions a { background: transparent; border: 0; color: var(--accent); font-size: 0.78rem; font-weight: 700; padding: 0; }
 .notification-empty { color: var(--muted); font-size: 0.85rem; margin: 10px 0 0; }
+.notification-panel-footer { align-items: center; border-top: 1px solid var(--line); display: flex; justify-content: space-between; margin-top: 12px; padding-top: 12px; }
+.notification-panel-footer a { color: var(--accent); font-size: 0.8rem; font-weight: 700; text-decoration: none; }
+.notification-panel-footer button { background: transparent; border: 0; color: var(--muted); font-size: 0.8rem; font-weight: 700; padding: 0; }
+.notification-preferences { display: grid; gap: 8px; list-style: none; margin: 10px 0 0; padding: 0; }
+.notification-preferences label { align-items: center; color: var(--ink); display: flex; font-size: 0.82rem; gap: 8px; }
+.notification-history-list { display: grid; gap: 10px; }
+.notification-history-list form { display: inline; }
 @media (max-width: 640px) {
   .queue-filters { grid-template-columns: 1fr; }
   .vocabulary-form, .vocabulary-validation-grid { grid-template-columns: 1fr; }

@@ -29,6 +29,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
             <Link href="/catalog-profile">Evidencia</Link>
             <Link href="/controlled-terms">Vocabularios</Link>
             <Link href="/deferred-drafts">Pospuestos</Link>
+            <Link href="/notifications">Notificaciones</Link>
           </nav>
           <NotificationBell />
         </header>

@@ -13,11 +13,21 @@ from cataloging_api.config import get_settings
 from cataloging_api.db.models import NotificationDelivery, NotificationEvent
 from cataloging_api.db.session import get_session
 from cataloging_api.notifications.broadcaster import broadcaster
+from cataloging_api.notifications.metrics import build_metrics
+from cataloging_api.notifications.preferences import (
+    UnknownEventTypeError,
+    list_preferences,
+    set_mute,
+)
 from cataloging_api.notifications.schemas import (
     MarkAllReadOut,
+    MetricsOut,
     NotificationActionOut,
     NotificationListOut,
     NotificationOut,
+    PreferenceListOut,
+    PreferenceOut,
+    PreferenceUpdate,
     UnreadCountOut,
 )
 from cataloging_api.notifications.service import (
@@ -38,6 +48,8 @@ HEARTBEAT_SECONDS = 30
 IDLE_TIMEOUT_SECONDS = 90
 MAX_CONCURRENT_CONNECTIONS = 200
 _active_connections = 0
+_total_connections_accepted = 0
+_total_connections_rejected = 0
 
 
 def _to_out(delivery: NotificationDelivery, event: NotificationEvent) -> NotificationOut:
@@ -79,6 +91,28 @@ async def get_unread_count(session: SessionDep) -> UnreadCountOut:
     return UnreadCountOut(unread_count=await count_unread(session))
 
 
+@router.get("/preferences", response_model=PreferenceListOut)
+async def get_preferences(session: SessionDep) -> PreferenceListOut:
+    rows = await list_preferences(session)
+    return PreferenceListOut(preferences=[PreferenceOut(**row) for row in rows])
+
+
+@router.put(
+    "/preferences/{event_type}",
+    response_model=PreferenceOut,
+    dependencies=[Depends(require_review_token)],
+)
+async def put_preference(
+    event_type: str, payload: PreferenceUpdate, session: SessionDep
+) -> PreferenceOut:
+    try:
+        await set_mute(session, event_type=event_type, muted=payload.muted, actor=payload.actor)
+    except UnknownEventTypeError as error:
+        raise HTTPException(status_code=404, detail="Unknown event type") from error
+    await session.commit()
+    return PreferenceOut(event_type=event_type, muted=payload.muted)
+
+
 @router.post(
     "/{notification_id}/read",
     response_model=NotificationActionOut,
@@ -118,20 +152,34 @@ async def post_archive(notification_id: uuid.UUID, session: SessionDep) -> Notif
     return NotificationActionOut(notification_id=delivery.notification_id, state=delivery.state)
 
 
+@router.get("/metrics", response_model=MetricsOut)
+async def get_metrics(session: SessionDep) -> MetricsOut:
+    metrics = await build_metrics(session)
+    return MetricsOut(
+        **metrics,
+        active_connections=_active_connections,
+        total_connections_accepted=_total_connections_accepted,
+        total_connections_rejected=_total_connections_rejected,
+    )
+
+
 @ws_router.websocket("/ws/notifications")
 async def notifications_socket(websocket: WebSocket) -> None:
-    global _active_connections
+    global _active_connections, _total_connections_accepted, _total_connections_rejected
 
     allowed_origin = get_settings().catalog_web_origin
     if websocket.headers.get("origin") != allowed_origin:
+        _total_connections_rejected += 1
         await websocket.close(code=4403)
         return
     if _active_connections >= MAX_CONCURRENT_CONNECTIONS:
+        _total_connections_rejected += 1
         await websocket.close(code=4408)
         return
 
     await websocket.accept()
     _active_connections += 1
+    _total_connections_accepted += 1
     queue = broadcaster.subscribe()
     last_activity = datetime.now(UTC)
 

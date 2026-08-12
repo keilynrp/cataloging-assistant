@@ -36,9 +36,9 @@ async def test_item_upsert_is_idempotent() -> None:
         item = normalize_item(
             load_fixture("item.json"), collection_uuid=str(collection_uuid), bundles=[]
         )
-        assert await upsert_item(session, item) is True
+        assert (await upsert_item(session, item)).changed is True
         await session.flush()
-        assert await upsert_item(session, item) is False
+        assert (await upsert_item(session, item)).changed is False
         await session.flush()
 
         item_count = await session.scalar(
@@ -55,7 +55,9 @@ async def test_item_upsert_is_idempotent() -> None:
         changed_raw = load_fixture("item.json")
         changed_raw["metadata"]["dc.subject.linguisticBranch"] = [{"value": "Tarasca", "place": 0}]
         changed_item = normalize_item(changed_raw, collection_uuid=str(collection_uuid), bundles=[])
-        assert await upsert_item(session, changed_item) is True
+        changed_result = await upsert_item(session, changed_item)
+        assert changed_result.changed is True
+        assert changed_result.has_new_findings is True
         await session.flush()
         finding = await session.scalar(
             select(CatalogFinding).where(CatalogFinding.item_uuid == item.uuid)
