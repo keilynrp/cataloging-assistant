@@ -2,8 +2,10 @@
 
 **Estado:** Backlog P0 (NTF-001 a NTF-007) y P1 (NTF-008 a NTF-011)
 implementados el 12 de agosto de 2026, autorizados explícitamente por el
-usuario. P2 permanece sin iniciar. Esta vertical nunca autoriza escrituras en
-DSpace.
+usuario. De P2, sólo se inició "resúmenes" (NTF-012); notificaciones
+externas, broker dedicado y múltiples colecciones quedan sin iniciar y
+requieren decisión explícita adicional del usuario. Esta vertical nunca
+autoriza escrituras en DSpace.
 
 ## Resultado observable
 
@@ -289,3 +291,12 @@ NTF-010 añade la página `/notifications` con filtros e historial paginado por
 cursor. NTF-011 añade `GET /api/notifications/metrics` (eventos por tipo,
 entregas por estado, backlog/edad/reintentos de la outbox y conexiones
 WebSocket aceptadas/rechazadas en memoria).
+
+El usuario eligió "resúmenes" como único punto de P2 a iniciar el mismo día
+(NTF-012); notificaciones externas, broker dedicado y múltiples colecciones
+quedaron explícitamente sin autorizar. `notifications/digest_cli.py` agrega
+un nuevo evento `digest.summary` con el conteo de actividad desde el último
+resumen (o de las últimas 24 horas si nunca corrió) y lo emite por el mismo
+canal existente (outbox → publicador → WebSocket/HTTP), sin mecanismo de
+entrega nuevo. Se opera igual que `sync`/`diagnose`: es un comando disparado
+por el operador (`make digest`), no un programador dentro de la API.

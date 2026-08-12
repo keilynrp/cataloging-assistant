@@ -29,6 +29,7 @@ const EVENT_TYPE_LABEL: Record<string, string> = {
   "review.deferred": "Revisión pospuesta",
   "suggestion.pending": "Sugerencia pendiente",
   "vocabulary.promoted": "Vocabulario controlado actualizado",
+  "digest.summary": "Resumen de actividad",
 };
 const RELATIVE_TIME = new Intl.RelativeTimeFormat("es", { numeric: "auto" });
 

@@ -16,6 +16,10 @@ class EventType:
     REVIEW_DEFERRED = "review.deferred"
     SUGGESTION_PENDING = "suggestion.pending"
     VOCABULARY_PROMOTED = "vocabulary.promoted"
+    # P2 (NTF-012): periodic digest, built from the P0 catalog below. Not part
+    # of the approved P0 catalog itself, kept out of P0_EVENT_TYPES so that set
+    # stays a faithful record of what VERTICAL-014's P0 decisions approved.
+    DIGEST_SUMMARY = "digest.summary"
 
 
 P0_EVENT_TYPES = frozenset(
@@ -30,3 +34,7 @@ P0_EVENT_TYPES = frozenset(
         EventType.VOCABULARY_PROMOTED,
     }
 )
+
+# Every event type a recipient may see or mute, including later additions on
+# top of the approved P0 catalog.
+KNOWN_EVENT_TYPES = P0_EVENT_TYPES | {EventType.DIGEST_SUMMARY}

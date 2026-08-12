@@ -127,6 +127,17 @@ con filtros por estado y tipo, paginado por cursor. `GET
 backlog/edad/reintentos de la cola de salida y conexiones WebSocket aceptadas
 o rechazadas.
 
+```bash
+docker-compose run --rm api python -m cataloging_api.notifications.digest_cli
+```
+
+Genera un aviso `digest.summary` con el conteo de actividad desde el resumen
+anterior (o de las últimas 24 horas si nunca corrió), reutilizando el mismo
+canal que el resto de las notificaciones; no emite nada si no hubo actividad.
+Se opera igual que `sync`/`diagnose` (`make digest`); este repositorio no
+incluye un programador propio, así que debe invocarse periódicamente desde el
+host (por ejemplo con `cron`).
+
 ## Reanudación
 
 `GET /api/sync-runs/latest` muestra el checkpoint. Para reanudar:

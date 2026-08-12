@@ -19,6 +19,7 @@ const EVENT_TYPE_LABEL: Record<string, string> = {
   "review.deferred": "Revisión pospuesta",
   "suggestion.pending": "Sugerencia pendiente",
   "vocabulary.promoted": "Vocabulario controlado actualizado",
+  "digest.summary": "Resumen de actividad",
 };
 const STATE_LABEL: Record<string, string> = { unread: "Sin leer", read: "Leída", archived: "Archivada" };
 const OUTCOME_LABEL: Record<string, string> = {

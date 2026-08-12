@@ -12,7 +12,7 @@ from cataloging_api.db.models import (
     NotificationSeverity,
 )
 from cataloging_api.db.session import engine
-from cataloging_api.notifications.constants import P0_EVENT_TYPES
+from cataloging_api.notifications.constants import KNOWN_EVENT_TYPES
 from cataloging_api.notifications.preferences import (
     UnknownEventTypeError,
     list_preferences,
@@ -50,7 +50,7 @@ async def test_defaults_are_unmuted_and_reject_unknown_event_types() -> None:
     session = AsyncSession(bind=connection, expire_on_commit=False)
     try:
         preferences = await list_preferences(session)
-        assert {row["event_type"] for row in preferences} == P0_EVENT_TYPES
+        assert {row["event_type"] for row in preferences} == KNOWN_EVENT_TYPES
         assert all(row["muted"] is False for row in preferences)
 
         with pytest.raises(UnknownEventTypeError):

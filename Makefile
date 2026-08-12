@@ -1,6 +1,6 @@
 COMPOSE ?= docker-compose
 
-.PHONY: up down test lint migrate sync diagnose logs
+.PHONY: up down test lint migrate sync diagnose digest logs
 
 up:
 	$(COMPOSE) up --build
@@ -21,6 +21,8 @@ sync:
 	$(COMPOSE) run --rm api python -m cataloging_api.sync.cli
 diagnose:
 	$(COMPOSE) run --rm api python -m cataloging_api.diagnostics.cli
+digest:
+	$(COMPOSE) run --rm api python -m cataloging_api.notifications.digest_cli
 
 
 logs:
