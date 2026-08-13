@@ -63,7 +63,6 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
                 />
               </form>
               <div className="ml-auto flex items-center gap-3">
-                <AgentWidget />
                 <NotificationBell />
                 <UserMenu />
                 <ThemeToggle />
@@ -72,6 +71,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
             <main className="flex-1">{children}</main>
           </div>
         </div>
+        <AgentWidget />
       </body>
     </html>
   );

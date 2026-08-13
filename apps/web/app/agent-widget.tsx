@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { FormEvent } from "react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { PUBLIC_API_URL } from "@/lib/api";
 import type { AgentConversationDetail } from "@/lib/api";
@@ -14,6 +14,7 @@ const STORAGE_KEY_CONVERSATION = "cat.agent.conversationId";
 
 export function AgentWidget() {
   const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [nameDraft, setNameDraft] = useState(() =>
     typeof window === "undefined" ? "" : (localStorage.getItem(STORAGE_KEY_NAME) ?? ""),
@@ -50,6 +51,17 @@ export function AgentWidget() {
     // Runs once on mount; `chat.setMessages` is a stable state setter.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const handlePointerDown = (event: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [open]);
 
   const startConversation = useCallback(
     async (event: FormEvent) => {
@@ -91,16 +103,16 @@ export function AgentWidget() {
   }, [chat]);
 
   return (
-    <div className="agent-widget">
+    <div className="agent-widget-float" ref={rootRef}>
       <button
         type="button"
-        className="bell-trigger"
+        className="agent-widget-trigger"
         aria-haspopup="true"
         aria-expanded={open}
         aria-label="Asistente de catalogación"
         onClick={() => setOpen((value) => !value)}
       >
-        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+        <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" focusable="false">
           <path
             fill="currentColor"
             d="M12 3C7.03 3 3 6.58 3 11c0 2.39 1.19 4.53 3.08 6.02-.1.98-.5 2.19-1.4 3.48a.5.5 0 0 0 .55.77c1.86-.5 3.24-1.32 4.15-2.02.85.19 1.74.29 2.62.29 4.97 0 9-3.58 9-8s-4.03-8-9-8Z"
