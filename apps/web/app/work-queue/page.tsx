@@ -23,6 +23,31 @@ const PRIORITY_LABELS = {
   reviewed: "Revisado",
 } as const;
 
+const PRIORITY_BADGE_STYLES: Record<keyof typeof PRIORITY_LABELS, string> = {
+  critical: "bg-rose-100 text-rose-700",
+  high: "bg-amber-100 text-amber-700",
+  suggestion: "bg-brand-100 text-brand-700",
+  rebase: "bg-violet-100 text-violet-700",
+  draft: "bg-sky-100 text-sky-700",
+  approved: "bg-brand-100 text-brand-700",
+  rejected: "bg-rose-100 text-rose-700",
+  reviewed: "bg-slate-100 text-slate-600",
+};
+
+function PriorityBadge({ priority }: { priority: keyof typeof PRIORITY_LABELS }) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${PRIORITY_BADGE_STYLES[priority]}`}
+    >
+      {PRIORITY_LABELS[priority]}
+    </span>
+  );
+}
+
+const inputClass =
+  "rounded-lg border border-line px-3 py-2 text-sm font-normal text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-500";
+const labelClass = "flex flex-col gap-1 text-xs font-semibold text-muted";
+
 export default async function WorkQueuePage({
   searchParams,
 }: {
@@ -39,12 +64,16 @@ export default async function WorkQueuePage({
 
   if (queue === null) {
     return (
-      <div className="shell">
-        <Link href="/" className="back-link">← Volver a registros</Link>
-        <section className="notice" role="status">
-          <strong>La cola de trabajo no está disponible.</strong>
-          <span>Verifica PostgreSQL y la API local antes de volver a cargar.</span>
-        </section>
+      <div className="mx-auto max-w-6xl px-6 py-10">
+        <Link href="/" className="text-sm font-semibold text-brand-600 hover:text-brand-700">
+          ← Volver a registros
+        </Link>
+        <div className="mt-6 rounded-xl bg-brand-50 p-5" role="status">
+          <p className="font-semibold text-ink">La cola de trabajo no está disponible.</p>
+          <p className="mt-1 text-sm text-muted">
+            Verifica PostgreSQL y la API local antes de volver a cargar.
+          </p>
+        </div>
       </div>
     );
   }
@@ -76,151 +105,226 @@ export default async function WorkQueuePage({
   const hasNext = (page + 1) * queue.size < queue.total;
 
   return (
-    <div className="shell queue-dashboard">
-      <Link href="/" className="back-link">← Volver a registros</Link>
-      <header className="profile-hero">
-        <p className="eyebrow">Operación catalográfica · colección piloto</p>
-        <h1>Cola de trabajo</h1>
-        <p>
+    <div className="mx-auto max-w-6xl px-6 py-10">
+      <Link href="/" className="text-sm font-semibold text-brand-600 hover:text-brand-700">
+        ← Volver a registros
+      </Link>
+
+      <header className="mt-6 max-w-3xl">
+        <p className="text-xs font-bold uppercase tracking-wider text-brand-600">
+          Operación catalográfica · colección piloto
+        </p>
+        <h1 className="mt-2 text-3xl font-bold text-ink sm:text-4xl">Cola de trabajo</h1>
+        <p className="mt-3 text-muted">
           Prioriza revisión y borradores usando únicamente evidencia local vigente. Esta vista no
           agrega reglas ni modifica DSpace.
         </p>
-        <dl className="profile-source">
-          <div><dt>Fuente</dt><dd>{queue.source}</dd></div>
-          <div><dt>Grano</dt><dd>{queue.grain}</dd></div>
-          <div><dt>Frescura</dt><dd>{freshness}</dd></div>
+        <dl className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {[
+            ["Fuente", queue.source],
+            ["Grano", queue.grain],
+            ["Frescura", freshness],
+          ].map(([term, value]) => (
+            <div key={term} className="rounded-lg border border-line bg-surface px-4 py-3">
+              <dt className="text-xs font-semibold uppercase text-muted">{term}</dt>
+              <dd className="mt-1 text-sm text-ink">{value}</dd>
+            </div>
+          ))}
         </dl>
       </header>
 
-      <section aria-labelledby="queue-summary-heading">
-        <div className="section-heading">
-          <h2 id="queue-summary-heading">Estado de la colección</h2>
-          <span>Denominador: {queue.summary.active_items} ítems activos</span>
+      <section className="mt-10" aria-labelledby="queue-summary-heading">
+        <div className="flex items-baseline justify-between">
+          <h2 id="queue-summary-heading" className="text-lg font-semibold text-ink">
+            Estado de la colección
+          </h2>
+          <span className="text-sm text-muted">
+            Denominador: {queue.summary.active_items} ítems activos
+          </span>
         </div>
-        <div className="queue-summary">
+        <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           {summaryCards.map(([label, metric, definition]) => (
-            <article className="queue-metric" key={label}>
-              <p>{label}</p>
-              <strong>{metric}</strong>
-              <small>{definition}</small>
+            <article key={label} className="rounded-xl border border-line bg-surface p-4 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</p>
+              <strong className="mt-2 block text-2xl font-bold text-ink">{metric}</strong>
+              <small className="mt-1 block text-xs text-muted">{definition}</small>
             </article>
           ))}
         </div>
       </section>
 
-      <section aria-labelledby="queue-list-heading">
-        <div className="section-heading">
-          <h2 id="queue-list-heading">Trabajo priorizado</h2>
-          <span>{queue.total} ítems con los filtros actuales</span>
+      <section className="mt-10" aria-labelledby="queue-list-heading">
+        <div className="flex items-baseline justify-between">
+          <h2 id="queue-list-heading" className="text-lg font-semibold text-ink">
+            Trabajo priorizado
+          </h2>
+          <span className="text-sm text-muted">{queue.total} ítems con los filtros actuales</span>
         </div>
-        <form className="queue-filters" action="/work-queue">
-          <label>
+
+        <form
+          action="/work-queue"
+          className="mt-4 grid grid-cols-2 items-end gap-3 rounded-xl border border-line bg-surface p-4 sm:grid-cols-3 lg:grid-cols-6"
+        >
+          <label className={labelClass}>
             Buscar
-            <input name="q" defaultValue={params.q} placeholder="Título o handle" />
+            <input name="q" defaultValue={params.q} placeholder="Título o handle" className={inputClass} />
           </label>
-          <label>
+          <label className={labelClass}>
             Severidad
-            <select name="severity" defaultValue={params.severity ?? ""}>
+            <select name="severity" defaultValue={params.severity ?? ""} className={inputClass}>
               <option value="">Todas</option>
               <option value="error">Error</option>
               <option value="warning">Advertencia</option>
             </select>
           </label>
-          <label>
+          <label className={labelClass}>
             Regla
-            <select name="finding_code" defaultValue={params.finding_code ?? ""}>
+            <select name="finding_code" defaultValue={params.finding_code ?? ""} className={inputClass}>
               <option value="">Todas</option>
               {queue.available_finding_codes.map((code) => (
-                <option value={code} key={code}>{code}</option>
+                <option value={code} key={code}>
+                  {code}
+                </option>
               ))}
             </select>
           </label>
-          <label>
+          <label className={labelClass}>
             Revisión
-            <select name="review" defaultValue={params.review ?? ""}>
+            <select name="review" defaultValue={params.review ?? ""} className={inputClass}>
               <option value="">Cualquier estado</option>
               <option value="pending">Pendiente</option>
               <option value="reviewed">Revisado</option>
             </select>
           </label>
-          <label>
+          <label className={labelClass}>
             Sugerencias
-            <select name="suggestions" defaultValue={params.suggestions ?? ""}>
+            <select name="suggestions" defaultValue={params.suggestions ?? ""} className={inputClass}>
               <option value="">Cualquier estado</option>
               <option value="pending">Pendientes</option>
               <option value="none">Sin pendientes</option>
             </select>
           </label>
-          <label>
+          <label className={labelClass}>
             Borrador
-            <select name="draft" defaultValue={params.draft ?? ""}>
+            <select name="draft" defaultValue={params.draft ?? ""} className={inputClass}>
               <option value="">Cualquier estado</option>
               <option value="none">Sin borrador</option>
               <option value="open">Abierto</option>
               <option value="stale">Obsoleto</option>
-            </select>
               <option value="approved">Aprobado</option>
               <option value="rejected">Rechazado</option>
               <option value="superseded">Sustituido</option>
+            </select>
           </label>
-          <div className="queue-filter-actions">
-            <button type="submit">Aplicar filtros</button>
-            <Link href="/work-queue">Limpiar</Link>
+          <div className="col-span-2 flex items-center gap-4 sm:col-span-3 lg:col-span-6">
+            <button
+              type="submit"
+              className="rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-600"
+            >
+              Aplicar filtros
+            </button>
+            <Link href="/work-queue" className="text-sm font-semibold text-brand-600 hover:text-brand-700">
+              Limpiar
+            </Link>
           </div>
         </form>
 
         {queue.items.length ? (
-          <div className="queue-list">
-            {queue.items.map((item) => (
-              <Link
-                className="queue-item"
-                href={item.finding_codes.includes("CAT-LING-003") ? "/items/" + item.uuid + "?prepare=deduplicate#draft-heading" : "/items/" + item.uuid}
-                key={item.uuid}
-              >
-                <div className="queue-item-main">
-                  <span className={`priority-badge ${item.priority}`}>
-                    {PRIORITY_LABELS[item.priority]}
-                  </span>
-                  <h3>{item.name}</h3>
-                  <p>{item.handle ?? item.uuid}</p>
-                </div>
-                  {item.finding_codes.includes("CAT-LING-003") ? (
-                    <p>Preparar deduplicación en borrador local</p>
-                  ) : null}
-                <dl className="queue-item-stats">
-                  <div><dt>Hallazgos</dt><dd>{item.finding_count}</dd></div>
-                  <div><dt>Pendientes</dt><dd>{item.pending_finding_count}</dd></div>
-                  <div><dt>Pospuestos</dt><dd>{item.deferred_finding_count}</dd></div>
-                  <div><dt>Sugerencias</dt><dd>{item.pending_suggestion_count}</dd></div>
-                  <div>
-                    <dt>Borrador</dt>
-                    <dd>
-                      {item.latest_draft_version && item.draft_state
-                        ? `v${item.latest_draft_version} · ${item.draft_state}`
-                        : "No"}
-                    </dd>
-                  </div>
-                </dl>
-                <p className="queue-codes">{item.finding_codes.join(" · ") || "Sin reglas"}</p>
-              </Link>
-            ))}
+          <div className="mt-4 overflow-hidden rounded-xl border border-line bg-surface">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] text-left text-sm">
+                <thead>
+                  <tr className="border-b border-line bg-paper text-xs font-semibold uppercase tracking-wide text-muted">
+                    <th className="px-4 py-3">Ítem</th>
+                    <th className="px-4 py-3">Prioridad</th>
+                    <th className="px-4 py-3 text-center">Hallazgos</th>
+                    <th className="px-4 py-3 text-center">Pendientes</th>
+                    <th className="px-4 py-3 text-center">Pospuestos</th>
+                    <th className="px-4 py-3 text-center">Sugerencias</th>
+                    <th className="px-4 py-3">Borrador</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {queue.items.map((item) => (
+                    <tr key={item.uuid} className="transition-colors hover:bg-paper">
+                      <td className="px-4 py-3 align-top">
+                        <Link
+                          href={
+                            item.finding_codes.includes("CAT-LING-003")
+                              ? `/items/${item.uuid}?prepare=deduplicate#draft-heading`
+                              : `/items/${item.uuid}`
+                          }
+                          className="font-semibold text-ink hover:text-brand-600"
+                        >
+                          {item.name}
+                        </Link>
+                        <p className="mt-0.5 text-xs text-muted">{item.handle ?? item.uuid}</p>
+                        {item.finding_codes.includes("CAT-LING-003") ? (
+                          <p className="mt-0.5 text-xs font-medium text-brand-600">
+                            Preparar deduplicación en borrador local
+                          </p>
+                        ) : null}
+                        {item.finding_codes.length ? (
+                          <p className="mt-1 text-xs text-muted">{item.finding_codes.join(" · ")}</p>
+                        ) : null}
+                      </td>
+                      <td className="px-4 py-3 align-top">
+                        <PriorityBadge priority={item.priority} />
+                      </td>
+                      <td className="px-4 py-3 text-center align-top text-ink">
+                        {item.finding_count}
+                      </td>
+                      <td className="px-4 py-3 text-center align-top text-ink">
+                        {item.pending_finding_count}
+                      </td>
+                      <td className="px-4 py-3 text-center align-top text-ink">
+                        {item.deferred_finding_count}
+                      </td>
+                      <td className="px-4 py-3 text-center align-top text-ink">
+                        {item.pending_suggestion_count}
+                      </td>
+                      <td className="px-4 py-3 align-top text-ink">
+                        {item.latest_draft_version && item.draft_state
+                          ? `v${item.latest_draft_version} · ${item.draft_state}`
+                          : "No"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         ) : (
-          <div className="diagnostic-notice">
+          <div className="mt-4 rounded-xl bg-brand-50 p-5 text-sm text-ink">
             No hay ítems que coincidan con los filtros seleccionados.
           </div>
         )}
 
-        <nav className="pagination" aria-label="Paginación de la cola">
-          {page > 0 ? <Link href={pageHref(page - 1)}>← Anterior</Link> : <span />}
-          <span>Página {page + 1}</span>
-          {hasNext ? <Link href={pageHref(page + 1)}>Siguiente →</Link> : <span />}
+        <nav
+          className="mt-4 flex items-center justify-between text-sm font-semibold"
+          aria-label="Paginación de la cola"
+        >
+          {page > 0 ? (
+            <Link href={pageHref(page - 1)} className="text-brand-600 hover:text-brand-700">
+              ← Anterior
+            </Link>
+          ) : (
+            <span />
+          )}
+          <span className="text-muted">Página {page + 1}</span>
+          {hasNext ? (
+            <Link href={pageHref(page + 1)} className="text-brand-600 hover:text-brand-700">
+              Siguiente →
+            </Link>
+          ) : (
+            <span />
+          )}
         </nav>
       </section>
 
-      <aside className="evidence-caveat">
-        <strong>Límite de interpretación</strong>
-        <p>
+      <aside className="mt-10 rounded-xl bg-amber-50 p-5 text-sm text-amber-900">
+        <strong className="block font-semibold">Límite de interpretación</strong>
+        <p className="mt-1">
           La prioridad organiza trabajo operativo; no representa confianza del agente ni
           autorización para cambiar metadatos.
         </p>

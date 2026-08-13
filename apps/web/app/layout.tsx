@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { AgentWidget } from "./agent-widget";
 import { NotificationBell } from "./notification-bell";
+import { Sidebar } from "./sidebar";
 
 import "./globals.css";
 
@@ -15,31 +15,18 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="es">
-      <body>
-        <header className="site-header">
-          <Link href="/" className="brand">
-            <span className="brand-mark">AC</span>
-            <span>
-              <strong>Asistencia catalográfica</strong>
-              <small>P&apos;UHREPECHA · DSpace solo lectura</small>
-            </span>
-          </Link>
-          <nav className="site-nav" aria-label="Navegación principal">
-            <Link href="/">Registros</Link>
-            <Link href="/work-queue">Cola</Link>
-            <Link href="/catalog-profile">Evidencia</Link>
-            <Link href="/controlled-terms">Vocabularios</Link>
-            <Link href="/deferred-drafts">Pospuestos</Link>
-            <Link href="/notifications">Notificaciones</Link>
-            <Link href="/asistente">Asistente</Link>
-            <Link href="/settings">Configuración</Link>
-          </nav>
-          <AgentWidget />
-          <NotificationBell />
-        </header>
-        <main>{children}</main>
+      <body className="antialiased">
+        <div className="flex min-h-screen">
+          <Sidebar />
+          <div className="flex min-h-screen flex-1 flex-col">
+            <header className="sticky top-0 z-30 flex items-center justify-end gap-3 border-b border-line bg-surface px-4 py-3 md:px-8">
+              <AgentWidget />
+              <NotificationBell />
+            </header>
+            <main className="flex-1">{children}</main>
+          </div>
+        </div>
       </body>
     </html>
   );
 }
-

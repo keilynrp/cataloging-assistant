@@ -1,3 +1,23 @@
+@import "tailwindcss";
+
+/* Tailwind utility tokens (bg-brand-500, text-ink, border-line, ...), mapped
+   onto the same values as the :root custom properties below so pages using
+   either system stay visually consistent. Only /work-queue uses Tailwind
+   utilities today (a deliberate pilot before extending to the rest). */
+@theme {
+  --color-ink: #18201d;
+  --color-muted: #62706a;
+  --color-paper: #f5f6f2;
+  --color-surface: #ffffff;
+  --color-warning: #8a4b22;
+  --color-line: #d9dfda;
+  --color-brand-50: #f1f8f5;
+  --color-brand-100: #dcece6;
+  --color-brand-500: #176b52;
+  --color-brand-600: #125a45;
+  --color-brand-700: #0e4736;
+}
+
 :root {
   --ink: #18201d;
   --muted: #62706a;
@@ -13,13 +33,6 @@
 html { background: var(--paper); color: var(--ink); }
 body { margin: 0; font-family: Arial, Helvetica, sans-serif; line-height: 1.5; }
 a { color: inherit; }
-.site-header { align-items: center; background: var(--surface); border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; padding: 14px 24px; }
-.brand { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; }
-.brand span:last-child { display: grid; }
-.brand small { color: var(--muted); }
-.brand-mark { align-items: center; background: var(--accent); border-radius: 10px; color: white; display: flex; font-weight: 700; height: 42px; justify-content: center; width: 42px; }
-.site-nav { display: flex; flex-wrap: wrap; gap: 18px; }
-.site-nav a { color: var(--muted); font-weight: 700; text-decoration: none; }
 .shell { margin: 0 auto; max-width: 1080px; padding: 48px 24px 80px; }
 .hero { max-width: 760px; }
 .eyebrow { color: var(--accent); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
@@ -165,11 +178,6 @@ progress { accent-color: var(--accent); display: block; height: 9px; width: 100%
 .queue-filters input, .queue-filters select { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); font: inherit; min-width: 0; padding: 10px; width: 100%; }
 .queue-filter-actions { align-items: center; display: flex; gap: 14px; grid-column: 1 / -1; }
 .queue-filter-actions a { color: var(--accent); font-weight: 700; }
-.queue-list { display: grid; gap: 10px; }
-.queue-item { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; color: inherit; content-visibility: auto; display: grid; gap: 16px; grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.8fr); padding: 16px 18px; text-decoration: none; }
-.queue-item:hover, .queue-item:focus-visible { border-color: var(--accent); }
-.queue-item h3 { margin: 8px 0 4px; }
-.queue-item-main > p, .queue-codes { color: var(--muted); margin: 0; }
 .priority-badge { border-radius: 999px; display: inline-block; font-size: 0.76rem; font-weight: 700; padding: 4px 9px; }
 .priority-badge.critical { background: #f7dedb; color: #8d2922; }
 .priority-badge.high { background: #f8e8dc; color: var(--warning); }
@@ -177,10 +185,6 @@ progress { accent-color: var(--accent); display: block; height: 9px; width: 100%
 .priority-badge.rebase { background: #eee2f6; color: #69407f; }
 .priority-badge.draft { background: var(--accent-soft); color: var(--accent); }
 .priority-badge.reviewed { background: #e8ece9; color: var(--muted); }
-.queue-item-stats { display: grid; gap: 8px; grid-template-columns: repeat(3, 1fr); margin: 0; }
-.queue-item-stats div { border-left: 1px solid var(--line); padding-left: 10px; }
-.queue-item-stats dd { font-weight: 700; }
-.queue-codes { font-size: 0.8rem; grid-column: 1 / -1; }
 .deferred-draft-list { display: grid; gap: 18px; }
 .deferred-draft-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
 .deferred-draft-card > header { align-items: start; display: flex; gap: 20px; justify-content: space-between; }
@@ -233,7 +237,6 @@ progress { accent-color: var(--accent); display: block; height: 9px; width: 100%
 .validation-values strong { font-size: 0.75rem; text-align: right; }
 @media (max-width: 800px) {
   .queue-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .queue-item { grid-template-columns: 1fr; }
   .deferred-draft-card > header, .draft-comparison-row { display: grid; grid-template-columns: 1fr; }
   .draft-comparison-row > div { border-left: 0; border-top: 1px solid var(--line); padding-left: 0; padding-top: 10px; }
 }
