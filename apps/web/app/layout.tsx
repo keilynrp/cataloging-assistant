@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { AgentWidget } from "./agent-widget";
 import { NotificationBell } from "./notification-bell";
 
 import "./globals.css";
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
             <Link href="/asistente">Asistente</Link>
             <Link href="/settings">Configuración</Link>
           </nav>
+          <AgentWidget />
           <NotificationBell />
         </header>
         <main>{children}</main>
