@@ -412,7 +412,7 @@ export function getItemMetadataValidation(uuid: string): Promise<ItemMetadataVal
   return apiFetch(`/api/items/${encodeURIComponent(uuid)}/metadata-validation`);
 }
 
-export type AgentCitation = { label: string; target_path: string };
+export type AgentCitation = { label: string; target_path: string; detail?: string };
 
 export type AgentMessage = {
   message_id: string;
@@ -431,8 +431,35 @@ export type AgentConversation = {
 
 export type AgentConversationDetail = AgentConversation & { messages: AgentMessage[] };
 
+export type AgentConversationSummary = AgentConversation & {
+  message_count: number;
+  last_message_at: string | null;
+};
+
 export function getAgentConversation(id: string): Promise<AgentConversationDetail> {
   return apiFetch(`/api/agent/conversations/${encodeURIComponent(id)}`);
+}
+
+export function getAgentConversations(): Promise<AgentConversationSummary[]> {
+  return apiFetch("/api/agent/conversations");
+}
+
+export type AgentMetrics = {
+  total_conversations: number;
+  conversations_by_status: Record<string, number>;
+  total_messages: number;
+  messages_by_role: Record<string, number>;
+  avg_messages_per_conversation: number | null;
+  tool_calls_by_tool: Record<string, number>;
+  total_input_tokens: number;
+  total_output_tokens: number;
+  avg_first_chunk_latency_ms: number | null;
+  turn_error_count: number;
+  turn_error_rate: number | null;
+};
+
+export function getAgentMetrics(): Promise<AgentMetrics> {
+  return apiFetch("/api/agent/metrics");
 }
 
 export function getNotifications(filters: {

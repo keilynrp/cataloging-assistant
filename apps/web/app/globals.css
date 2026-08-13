@@ -285,6 +285,8 @@ progress { accent-color: var(--accent); display: block; height: 9px; width: 100%
 .agent-tool-indicator { color: var(--muted); font-size: 0.8rem; font-style: italic; margin: 6px 0 0; }
 .agent-citations { display: flex; flex-wrap: wrap; gap: 10px; list-style: none; margin: 10px 0 0; padding: 0; }
 .agent-citations a { background: var(--accent-soft); border-radius: 999px; color: var(--accent); font-size: 0.78rem; font-weight: 700; padding: 5px 11px; text-decoration: none; }
+.agent-citations li { align-items: center; display: flex; gap: 6px; }
+.agent-citation-detail { color: var(--muted); font-size: 0.78rem; }
 .agent-error { background: #f7dedb; border-radius: 10px; color: #8d2922; padding: 12px 14px; }
 .agent-input { display: flex; gap: 10px; }
 .agent-input input { border: 1px solid var(--line); border-radius: 10px; flex: 1; font: inherit; padding: 12px 14px; }

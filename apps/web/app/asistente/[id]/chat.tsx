@@ -148,8 +148,9 @@ export function Chat({ conversationId, initialMessages }: Props) {
             {message.citations.length ? (
               <ul className="agent-citations">
                 {message.citations.map((citation) => (
-                  <li key={citation.target_path}>
+                  <li key={`${citation.target_path}-${citation.label}`}>
                     <Link href={citation.target_path}>{citation.label}</Link>
+                    {citation.detail ? <span className="agent-citation-detail"> · {citation.detail}</span> : null}
                   </li>
                 ))}
               </ul>

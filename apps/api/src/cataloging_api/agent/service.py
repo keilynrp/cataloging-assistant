@@ -1,9 +1,11 @@
 import json
+import time
 import uuid
 from collections.abc import AsyncIterator
+from dataclasses import dataclass
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -22,7 +24,12 @@ from cataloging_api.agent.providers.base import (
     TurnFinished,
 )
 from cataloging_api.agent.tools import TOOLS_BY_NAME, tool_schemas
-from cataloging_api.db.models import AgentConversation, AgentMessage, AgentMessageRole
+from cataloging_api.db.models import (
+    AgentConversation,
+    AgentMessage,
+    AgentMessageRole,
+    AgentTurnError,
+)
 
 
 class ConversationNotFoundError(Exception):
@@ -50,6 +57,36 @@ async def get_conversation(
         .where(AgentConversation.conversation_id == conversation_id)
         .options(selectinload(AgentConversation.messages))
     )
+
+
+@dataclass(frozen=True)
+class ConversationSummary:
+    conversation: AgentConversation
+    message_count: int
+    last_message_at: Any
+
+
+async def list_conversations(
+    session: AsyncSession, *, limit: int = 20
+) -> list[ConversationSummary]:
+    """Most recently active conversations first (AGT-007), for the resume list."""
+    message_count = func.count(AgentMessage.message_id)
+    last_message_at = func.max(AgentMessage.created_at)
+    rows = (
+        await session.execute(
+            select(AgentConversation, message_count, last_message_at)
+            .outerjoin(
+                AgentMessage, AgentMessage.conversation_id == AgentConversation.conversation_id
+            )
+            .group_by(AgentConversation.conversation_id)
+            .order_by(func.coalesce(last_message_at, AgentConversation.started_at).desc())
+            .limit(limit)
+        )
+    ).all()
+    return [
+        ConversationSummary(conversation=conversation, message_count=count, last_message_at=last)
+        for conversation, count, last in rows
+    ]
 
 
 def _history_as_plain_messages(messages: list[AgentMessage]) -> list[PlainMessage]:
@@ -111,6 +148,8 @@ async def stream_message(
     total_input_tokens = 0
     total_output_tokens = 0
     calls_made = 0
+    turn_started_at = time.monotonic()
+    first_chunk_latency_ms: int | None = None
 
     try:
         events = turn.start(
@@ -120,6 +159,8 @@ async def stream_message(
             finished: TurnFinished | None = None
             pending_calls: list[ToolCallEvent] = []
             async for event in events:
+                if first_chunk_latency_ms is None:
+                    first_chunk_latency_ms = round((time.monotonic() - turn_started_at) * 1000)
                 if isinstance(event, TextDelta):
                     text_parts.append(event.text)
                     yield {"event": "text_delta", "data": {"text": event.text}}
@@ -167,6 +208,8 @@ async def stream_message(
                 )
             events = turn.continue_with_tool_results(tool_results)
     except Exception as error:  # noqa: BLE001 - surfaced to the client, not swallowed
+        session.add(AgentTurnError(conversation_id=conversation_id, detail=str(error)[:4000]))
+        await session.commit()
         yield {"event": "error", "data": {"detail": str(error)}}
         return
 
@@ -180,6 +223,7 @@ async def stream_message(
         citations=deduped_citations,
         model=provider.model,
         usage={"input_tokens": total_input_tokens, "output_tokens": total_output_tokens},
+        latency_ms=first_chunk_latency_ms,
     )
     session.add(assistant_message)
     await session.flush()

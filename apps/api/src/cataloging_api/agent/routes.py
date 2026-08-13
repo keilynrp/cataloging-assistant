@@ -11,10 +11,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from cataloging_api.agent import credentials as credentials_service
 from cataloging_api.agent.constants import MAX_MESSAGES_PER_CONVERSATION
 from cataloging_api.agent.crypto import DecryptionFailedError, EncryptionNotConfiguredError
+from cataloging_api.agent.metrics import build_metrics
 from cataloging_api.agent.providers.registry import KNOWN_PROVIDERS
 from cataloging_api.agent.service import (
+    ConversationSummary,
     create_conversation,
     get_conversation,
+    list_conversations,
     stream_message,
 )
 from cataloging_api.api.routes import require_review_token
@@ -48,8 +51,27 @@ class ConversationDetailOut(ConversationOut):
     messages: list[MessageOut]
 
 
+class ConversationSummaryOut(ConversationOut):
+    message_count: int
+    last_message_at: str | None
+
+
 class MessageCreate(BaseModel):
     content: str = Field(min_length=1, max_length=4000)
+
+
+class AgentMetricsOut(BaseModel):
+    total_conversations: int
+    conversations_by_status: dict[str, int]
+    total_messages: int
+    messages_by_role: dict[str, int]
+    avg_messages_per_conversation: float | None
+    tool_calls_by_tool: dict[str, int]
+    total_input_tokens: int
+    total_output_tokens: int
+    avg_first_chunk_latency_ms: int | None
+    turn_error_count: int
+    turn_error_rate: float | None
 
 
 class ProviderCredentialCreate(BaseModel):
@@ -79,6 +101,15 @@ def _conversation_out(conversation) -> ConversationOut:  # noqa: ANN001
         started_by=conversation.started_by,
         started_at=conversation.started_at.isoformat(),
         status=conversation.status,
+    )
+
+
+def _conversation_summary_out(summary: ConversationSummary) -> ConversationSummaryOut:
+    base = _conversation_out(summary.conversation)
+    return ConversationSummaryOut(
+        **base.model_dump(),
+        message_count=summary.message_count,
+        last_message_at=summary.last_message_at.isoformat() if summary.last_message_at else None,
     )
 
 
@@ -133,6 +164,18 @@ async def post_conversation(payload: ConversationCreate, session: SessionDep) ->
     )
     await session.commit()
     return _conversation_out(conversation)
+
+
+@router.get("/conversations", response_model=list[ConversationSummaryOut])
+async def get_conversations(session: SessionDep) -> list[ConversationSummaryOut]:
+    summaries = await list_conversations(session)
+    return [_conversation_summary_out(summary) for summary in summaries]
+
+
+@router.get("/metrics", response_model=AgentMetricsOut)
+async def get_agent_metrics(session: SessionDep) -> AgentMetricsOut:
+    metrics = await build_metrics(session)
+    return AgentMetricsOut(**metrics)
 
 
 @router.get("/conversations/{conversation_id}", response_model=ConversationDetailOut)

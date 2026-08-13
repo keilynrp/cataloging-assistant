@@ -1,5 +1,6 @@
 import uuid
 from collections.abc import AsyncIterator
+from datetime import UTC, datetime
 
 import pytest
 from sqlalchemy import select
@@ -16,9 +17,10 @@ from cataloging_api.agent.service import (
     ConversationLimitExceededError,
     ConversationNotFoundError,
     create_conversation,
+    list_conversations,
     stream_message,
 )
-from cataloging_api.db.models import AgentMessage, AgentMessageRole
+from cataloging_api.db.models import AgentMessage, AgentMessageRole, AgentTurnError
 from cataloging_api.db.session import engine
 
 
@@ -137,6 +139,8 @@ async def test_stream_message_runs_a_tool_and_persists_the_answer() -> None:
             {"tool": "search_items", "input": {"q": "no debería importar"}}
         ]
         assert assistant.usage == {"input_tokens": 32, "output_tokens": 12}
+        assert isinstance(assistant.latency_ms, int)
+        assert assistant.latency_ms >= 0
     finally:
         await session.close()
         await transaction.rollback()
@@ -179,6 +183,65 @@ async def test_stream_message_survives_a_provider_failure() -> None:
         assert len(messages) == 1
         assert messages[0].role == AgentMessageRole.user
         assert messages[0].content == "¿Cuál es la cobertura de idioma?"
+
+        errors = list(
+            await session.scalars(
+                select(AgentTurnError).where(
+                    AgentTurnError.conversation_id == conversation.conversation_id
+                )
+            )
+        )
+        assert len(errors) == 1
+        assert "proveedor no disponible" in errors[0].detail
+    finally:
+        await session.close()
+        await transaction.rollback()
+        await connection.close()
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_list_conversations_orders_by_most_recent_activity() -> None:
+    connection = await engine.connect()
+    transaction = await connection.begin()
+    session = AsyncSession(bind=connection, expire_on_commit=False)
+    try:
+        quiet = await create_conversation(
+            session, started_by="Sin mensajes", collection_uuid=uuid.uuid4()
+        )
+        active = await create_conversation(
+            session, started_by="Con actividad", collection_uuid=uuid.uuid4()
+        )
+        # PostgreSQL's now() is fixed for the whole transaction, so relying on
+        # server_default=func.now() here would make started_at/created_at tie
+        # across every row in this test — pin explicit, strictly increasing
+        # Python-side timestamps instead so the ordering assertion is real.
+        session.add(
+            AgentMessage(
+                conversation_id=active.conversation_id,
+                role=AgentMessageRole.user,
+                content="hola",
+                created_at=datetime.now(UTC),
+            )
+        )
+        session.add(
+            AgentMessage(
+                conversation_id=active.conversation_id,
+                role=AgentMessageRole.assistant,
+                content="hola de vuelta",
+                created_at=datetime.now(UTC),
+            )
+        )
+        await session.commit()
+
+        summaries = await list_conversations(session)
+        by_id = {summary.conversation.conversation_id: summary for summary in summaries}
+
+        assert by_id[active.conversation_id].message_count == 2
+        assert by_id[active.conversation_id].last_message_at is not None
+        assert by_id[quiet.conversation_id].message_count == 0
+        assert by_id[quiet.conversation_id].last_message_at is None
+        assert summaries[0].conversation.conversation_id == active.conversation_id
     finally:
         await session.close()
         await transaction.rollback()

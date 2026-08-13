@@ -1,7 +1,7 @@
 # VERTICAL-015 — Agente conversacional de asistencia catalográfica
 
-**Estado:** ADR-010 aceptada y backlog P0 (AGT-001 a AGT-006) autorizado por
-el usuario el 12 de agosto de 2026.
+**Estado:** ADR-010 aceptada; backlog P0 (AGT-001 a AGT-006) y P1
+(AGT-007 a AGT-009) autorizados e implementados el 12 de agosto de 2026.
 
 ## Resultado observable
 
@@ -252,3 +252,36 @@ vivo contra la API real: creación de conversación, detalle y degradación a
 (no hay clave real en este entorno). El bucle de herramientas y la
 supervivencia ante fallos del proveedor están cubiertos por pruebas de
 integración con un proveedor simulado, sin depender de una clave real.
+
+El mismo día, ADR-011 reemplazó `ANTHROPIC_API_KEY` por credenciales
+cifradas gestionables en `/settings`, con `AgentProvider` sustituido por el
+contrato `agent/providers/` (Anthropic y OpenAI reales detrás de la misma
+interfaz).
+
+El usuario autorizó el backlog P1 (AGT-007 a AGT-009) el 12 de agosto de
+2026, aclarando explícitamente que la verificación en vivo contra un
+proveedor real queda pendiente hasta contar con una API key — se aceptó ese
+riesgo residual conscientemente. P1 quedó implementado el mismo día:
+
+- AGT-007: `GET /api/agent/conversations` (con conteo de mensajes y última
+  actividad, vía `list_conversations`) y una sección de "Conversaciones
+  recientes" en `/asistente` para retomarlas.
+- AGT-008: migración `0017_agent_turn_observability` — `latency_ms` en
+  `agent_messages` (tiempo hasta el primer fragmento del proveedor) y la
+  tabla append-only `agent_turn_errors` (un turno fallido nunca se convierte
+  en `AgentMessage`, así que necesita su propio registro). `agent/metrics.py`
+  agrega mensajes por conversación, llamadas a herramientas por tipo,
+  tokens acumulados, latencia promedio y tasa de error, expuesto en
+  `GET /api/agent/metrics` y en un panel de `/asistente`.
+- AGT-009: `_profile_citations` en `agent/tools.py` enriquece las citas de
+  `get_catalog_profile` con fragmentos de datos (cobertura, valor más
+  frecuente, par principal de una relación), no sólo el enlace a
+  `/catalog-profile`.
+
+Verificado con 91 pruebas backend (unitarias e integración, incluyendo las
+nuevas de latencia, persistencia de errores de turno, orden de
+conversaciones recientes, agregación de métricas y enriquecimiento de
+citas), `ruff` limpio, build de Next.js sin errores de tipos, y smoke test
+en vivo contra la API real (creación de conversación, listado, métricas,
+limpieza de los datos de prueba) — todo sin depender de una clave de
+proveedor real, como en P0.

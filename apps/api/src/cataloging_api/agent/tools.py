@@ -17,6 +17,10 @@ from cataloging_api.api.routes import (
     latest_sync_run,
     search_active_items,
 )
+from cataloging_api.profile.schemas import CollectionProfileOut
+
+TOP_PROFILE_FIELDS_CITED = 3
+TOP_PROFILE_RELATIONSHIPS_CITED = 2
 
 
 @dataclass(frozen=True)
@@ -131,6 +135,49 @@ async def _get_work_queue(session: AsyncSession, args: dict[str, Any]) -> ToolRe
     )
 
 
+def _profile_citations(profile: CollectionProfileOut) -> list[dict[str, str]]:
+    """AGT-009: cite data fragments (coverage, top value, top pair), not just the link."""
+    citations = [{"label": "Evidencia de colección", "target_path": "/catalog-profile"}]
+
+    ranked_fields = sorted(
+        (field for field in profile.fields if field.top_values),
+        key=lambda field: field.coverage_rate,
+        reverse=True,
+    )
+    for profile_field in ranked_fields[:TOP_PROFILE_FIELDS_CITED]:
+        top = profile_field.top_values[0]
+        citations.append(
+            {
+                "label": f"Perfil · {profile_field.label}",
+                "target_path": "/catalog-profile",
+                "detail": (
+                    f"{profile_field.coverage_rate:.0%} de cobertura · valor más frecuente "
+                    f"'{top.value}' ({top.item_count} ítems)"
+                ),
+            }
+        )
+
+    ranked_relationships = sorted(
+        (relationship for relationship in profile.relationships if relationship.pairs),
+        key=lambda relationship: relationship.observed_pairs,
+        reverse=True,
+    )
+    for relationship in ranked_relationships[:TOP_PROFILE_RELATIONSHIPS_CITED]:
+        pair = relationship.pairs[0]
+        citations.append(
+            {
+                "label": f"Relación · {relationship.from_field} → {relationship.to_field}",
+                "target_path": "/catalog-profile",
+                "detail": (
+                    f"{relationship.observed_pairs} pares observados · principal "
+                    f"'{pair.from_value} → {pair.to_value}' ({pair.item_count} ítems)"
+                ),
+            }
+        )
+
+    return citations
+
+
 async def _get_catalog_profile(session: AsyncSession, _args: dict[str, Any]) -> ToolResult:
     try:
         profile = await get_catalog_profile(session)
@@ -138,7 +185,7 @@ async def _get_catalog_profile(session: AsyncSession, _args: dict[str, Any]) -> 
         return ToolResult(output={"error": str(error.detail)})
     return ToolResult(
         output=profile.model_dump(mode="json"),
-        citations=[{"label": "Evidencia de colección", "target_path": "/catalog-profile"}],
+        citations=_profile_citations(profile),
     )
 
 

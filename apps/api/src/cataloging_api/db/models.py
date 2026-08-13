@@ -658,11 +658,37 @@ class AgentMessage(Base):
     citations: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, default=list)
     model: Mapped[str | None] = mapped_column(String(64))
     usage: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    latency_ms: Mapped[int | None] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), index=True
     )
 
     conversation: Mapped[AgentConversation] = relationship(back_populates="messages")
+
+
+class AgentTurnError(Base):
+    """Append-only log of provider-turn failures, for AGT-008's error-rate metric.
+
+    A failed turn never becomes an `AgentMessage` (the assistant message is
+    only persisted on success), so error observability needs its own row —
+    mirrors `SyncRun.error_detail`'s "store the raw exception text" precedent.
+    """
+
+    __tablename__ = "agent_turn_errors"
+    __table_args__ = (
+        Index("ix_agent_turn_errors_conversation_created", "conversation_id", "created_at"),
+    )
+
+    error_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    conversation_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("agent_conversations.conversation_id", ondelete="CASCADE"), index=True
+    )
+    detail: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
 
 
 class ProviderCredential(Base):
