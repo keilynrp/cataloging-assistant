@@ -157,15 +157,20 @@ lectura (búsqueda, ítem, similares, validación, sugerencias, cola de
 trabajo, perfil, vocabularios, estado de sincronización). Nunca escribe en
 DSpace ni genera hallazgos, borradores o sugerencias por su cuenta — sólo
 enlaza a la ficha correspondiente para que un humano decida allí. La
-integración con el proveedor del modelo vive aislada en
-`cataloging_api/agent/`, el único módulo que importa su SDK (ADR-010).
+integración con los proveedores del modelo vive aislada en
+`cataloging_api/agent/providers/` (ADR-010, ADR-011); hoy soporta Anthropic
+y OpenAI detrás de un mismo contrato.
 
-Requiere `ANTHROPIC_API_KEY` en `.env`; sin ella, crear una conversación
-funciona pero enviar mensajes responde `503`. Igual que el resto de las
-mutaciones, iniciar una conversación y enviar mensajes exige
-`CATALOG_REVIEW_TOKEN`, porque cada mensaje tiene costo real de API. El
-historial de la conversación persiste en PostgreSQL (`agent_conversations`,
-`agent_messages`, append-only).
+La credencial del proveedor ya no se configura por variable de entorno:
+se administra en `http://localhost:3000/settings`, donde se guarda cifrada
+en PostgreSQL (`provider_credentials`, Fernet con clave raíz
+`SETTINGS_ENCRYPTION_KEY`) y sólo se expone una vista enmascarada. Sin una
+credencial activa, crear una conversación funciona pero enviar mensajes
+responde `503`. Igual que el resto de las mutaciones — y también las
+lecturas de esta pantalla de configuración, por ser más sensibles — iniciar
+una conversación, enviar mensajes y gestionar credenciales exige
+`CATALOG_REVIEW_TOKEN`. El historial de la conversación persiste en
+PostgreSQL (`agent_conversations`, `agent_messages`, append-only).
 
 ## Verificación
 

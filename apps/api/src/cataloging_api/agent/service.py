@@ -13,7 +13,14 @@ from cataloging_api.agent.constants import (
     MAX_TOOL_RESULT_CHARS,
     SYSTEM_PROMPT,
 )
-from cataloging_api.agent.provider import AgentProvider, TextDelta, TurnDone
+from cataloging_api.agent.providers.base import (
+    PlainMessage,
+    Provider,
+    TextDelta,
+    ToolCallEvent,
+    ToolCallResultPayload,
+    TurnFinished,
+)
 from cataloging_api.agent.tools import TOOLS_BY_NAME, tool_schemas
 from cataloging_api.db.models import AgentConversation, AgentMessage, AgentMessageRole
 
@@ -45,8 +52,8 @@ async def get_conversation(
     )
 
 
-def _history_as_wire_messages(messages: list[AgentMessage]) -> list[dict[str, Any]]:
-    return [{"role": message.role.value, "content": message.content} for message in messages]
+def _history_as_plain_messages(messages: list[AgentMessage]) -> list[PlainMessage]:
+    return [PlainMessage(role=message.role.value, content=message.content) for message in messages]
 
 
 def _dedupe_citations(citations: list[dict[str, str]]) -> list[dict[str, str]]:
@@ -66,13 +73,17 @@ async def stream_message(
     *,
     conversation_id: uuid.UUID,
     content: str,
-    provider: AgentProvider,
+    provider: Provider,
 ) -> AsyncIterator[dict[str, Any]]:
     """Runs one turn of the conversation, yielding SSE-ready event dicts.
 
     The user message is persisted before the provider is ever called (flow
     step 1 of VERTICAL-015), so a provider failure never loses it. The
     assistant message is only persisted once the turn finishes successfully.
+
+    Delegates the actual model call to a `ProviderTurn` (ADR-011): this
+    function only ever sees the provider-agnostic event types from
+    `agent.providers.base`, never a specific SDK's wire format.
     """
     conversation = await get_conversation(session, conversation_id)
     if conversation is None:
@@ -80,7 +91,7 @@ async def stream_message(
     if len(conversation.messages) >= MAX_MESSAGES_PER_CONVERSATION:
         raise ConversationLimitExceededError
 
-    history = _history_as_wire_messages(conversation.messages)
+    history = _history_as_plain_messages(conversation.messages)
 
     user_message = AgentMessage(
         conversation_id=conversation_id,
@@ -91,8 +102,8 @@ async def stream_message(
     await session.flush()
     await session.commit()
 
-    messages: list[dict[str, Any]] = [*history, {"role": "user", "content": content.strip()}]
     tools = tool_schemas()
+    turn = provider.new_turn()
 
     tool_calls_log: list[dict[str, Any]] = []
     citations: list[dict[str, str]] = []
@@ -102,56 +113,59 @@ async def stream_message(
     calls_made = 0
 
     try:
+        events = turn.start(
+            system=SYSTEM_PROMPT, history=history, user_content=content.strip(), tools=tools
+        )
         while True:
-            done: TurnDone | None = None
-            async for event in provider.stream_step(
-                system=SYSTEM_PROMPT, messages=messages, tools=tools
-            ):
+            finished: TurnFinished | None = None
+            pending_calls: list[ToolCallEvent] = []
+            async for event in events:
                 if isinstance(event, TextDelta):
                     text_parts.append(event.text)
                     yield {"event": "text_delta", "data": {"text": event.text}}
-                elif isinstance(event, TurnDone):
-                    done = event
-            assert done is not None
-            total_input_tokens += done.usage["input_tokens"]
-            total_output_tokens += done.usage["output_tokens"]
+                elif isinstance(event, ToolCallEvent):
+                    pending_calls.append(event)
+                elif isinstance(event, TurnFinished):
+                    finished = event
+            assert finished is not None
+            total_input_tokens += finished.usage["input_tokens"]
+            total_output_tokens += finished.usage["output_tokens"]
 
-            tool_use_blocks = [block for block in done.content_blocks if block.type == "tool_use"]
-            if not tool_use_blocks or done.stop_reason != "tool_use":
+            if not pending_calls or finished.stop_reason != "tool_use":
                 break
-            if calls_made + len(tool_use_blocks) > MAX_TOOL_CALLS_PER_TURN:
+            if calls_made + len(pending_calls) > MAX_TOOL_CALLS_PER_TURN:
                 text_parts.append(
                     "\n\n(Se alcanzó el límite de consultas a herramientas para este turno.)"
                 )
                 break
 
-            messages.append({"role": "assistant", "content": done.content_blocks})
-            tool_results: list[dict[str, Any]] = []
-            for block in tool_use_blocks:
+            tool_results: list[ToolCallResultPayload] = []
+            for pending in pending_calls:
+                call = pending.call
                 calls_made += 1
-                spec = TOOLS_BY_NAME.get(block.name)
+                spec = TOOLS_BY_NAME.get(call.name)
                 yield {
                     "event": "tool_call",
-                    "data": {"tool": block.name, "input": dict(block.input)},
+                    "data": {"tool": call.name, "input": call.input},
                 }
                 if spec is None:
                     result_output: dict[str, Any] = {"error": "herramienta desconocida"}
                     result_citations: list[dict[str, str]] = []
                 else:
-                    result = await spec.handler(session, dict(block.input))
+                    result = await spec.handler(session, call.input)
                     result_output = result.output
                     result_citations = result.citations
-                tool_calls_log.append({"tool": block.name, "input": dict(block.input)})
+                tool_calls_log.append({"tool": call.name, "input": call.input})
                 citations.extend(result_citations)
                 serialized = json.dumps(result_output, ensure_ascii=False, default=str)
                 tool_results.append(
-                    {
-                        "type": "tool_result",
-                        "tool_use_id": block.id,
-                        "content": serialized[:MAX_TOOL_RESULT_CHARS],
-                    }
+                    ToolCallResultPayload(
+                        call_id=call.call_id,
+                        name=call.name,
+                        output=serialized[:MAX_TOOL_RESULT_CHARS],
+                    )
                 )
-            messages.append({"role": "user", "content": tool_results})
+            events = turn.continue_with_tool_results(tool_results)
     except Exception as error:  # noqa: BLE001 - surfaced to the client, not swallowed
         yield {"event": "error", "data": {"detail": str(error)}}
         return

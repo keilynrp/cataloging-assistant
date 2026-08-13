@@ -8,8 +8,10 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from cataloging_api.agent import credentials as credentials_service
 from cataloging_api.agent.constants import MAX_MESSAGES_PER_CONVERSATION
-from cataloging_api.agent.provider import AgentProvider
+from cataloging_api.agent.crypto import DecryptionFailedError, EncryptionNotConfiguredError
+from cataloging_api.agent.providers.registry import KNOWN_PROVIDERS
 from cataloging_api.agent.service import (
     create_conversation,
     get_conversation,
@@ -50,6 +52,27 @@ class MessageCreate(BaseModel):
     content: str = Field(min_length=1, max_length=4000)
 
 
+class ProviderCredentialCreate(BaseModel):
+    provider: str = Field(min_length=2, max_length=40)
+    label: str = Field(min_length=2, max_length=120)
+    model: str = Field(min_length=1, max_length=120)
+    api_key: str = Field(min_length=8, max_length=400)
+    created_by: str = Field(min_length=2, max_length=120)
+    activate: bool = False
+
+
+class ProviderCredentialOut(BaseModel):
+    credential_id: uuid.UUID
+    provider: str
+    label: str
+    model: str
+    key_preview: str
+    is_active: bool
+    created_by: str
+    created_at: str
+    updated_at: str
+
+
 def _conversation_out(conversation) -> ConversationOut:  # noqa: ANN001
     return ConversationOut(
         conversation_id=conversation.conversation_id,
@@ -59,13 +82,42 @@ def _conversation_out(conversation) -> ConversationOut:  # noqa: ANN001
     )
 
 
-def _require_provider() -> AgentProvider:
-    settings = get_settings()
-    if not settings.anthropic_api_key:
+def _credential_out(credential) -> ProviderCredentialOut:  # noqa: ANN001
+    return ProviderCredentialOut(
+        credential_id=credential.credential_id,
+        provider=credential.provider,
+        label=credential.label,
+        model=credential.model,
+        key_preview=credential.key_preview,
+        is_active=credential.is_active,
+        created_by=credential.created_by,
+        created_at=credential.created_at.isoformat(),
+        updated_at=credential.updated_at.isoformat(),
+    )
+
+
+async def _require_provider(session: AsyncSession):  # noqa: ANN202
+    try:
+        provider = await credentials_service.get_active_provider(session)
+    except EncryptionNotConfiguredError as error:
         raise HTTPException(
-            status_code=503, detail="El agente conversacional no está configurado"
+            status_code=503,
+            detail="El cifrado de credenciales no está configurado (SETTINGS_ENCRYPTION_KEY)",
+        ) from error
+    except DecryptionFailedError as error:
+        raise HTTPException(
+            status_code=503,
+            detail="No se pudo descifrar la credencial activa; revísala en /settings",
+        ) from error
+    if provider is None:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "El agente conversacional no está configurado; "
+                "añade una credencial en /settings"
+            ),
         )
-    return AgentProvider(api_key=settings.anthropic_api_key, model=settings.anthropic_model)
+    return provider
 
 
 @router.post(
@@ -113,7 +165,7 @@ async def get_conversation_detail(
 async def post_message(
     conversation_id: uuid.UUID, payload: MessageCreate, session: SessionDep
 ) -> StreamingResponse:
-    provider = _require_provider()
+    provider = await _require_provider(session)
 
     conversation = await get_conversation(session, conversation_id)
     if conversation is None:
@@ -131,3 +183,101 @@ async def post_message(
             yield f"event: {item['event']}\ndata: {data}\n\n"
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
+@router.get(
+    "/settings/credentials",
+    response_model=list[ProviderCredentialOut],
+    dependencies=[Depends(require_review_token)],
+)
+async def list_provider_credentials(session: SessionDep) -> list[ProviderCredentialOut]:
+    credentials = await credentials_service.list_credentials(session)
+    return [_credential_out(credential) for credential in credentials]
+
+
+@router.get(
+    "/settings/providers",
+    dependencies=[Depends(require_review_token)],
+)
+async def list_known_providers() -> list[str]:
+    return list(KNOWN_PROVIDERS)
+
+
+@router.post(
+    "/settings/credentials",
+    response_model=ProviderCredentialOut,
+    status_code=201,
+    dependencies=[Depends(require_review_token)],
+)
+async def post_provider_credential(
+    payload: ProviderCredentialCreate, session: SessionDep
+) -> ProviderCredentialOut:
+    try:
+        credential = await credentials_service.create_credential(
+            session,
+            provider=payload.provider,
+            label=payload.label,
+            model=payload.model,
+            api_key=payload.api_key,
+            created_by=payload.created_by,
+        )
+    except credentials_service.UnknownProviderNameError as error:
+        raise HTTPException(
+            status_code=422, detail=f"Proveedor desconocido: {error}"
+        ) from error
+    except EncryptionNotConfiguredError as error:
+        raise HTTPException(
+            status_code=503,
+            detail="El cifrado de credenciales no está configurado (SETTINGS_ENCRYPTION_KEY)",
+        ) from error
+    if payload.activate:
+        credential = await credentials_service.activate_credential(
+            session, credential.credential_id
+        )
+    await session.commit()
+    return _credential_out(credential)
+
+
+@router.post(
+    "/settings/credentials/{credential_id}/activate",
+    response_model=ProviderCredentialOut,
+    dependencies=[Depends(require_review_token)],
+)
+async def post_activate_credential(
+    credential_id: uuid.UUID, session: SessionDep
+) -> ProviderCredentialOut:
+    try:
+        credential = await credentials_service.activate_credential(session, credential_id)
+    except credentials_service.CredentialNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Credencial no encontrada") from error
+    await session.commit()
+    return _credential_out(credential)
+
+
+@router.post(
+    "/settings/credentials/{credential_id}/deactivate",
+    response_model=ProviderCredentialOut,
+    dependencies=[Depends(require_review_token)],
+)
+async def post_deactivate_credential(
+    credential_id: uuid.UUID, session: SessionDep
+) -> ProviderCredentialOut:
+    try:
+        credential = await credentials_service.deactivate_credential(session, credential_id)
+    except credentials_service.CredentialNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Credencial no encontrada") from error
+    await session.commit()
+    return _credential_out(credential)
+
+
+@router.delete(
+    "/settings/credentials/{credential_id}",
+    status_code=204,
+    dependencies=[Depends(require_review_token)],
+)
+async def delete_provider_credential(credential_id: uuid.UUID, session: SessionDep) -> None:
+    try:
+        await credentials_service.delete_credential(session, credential_id)
+    except credentials_service.CredentialNotFoundError as error:
+        raise HTTPException(status_code=404, detail="Credencial no encontrada") from error
+    await session.commit()

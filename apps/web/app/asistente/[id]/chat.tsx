@@ -66,7 +66,14 @@ export function Chat({ conversationId, initialMessages }: Props) {
         body: JSON.stringify({ content }),
       });
       if (!response.ok || !response.body) {
-        throw new Error(`status ${response.status}`);
+        let detail = `Error del servidor (${response.status}).`;
+        try {
+          const body = (await response.json()) as { detail?: string };
+          if (typeof body.detail === "string") detail = body.detail;
+        } catch {
+          // response body wasn't JSON; keep the generic status message
+        }
+        throw new Error(detail);
       }
 
       const reader = response.body.getReader();
@@ -118,8 +125,8 @@ export function Chat({ conversationId, initialMessages }: Props) {
           }
         }
       }
-    } catch {
-      setError("No se pudo contactar al agente.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "No se pudo contactar al agente.");
       setMessages((prev) => prev.filter((m) => m.id !== assistantId));
     } finally {
       setBusy(false);

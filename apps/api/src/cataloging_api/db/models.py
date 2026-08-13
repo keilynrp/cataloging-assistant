@@ -663,3 +663,23 @@ class AgentMessage(Base):
     )
 
     conversation: Mapped[AgentConversation] = relationship(back_populates="messages")
+
+
+class ProviderCredential(Base):
+    __tablename__ = "provider_credentials"
+    __table_args__ = (Index("ix_provider_credentials_active", "is_active"),)
+
+    credential_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    provider: Mapped[str] = mapped_column(String(40), index=True)
+    label: Mapped[str] = mapped_column(String(120))
+    model: Mapped[str] = mapped_column(String(120))
+    encrypted_api_key: Mapped[str] = mapped_column(Text)
+    key_preview: Mapped[str] = mapped_column(String(20))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_by: Mapped[str] = mapped_column(String(120))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )

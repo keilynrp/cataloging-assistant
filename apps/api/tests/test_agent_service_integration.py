@@ -1,13 +1,17 @@
 import uuid
 from collections.abc import AsyncIterator
-from types import SimpleNamespace
 
 import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from cataloging_api.agent.constants import MAX_MESSAGES_PER_CONVERSATION
-from cataloging_api.agent.provider import TextDelta, TurnDone
+from cataloging_api.agent.providers.base import (
+    TextDelta,
+    ToolCallEvent,
+    ToolCallRequested,
+    TurnFinished,
+)
 from cataloging_api.agent.service import (
     ConversationLimitExceededError,
     ConversationNotFoundError,
@@ -18,27 +22,51 @@ from cataloging_api.db.models import AgentMessage, AgentMessageRole
 from cataloging_api.db.session import engine
 
 
-class FakeProvider:
-    """Duck-types AgentProvider without touching the real SDK or network."""
+class FakeProviderTurn:
+    """Duck-types ProviderTurn without touching a real SDK or network."""
 
     def __init__(self, steps: list[list[object]]) -> None:
         self._steps = steps
         self._call_index = 0
-        self.model = "fake-model"
 
-    async def stream_step(self, *, system, messages, tools) -> AsyncIterator[object]:  # noqa: ANN001
+    def _next_step(self) -> list[object]:
         step = self._steps[self._call_index]
         self._call_index += 1
-        for event in step:
+        return step
+
+    async def start(self, *, system, history, user_content, tools) -> AsyncIterator[object]:  # noqa: ANN001
+        for event in self._next_step():
             yield event
+
+    async def continue_with_tool_results(self, results) -> AsyncIterator[object]:  # noqa: ANN001
+        for event in self._next_step():
+            yield event
+
+
+class FakeProvider:
+    def __init__(self, steps: list[list[object]]) -> None:
+        self._steps = steps
+        self.model = "fake-model"
+
+    def new_turn(self) -> FakeProviderTurn:
+        return FakeProviderTurn(self._steps)
+
+
+class FailingProviderTurn:
+    async def start(self, *, system, history, user_content, tools) -> AsyncIterator[object]:  # noqa: ANN001
+        raise RuntimeError("proveedor no disponible")
+        yield  # pragma: no cover - makes this an async generator
+
+    async def continue_with_tool_results(self, results) -> AsyncIterator[object]:  # noqa: ANN001
+        raise RuntimeError("proveedor no disponible")
+        yield  # pragma: no cover - makes this an async generator
 
 
 class FailingProvider:
     model = "fake-model"
 
-    async def stream_step(self, *, system, messages, tools) -> AsyncIterator[object]:  # noqa: ANN001
-        raise RuntimeError("proveedor no disponible")
-        yield  # pragma: no cover - makes this an async generator
+    def new_turn(self) -> FailingProviderTurn:
+        return FailingProviderTurn()
 
 
 @pytest.mark.integration
@@ -56,28 +84,22 @@ async def test_stream_message_runs_a_tool_and_persists_the_answer() -> None:
         provider = FakeProvider(
             [
                 [
-                    TurnDone(
-                        content_blocks=[
-                            SimpleNamespace(
-                                type="tool_use",
-                                id="toolu_1",
-                                name="search_items",
-                                input={"q": "no debería importar"},
-                            )
-                        ],
-                        stop_reason="tool_use",
-                        usage={"input_tokens": 12, "output_tokens": 4},
-                    )
+                    ToolCallEvent(
+                        call=ToolCallRequested(
+                            call_id="toolu_1",
+                            name="search_items",
+                            input={"q": "no debería importar"},
+                        )
+                    ),
+                    TurnFinished(
+                        stop_reason="tool_use", usage={"input_tokens": 12, "output_tokens": 4}
+                    ),
                 ],
                 [
                     TextDelta(text="No encontré"),
                     TextDelta(text=" ítems con ese nombre."),
-                    TurnDone(
-                        content_blocks=[
-                            SimpleNamespace(type="text", text="No encontré ítems con ese nombre.")
-                        ],
-                        stop_reason="end_turn",
-                        usage={"input_tokens": 20, "output_tokens": 8},
+                    TurnFinished(
+                        stop_reason="end_turn", usage={"input_tokens": 20, "output_tokens": 8}
                     ),
                 ],
             ]
