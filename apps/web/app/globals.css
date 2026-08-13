@@ -1,22 +1,61 @@
 @import "tailwindcss";
 
-/* Tailwind utility tokens (bg-brand-500, text-ink, border-line, ...), mapped
-   onto the same values as the :root custom properties below so pages using
-   either system stay visually consistent. Only /work-queue uses Tailwind
-   utilities today (a deliberate pilot before extending to the rest). */
-@theme {
-  --color-ink: #18201d;
-  --color-muted: #62706a;
-  --color-paper: #f5f6f2;
-  --color-surface: #ffffff;
-  --color-warning: #8a4b22;
-  --color-line: #d9dfda;
-  --color-brand-50: #f1f8f5;
-  --color-brand-100: #dcece6;
-  --color-brand-500: #176b52;
-  --color-brand-600: #125a45;
-  --color-brand-700: #0e4736;
+/* Manual (class-based) dark mode, scoped deliberately: only the sidebar, the
+   header, and pages migrated to Tailwind (/work-queue, /catalog-profile)
+   read the --tw-* tokens below and react to `.dark`. Everything else in the
+   app still reads the plain --ink/--muted/... tokens further down, which
+   `.dark` never touches, so the other ~15 pages stay light-only on purpose
+   until they're migrated too. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Tailwind utility tokens (bg-brand-500, text-ink, border-line, ...). Named
+   --tw-* (not --ink/--muted/...) specifically so they don't collide with,
+   or get overridden by, the shared :root tokens the rest of the app reads
+   below — that separation is what keeps dark mode scoped. */
+@theme inline {
+  --color-ink: var(--tw-ink);
+  --color-muted: var(--tw-muted);
+  --color-paper: var(--tw-paper);
+  --color-surface: var(--tw-surface);
+  --color-warning: var(--tw-warning);
+  --color-line: var(--tw-line);
+  --color-brand-50: var(--tw-brand-50);
+  --color-brand-100: var(--tw-brand-100);
+  --color-brand-500: var(--tw-brand-500);
+  --color-brand-600: var(--tw-brand-600);
+  --color-brand-700: var(--tw-brand-700);
 }
+
+:root {
+  --tw-ink: #18201d;
+  --tw-muted: #62706a;
+  --tw-paper: #f5f6f2;
+  --tw-surface: #ffffff;
+  --tw-warning: #8a4b22;
+  --tw-line: #d9dfda;
+  --tw-brand-50: #f1f8f5;
+  --tw-brand-100: #dcece6;
+  --tw-brand-500: #176b52;
+  --tw-brand-600: #125a45;
+  --tw-brand-700: #0e4736;
+}
+
+.dark {
+  --tw-ink: #eef1ee;
+  --tw-muted: #97a49e;
+  --tw-paper: #101513;
+  --tw-surface: #171f1c;
+  --tw-warning: #e2a26b;
+  --tw-line: #2b3531;
+  --tw-brand-50: #12261e;
+  --tw-brand-100: #16352a;
+  --tw-brand-500: #34b98f;
+  --tw-brand-600: #57c39f;
+  --tw-brand-700: #7fdcbb;
+}
+
+.dark .bell-trigger { border-color: var(--tw-line); color: var(--tw-ink); }
+.dark .bell-trigger:hover, .dark .bell-trigger:focus-visible { border-color: var(--tw-brand-500); color: var(--tw-brand-500); }
 
 :root {
   --ink: #18201d;
