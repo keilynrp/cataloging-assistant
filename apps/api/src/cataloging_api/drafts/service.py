@@ -20,6 +20,7 @@ LINGUISTIC_FIELDS = (
     "dc.subject.linguisticFamily",
     "dc.subject.linguisticBranch",
     "dc.subject.linguiscgroup",
+    "dc.subject.linguisticVariant",
     "dc.description.registeredLanguage",
 )
 
@@ -40,7 +41,7 @@ def normalize_metadata_patch(changes: dict[str, list[str]]) -> dict[str, list[di
     if not changes:
         raise DraftValidationError("At least one linguistic field is required")
     if set(changes) - set(LINGUISTIC_FIELDS):
-        raise DraftValidationError("Only the four linguistic fields may be drafted")
+        raise DraftValidationError("Only the approved linguistic fields may be drafted")
 
     normalized: dict[str, list[dict[str, Any]]] = {}
     for field in LINGUISTIC_FIELDS:
