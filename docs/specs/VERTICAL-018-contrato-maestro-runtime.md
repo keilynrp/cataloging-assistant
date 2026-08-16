@@ -50,6 +50,11 @@ La respuesta incluye:
 8. Rama no es obligatoria para que una familia sea válida.
 9. `dspace_write_enabled == false`.
 10. `human_approval_required == true`.
+11. El bloque lingüístico de `FIELDS` (posiciones 28-35 del formulario) respeta el
+    orden real del formulario de envío DSpace según el layout documentado por
+    `dspace-cataloger v3.6`: `languageUsage, registeredLanguage, linguiscgroup,
+    linguisticFamily, linguisticBranch, linguisticVariant, selfDenomination,
+    iso6391`. Es *UI Fidelity*, independiente de la jerarquía CLIN (ver ADR-013).
 
 ## Degradación
 
@@ -64,6 +69,8 @@ hardcodeada de fallback para acciones catalográficas.
 - inclusión de los cinco campos lingüísticos runtime;
 - variante controlada sin vocabulario DSpace presumido;
 - jerarquía CLIN correcta;
+- orden exacto de bindings lingüísticos frente al layout de `dspace-cataloger
+  v3.6` (ADR-013);
 - serialización del payload;
 - herramienta read-only disponible para el agente;
 - endpoint disponible en modo read-only.

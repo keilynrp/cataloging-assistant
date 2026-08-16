@@ -32,6 +32,14 @@ Mantener esos contratos por separado crea riesgo de *schema drift*.
    - aprobación humana: obligatoria.
 7. Los estados de evidencia del skill se exponen como parte del contrato para la
    futura VERTICAL-017 de ingesta externa.
+8. El orden de los bindings en `FIELDS` sigue el orden real del formulario de envío
+   DSpace tal como lo documenta el layout del artefacto `dspace-cataloger v3.6`
+   (posiciones 28-35 del formulario: `languageUsage, registeredLanguage,
+   linguiscgroup, linguisticFamily, linguisticBranch, linguisticVariant,
+   selfDenomination, iso6391`). Este orden es *UI Fidelity* (fiel al formulario
+   real) y es una dimensión independiente de la jerarquía semántica CLIN de
+   ADR-012 (Familia → Agrupación → Variante), que sigue viviendo únicamente en
+   `CLIN_RELATIONSHIPS` y en las reglas de diagnóstico.
 
 ## Consecuencias
 
@@ -40,6 +48,11 @@ Mantener esos contratos por separado crea riesgo de *schema drift*.
 - La UI puede degradar explícitamente si el contrato no está disponible; no debe
   reconstruir por su cuenta una lista supuestamente equivalente.
 - La disponibilidad de un binding en el contrato no autoriza escritura en DSpace.
+- Reordenar `FIELDS` debe verificarse contra el layout del formulario documentado
+  por `dspace-cataloger v3.6`, no inferirse de la jerarquía CLIN; ambos órdenes
+  pueden divergir legítimamente. La regresión de orden se protege con
+  `test_master_contract_preserves_dspace_ui_order` en
+  `apps/api/tests/test_cataloging_contract.py`.
 
 ## Compatibilidad
 
