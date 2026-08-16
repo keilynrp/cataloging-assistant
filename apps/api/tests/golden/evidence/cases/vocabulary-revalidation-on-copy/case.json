@@ -1,0 +1,11 @@
+{
+  "id": "vocabulary-revalidation-on-copy",
+  "input_type": "text",
+  "handler": "vocabulary_revalidation",
+  "sources": [
+    { "type": "text", "text": "dc.subject.linguisticFamily: Tarasca\n" }
+  ],
+  "field": "dc.subject.linguisticFamily",
+  "outdated_terms": ["Yuto-nahua"],
+  "current_terms": ["Tarasca"]
+}

@@ -1,0 +1,18 @@
+{
+  "id": "explicit-text-unique-metadata-field",
+  "input_type": "text",
+  "sources": [
+    { "type": "text", "text": "dc.description.registeredLanguage: Español\n" }
+  ],
+  "expected_sources": [
+    { "kind": "text", "position": 0 }
+  ],
+  "expected_candidates": [
+    { "binding_id": "registered-language", "metadata_field": "dc.description.registeredLanguage", "value": "Español" }
+  ],
+  "expected_evidence_state": "EXTRAÍDO",
+  "expected_binding_ids": ["registered-language"],
+  "expected_metadata_fields": ["dc.description.registeredLanguage"],
+  "expected_values": ["Español"],
+  "expected_order": ["registered-language"]
+}

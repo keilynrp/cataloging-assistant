@@ -1,0 +1,28 @@
+{
+  "id": "pdf-text-doi-and-explicit-field",
+  "input_type": "pdf",
+  "sources": [
+    {
+      "type": "text",
+      "text": "Sesión de evidencia sin metadatos previos."
+    },
+    {
+      "type": "pdf",
+      "fixture": "with_text",
+      "lines": ["dc.subject.linguisticFamily: Maya", "DOI 10.9999/golden.pdf"]
+    }
+  ],
+  "expected_sources": [
+    { "kind": "text", "position": 0 },
+    { "kind": "pdf", "position": 1, "extraction_status": "extracted" }
+  ],
+  "expected_candidates": [
+    { "binding_id": "linguistic-family", "metadata_field": "dc.subject.linguisticFamily", "value": "Maya" },
+    { "binding_id": "doi", "metadata_field": "dc.identifier.doi", "value": "10.9999/golden.pdf" }
+  ],
+  "expected_evidence_state": "EXTRAÍDO",
+  "expected_binding_ids": ["linguistic-family", "doi"],
+  "expected_metadata_fields": ["dc.subject.linguisticFamily", "dc.identifier.doi"],
+  "expected_values": ["Maya", "10.9999/golden.pdf"],
+  "expected_order": ["linguistic-family", "doi"]
+}

@@ -1,0 +1,60 @@
+{
+  "cases": [
+    {
+      "id": "explicit-text-family-group-variant",
+      "description": "Texto explícito con family/group/variant produce tres candidatos EXTRAÍDO en orden."
+    },
+    {
+      "id": "explicit-text-unique-metadata-field",
+      "description": "metadata_field único (registeredLanguage) resuelve por metadataField."
+    },
+    {
+      "id": "ambiguous-dc-subject-no-candidate",
+      "description": "dc.subject sin binding_id no produce candidato (keywords/topics comparten metadataField)."
+    },
+    {
+      "id": "ambiguous-dc-format-medium-no-candidate",
+      "description": "dc.format.medium sin binding_id no produce candidato (medium/extent-type comparten metadataField)."
+    },
+    {
+      "id": "doi-pattern",
+      "description": "Patrón DOI determinista."
+    },
+    {
+      "id": "issn-pattern",
+      "description": "Patrón ISSN determinista."
+    },
+    {
+      "id": "isbn-pattern",
+      "description": "Patrón ISBN determinista."
+    },
+    {
+      "id": "url-locator-no-fetch",
+      "description": "La URL aportada produce evidencia sin fetch remoto."
+    },
+    {
+      "id": "pdf-text-doi-and-explicit-field",
+      "description": "PDF textual con DOI + campo explícito produce candidatos EXTRAÍDO con página."
+    },
+    {
+      "id": "pdf-without-text-requires-ocr",
+      "description": "PDF sin texto útil queda no_extractable_text y no genera candidatos."
+    },
+    {
+      "id": "stale-session-blocks-extract-and-copy",
+      "description": "Sesión stale bloquea extract/copy en la capa de rutas."
+    },
+    {
+      "id": "vocabulary-revalidation-on-copy",
+      "description": "copy-to-draft revalida contra el vocabulario activo vigente."
+    },
+    {
+      "id": "multi-value-same-field-preserves-position",
+      "description": "Dos valores del mismo metadata_field conservan su position."
+    },
+    {
+      "id": "url-text-pdf-combined-position",
+      "description": "URL + texto + PDF en una sesión conservan source.position combinado."
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "id": "url-locator-no-fetch",
+  "input_type": "url",
+  "sources": [
+    { "type": "url", "url": "https://example.test/golden-set-article" }
+  ],
+  "expected_sources": [
+    { "kind": "url", "position": 0 }
+  ],
+  "expected_candidates": [
+    { "binding_id": "digital-url", "metadata_field": "dc.identifier.url", "value": "https://example.test/golden-set-article" }
+  ],
+  "expected_evidence_state": "EXTRAÍDO",
+  "expected_binding_ids": ["digital-url"],
+  "expected_metadata_fields": ["dc.identifier.url"],
+  "expected_values": ["https://example.test/golden-set-article"],
+  "expected_order": ["digital-url"]
+}

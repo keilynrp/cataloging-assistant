@@ -1,0 +1,24 @@
+{
+  "id": "url-text-pdf-combined-position",
+  "input_type": "url+text+pdf",
+  "sources": [
+    { "type": "url", "url": "https://example.test/golden-combined" },
+    { "type": "text", "text": "dc.subject.linguisticFamily: Combinada\n" },
+    { "type": "pdf", "fixture": "with_text", "lines": ["ISSN 2222-333X"] }
+  ],
+  "expected_sources": [
+    { "kind": "url", "position": 0 },
+    { "kind": "text", "position": 1 },
+    { "kind": "pdf", "position": 2, "extraction_status": "extracted" }
+  ],
+  "expected_candidates": [
+    { "binding_id": "digital-url", "metadata_field": "dc.identifier.url", "value": "https://example.test/golden-combined" },
+    { "binding_id": "linguistic-family", "metadata_field": "dc.subject.linguisticFamily", "value": "Combinada" },
+    { "binding_id": "issn", "metadata_field": "dc.identifier.issn", "value": "2222-333X" }
+  ],
+  "expected_evidence_state": "EXTRAÍDO",
+  "expected_binding_ids": ["digital-url", "linguistic-family", "issn"],
+  "expected_metadata_fields": ["dc.identifier.url", "dc.subject.linguisticFamily", "dc.identifier.issn"],
+  "expected_values": ["https://example.test/golden-combined", "Combinada", "2222-333X"],
+  "expected_order": ["digital-url", "linguistic-family", "issn"]
+}
