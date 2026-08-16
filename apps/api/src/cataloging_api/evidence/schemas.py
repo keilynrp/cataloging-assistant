@@ -20,6 +20,9 @@ class EvidenceSourceOut(BaseModel):
     content_hash: str
     media_type: str | None
     metadata_json: dict[str, object]
+    extraction_status: str
+    extracted_text_hash: str | None
+    page_count: int | None
     created_at: datetime
 
 

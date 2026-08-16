@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     catalog_review_token: str = ""
     catalog_web_origin: str = "http://localhost:3000"
     settings_encryption_key: str = ""
+    evidence_pdf_storage_dir: str = "data/evidence-pdfs"
+    evidence_pdf_extraction_timeout_seconds: float = Field(default=20, gt=0, le=120)
 
     @property
     def required_fields(self) -> tuple[str, ...]:

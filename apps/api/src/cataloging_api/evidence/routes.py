@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from cataloging_api.config import get_settings
@@ -13,6 +13,7 @@ from cataloging_api.drafts.service import (
     DraftStaleError,
     DraftValidationError,
 )
+from cataloging_api.evidence.pdf_extraction import MAX_PDF_BYTES
 from cataloging_api.evidence.schemas import (
     EvidenceCandidateOut,
     EvidenceCopyResult,
@@ -22,8 +23,11 @@ from cataloging_api.evidence.schemas import (
     EvidenceSourceOut,
 )
 from cataloging_api.evidence.service import (
+    EvidencePdfInvalidTypeError,
+    EvidencePdfTooLargeError,
     EvidenceStaleError,
     EvidenceValidationError,
+    add_pdf_evidence_source,
     copy_candidates_to_draft,
     create_evidence_session,
     extract_evidence_candidates,
@@ -85,6 +89,9 @@ def _to_out(
                 content_hash=source.content_hash,
                 media_type=source.media_type,
                 metadata_json=source.metadata_json,
+                extraction_status=source.extraction_status,
+                extracted_text_hash=source.extracted_text_hash,
+                page_count=source.page_count,
                 created_at=source.created_at,
             )
             for source in sources
@@ -230,3 +237,50 @@ async def copy_to_draft(
         version=latest.version,
         item_uuid=draft.item_uuid,
     )
+
+
+@router.post(
+    "/{session_id}/sources/pdf",
+    response_model=EvidenceSessionOut,
+    dependencies=[Depends(require_review_token)],
+)
+async def upload_pdf_source(
+    session_id: uuid.UUID,
+    session: SessionDep,
+    file: Annotated[UploadFile, File()],
+    author: Annotated[str, Form(min_length=2, max_length=120)],
+) -> EvidenceSessionOut:
+    loaded, _, _, stale = await get_evidence_session(session, session_id)
+    if loaded is None:
+        raise HTTPException(status_code=404, detail="Evidence session not found")
+    if stale:
+        raise HTTPException(
+            status_code=409,
+            detail="Evidence session is stale against DSpace",
+        )
+
+    data = await file.read(MAX_PDF_BYTES + 1)
+
+    try:
+        await add_pdf_evidence_source(
+            session,
+            loaded,
+            file_bytes=data,
+            original_filename=file.filename or "",
+            content_type=file.content_type or "",
+            author=author,
+        )
+        await session.commit()
+    except EvidencePdfTooLargeError as error:
+        await session.rollback()
+        raise HTTPException(status_code=413, detail=str(error)) from error
+    except EvidencePdfInvalidTypeError as error:
+        await session.rollback()
+        raise HTTPException(status_code=415, detail=str(error)) from error
+    except EvidenceValidationError as error:
+        await session.rollback()
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+    loaded, sources, candidates, stale = await get_evidence_session(session, session_id)
+    assert loaded is not None
+    return _to_out(loaded, sources, candidates, stale=stale)

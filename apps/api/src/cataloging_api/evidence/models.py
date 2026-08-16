@@ -49,10 +49,23 @@ class CatalogEvidenceSource(Base):
     position: Mapped[int] = mapped_column(Integer)
     kind: Mapped[str] = mapped_column(String(30))
     locator: Mapped[str | None] = mapped_column(Text)
+    # For kind="text": the text supplied verbatim. For kind="pdf": the text
+    # extracted by the PDF pipeline (None until/unless extraction succeeds).
     content_text: Mapped[str | None] = mapped_column(Text)
+    # SHA-256 of the original bytes/text captured (the PDF binary for kind="pdf").
     content_hash: Mapped[str] = mapped_column(String(64), index=True)
     media_type: Mapped[str | None] = mapped_column(String(255))
     metadata_json: Mapped[dict[str, object]] = mapped_column(JSONB, default=dict)
+    # Ingestion pipeline state, distinct from CatalogEvidenceCandidate.evidence_state
+    # (EXTRAÍDO/VERIFICADO/...). "extracted" for url/text sources (nothing to
+    # extract); pdf sources additionally use "no_extractable_text" and "pending".
+    # "rejected" PDFs are never persisted, so it does not appear in practice.
+    extraction_status: Mapped[str] = mapped_column(String(30), server_default="extracted")
+    extraction_metadata_json: Mapped[dict[str, object]] = mapped_column(
+        JSONB, default=dict, server_default="{}"
+    )
+    extracted_text_hash: Mapped[str | None] = mapped_column(String(64))
+    page_count: Mapped[int | None] = mapped_column(Integer)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
