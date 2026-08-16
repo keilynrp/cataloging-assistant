@@ -221,10 +221,7 @@ async def extract_evidence_candidates(
             .where(
                 CatalogEvidenceCandidate.session_id == evidence_session.session_id
             )
-            .order_by(
-                CatalogEvidenceCandidate.created_at,
-                CatalogEvidenceCandidate.candidate_id,
-            )
+            .order_by(CatalogEvidenceCandidate.position)
         )
     )
     if existing:
@@ -242,6 +239,7 @@ async def extract_evidence_candidates(
     )
     vocabularies = await load_active_vocabulary_rules(session)
     candidates: list[CatalogEvidenceCandidate] = []
+    position = 0
     for source in sources:
         for binding_id, metadata_field, value, evidence in _candidate_rows(source):
             vocabulary = vocabularies.get(metadata_field)
@@ -260,6 +258,7 @@ async def extract_evidence_candidates(
             candidate = CatalogEvidenceCandidate(
                 session_id=evidence_session.session_id,
                 source_id=source.source_id,
+                position=position,
                 binding_id=binding_id,
                 metadata_field=metadata_field,
                 value=value,
@@ -269,6 +268,7 @@ async def extract_evidence_candidates(
             )
             session.add(candidate)
             candidates.append(candidate)
+            position += 1
     await session.flush()
     return candidates
 
@@ -299,10 +299,7 @@ async def get_evidence_session(
         await session.scalars(
             select(CatalogEvidenceCandidate)
             .where(CatalogEvidenceCandidate.session_id == session_id)
-            .order_by(
-                CatalogEvidenceCandidate.created_at,
-                CatalogEvidenceCandidate.candidate_id,
-            )
+            .order_by(CatalogEvidenceCandidate.position)
         )
     )
     stale = False

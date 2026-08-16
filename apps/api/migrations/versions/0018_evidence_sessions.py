@@ -103,6 +103,7 @@ def upgrade() -> None:
             sa.ForeignKey("catalog_evidence_sources.source_id", ondelete="CASCADE"),
             nullable=False,
         ),
+        sa.Column("position", sa.Integer(), nullable=False),
         sa.Column("binding_id", sa.String(length=120), nullable=False),
         sa.Column("metadata_field", sa.String(length=255), nullable=False),
         sa.Column("value", sa.Text(), nullable=False),
@@ -119,6 +120,9 @@ def upgrade() -> None:
             sa.DateTime(timezone=True),
             server_default=sa.func.now(),
             nullable=False,
+        ),
+        sa.UniqueConstraint(
+            "session_id", "position", name="uq_evidence_candidates_session_position"
         ),
     )
     for column in (

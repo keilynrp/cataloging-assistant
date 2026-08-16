@@ -1,7 +1,8 @@
 import uuid
 
 import pytest
-from sqlalchemy import delete, update
+from sqlalchemy import delete, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from cataloging_api.db.models import (
@@ -96,8 +97,21 @@ async def test_evidence_snapshot_is_idempotent_revalidated_and_stale_safe() -> N
             ),
         )
         first = await extract_evidence_candidates(session, evidence)
+        assert [candidate.position for candidate in first] == list(range(len(first)))
+
         repeated = await extract_evidence_candidates(session, evidence)
         assert [candidate.candidate_id for candidate in repeated] == [
+            candidate.candidate_id for candidate in first
+        ]
+        assert [candidate.position for candidate in repeated] == [
+            candidate.position for candidate in first
+        ]
+
+        requeried, _, requeried_candidates, _ = await get_evidence_session(
+            session, evidence.session_id
+        )
+        assert requeried is not None
+        assert [candidate.candidate_id for candidate in requeried_candidates] == [
             candidate.candidate_id for candidate in first
         ]
 
@@ -184,6 +198,76 @@ async def test_evidence_snapshot_is_idempotent_revalidated_and_stale_safe() -> N
                 draft_id=draft.draft_id,
                 expected_version=2,
             )
+    finally:
+        await session.close()
+        await transaction.rollback()
+        await connection.close()
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_candidate_position_is_unique_per_session() -> None:
+    collection_uuid = uuid.uuid4()
+    item_uuid = uuid.uuid4()
+    connection = await engine.connect()
+    transaction = await connection.begin()
+    session = AsyncSession(bind=connection, expire_on_commit=False)
+    try:
+        session.add(
+            DSpaceCollection(
+                uuid=collection_uuid,
+                handle="test/evidence-position",
+                name="Evidence position test",
+                raw_json={"uuid": str(collection_uuid)},
+            )
+        )
+        session.add(
+            DSpaceItem(
+                uuid=item_uuid,
+                collection_uuid=collection_uuid,
+                handle="test/evidence-position-item",
+                name="Evidence position item",
+                raw_json={"uuid": str(item_uuid)},
+                source_hash="c" * 64,
+            )
+        )
+        await session.flush()
+
+        evidence = await create_evidence_session(
+            session,
+            item_uuid=item_uuid,
+            created_by="Catalogadora",
+            url=None,
+            text="dc.subject.linguisticFamily: Tarasca",
+        )
+        [candidate] = await extract_evidence_candidates(session, evidence)
+        assert candidate.position == 0
+
+        source = (
+            await session.scalars(
+                select(CatalogEvidenceSource).where(
+                    CatalogEvidenceSource.session_id == evidence.session_id
+                )
+            )
+        ).first()
+        assert source is not None
+
+        with pytest.raises(IntegrityError):
+            async with session.begin_nested():
+                session.add(
+                    CatalogEvidenceCandidate(
+                        session_id=evidence.session_id,
+                        source_id=source.source_id,
+                        position=0,
+                        binding_id="linguistic-group",
+                        metadata_field="dc.subject.linguiscgroup",
+                        value="Duplicado",
+                        evidence_state="EXTRAÍDO",
+                        evidence_json={},
+                        validation_json={},
+                    )
+                )
+                await session.flush()
     finally:
         await session.close()
         await transaction.rollback()

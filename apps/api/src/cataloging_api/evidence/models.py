@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -55,6 +55,9 @@ class CatalogEvidenceCandidate(Base):
     __tablename__ = "catalog_evidence_candidates"
     __table_args__ = (
         Index("ix_evidence_candidates_session_field", "session_id", "metadata_field"),
+        UniqueConstraint(
+            "session_id", "position", name="uq_evidence_candidates_session_position"
+        ),
     )
 
     candidate_id: Mapped[uuid.UUID] = mapped_column(
@@ -68,6 +71,10 @@ class CatalogEvidenceCandidate(Base):
         ForeignKey("catalog_evidence_sources.source_id", ondelete="CASCADE"),
         index=True,
     )
+    # Stable logical order within the session, assigned deterministically by the
+    # extractor (0..N-1). created_at is transaction-time only and must not be used
+    # for ordering: Postgres now() is constant across statements in one transaction.
+    position: Mapped[int] = mapped_column(Integer)
     binding_id: Mapped[str] = mapped_column(String(120), index=True)
     metadata_field: Mapped[str] = mapped_column(String(255), index=True)
     value: Mapped[str] = mapped_column(Text)
