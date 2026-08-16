@@ -3,6 +3,7 @@ from cataloging_api.cataloging_contract import (
     CONTRACT_VERSION,
     CONTROLLED_RUNTIME_FIELDS,
     DRAFTABLE_LINGUISTIC_FIELDS,
+    EVIDENCE_STATES,
     FIELDS,
     LINGUISTIC_BRANCH,
     LINGUISTIC_FAMILY,
@@ -61,6 +62,17 @@ def test_master_contract_preserves_dspace_ui_order() -> None:
         "self-denomination",
         "iso6391",
     ]
+
+
+def test_evidence_states_exclude_qa_statuses() -> None:
+    assert EVIDENCE_STATES == (
+        "EXTRAÍDO",
+        "VERIFICADO",
+        "INFERIDO",
+        "PENDIENTE",
+        "GENERADO",
+    )
+    assert "APP_SCHEMA_GAP" not in EVIDENCE_STATES
 
 
 def test_contract_payload_is_runtime_serializable() -> None:
