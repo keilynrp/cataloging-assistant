@@ -25,11 +25,14 @@ from cataloging_api.evidence.models import (
 from cataloging_api.vocabularies.service import load_active_vocabulary_rules
 
 MAX_TEXT_CHARS = 250_000
-FIELD_NAMES = {field.metadata_field for field in FIELDS}
 FIELD_LINE = re.compile(r"^\s*([A-Za-z0-9_.-]+)\s*:\s*(.+?)\s*$")
 DOI_RE = re.compile(r"\b10\.\d{4,9}/[-._;()/:A-Z0-9]+\b", re.IGNORECASE)
 ISSN_RE = re.compile(r"\b\d{4}-\d{3}[\dXx]\b")
 ISBN_RE = re.compile(r"\b(?:97[89][- ]?)?(?:\d[- ]?){9}[\dXx]\b")
+BINDINGS_BY_ID = {field.binding_id: field for field in FIELDS}
+BINDINGS_BY_METADATA: dict[str, list[object]] = defaultdict(list)
+for contract_field in FIELDS:
+    BINDINGS_BY_METADATA[contract_field.metadata_field].append(contract_field)
 
 
 class EvidenceValidationError(ValueError):
@@ -42,6 +45,25 @@ class EvidenceStaleError(RuntimeError):
 
 def _sha256(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def _resolve_binding(key: str):
+    by_id = BINDINGS_BY_ID.get(key)
+    if by_id is not None:
+        return by_id, "binding_id"
+    by_metadata = BINDINGS_BY_METADATA.get(key, [])
+    if len(by_metadata) == 1:
+        return by_metadata[0], "metadata_field"
+    return None, None
+
+
+def _binding_for_unique_metadata(metadata_field: str):
+    bindings = BINDINGS_BY_METADATA.get(metadata_field, [])
+    if len(bindings) != 1:
+        raise EvidenceValidationError(
+            f"Expected one binding for deterministic field: {metadata_field}"
+        )
+    return bindings[0]
 
 
 def _normalized_source_payload(
@@ -132,9 +154,10 @@ async def create_evidence_session(
 
 def _candidate_rows(
     source: CatalogEvidenceSource,
-) -> Iterable[tuple[str, str, dict[str, object]]]:
+) -> Iterable[tuple[str, str, str, dict[str, object]]]:
     if source.kind == "url" and source.locator:
-        yield "dc.identifier.url", source.locator, {
+        binding = _binding_for_unique_metadata("dc.identifier.url")
+        yield binding.binding_id, binding.metadata_field, source.locator, {
             "kind": "source_url",
             "locator": source.locator,
         }
@@ -146,29 +169,37 @@ def _candidate_rows(
     seen: set[tuple[str, str]] = set()
     for line_number, line in enumerate(text.splitlines(), start=1):
         match = FIELD_LINE.match(line)
-        if match and match.group(1) in FIELD_NAMES:
-            key = (match.group(1), match.group(2).strip())
-            if key not in seen:
-                seen.add(key)
-                yield key[0], key[1], {
-                    "kind": "explicit_field_line",
-                    "line": line_number,
-                    "quote": line[:500],
-                }
+        if not match:
+            continue
+        binding, matched_by = _resolve_binding(match.group(1))
+        if binding is None:
+            continue
+        value = match.group(2).strip()
+        key = (binding.binding_id, value)
+        if key in seen:
+            continue
+        seen.add(key)
+        yield binding.binding_id, binding.metadata_field, value, {
+            "kind": "explicit_contract_line",
+            "matched_by": matched_by,
+            "line": line_number,
+            "quote": line[:500],
+        }
 
     detectors = (
         ("dc.identifier.doi", DOI_RE),
         ("dc.identifier.issn", ISSN_RE),
         ("dc.identifier.isbn", ISBN_RE),
     )
-    for field, pattern in detectors:
+    for metadata_field, pattern in detectors:
+        binding = _binding_for_unique_metadata(metadata_field)
         for match in pattern.finditer(text):
             value = match.group(0).rstrip(".,;)")
-            key = (field, value)
+            key = (binding.binding_id, value)
             if key in seen:
                 continue
             seen.add(key)
-            yield field, value, {
+            yield binding.binding_id, binding.metadata_field, value, {
                 "kind": "deterministic_pattern",
                 "start": match.start(),
                 "end": match.end(),
@@ -210,8 +241,8 @@ async def extract_evidence_candidates(
     vocabularies = await load_active_vocabulary_rules(session)
     candidates: list[CatalogEvidenceCandidate] = []
     for source in sources:
-        for field, value, evidence in _candidate_rows(source):
-            vocabulary = vocabularies.get(field)
+        for binding_id, metadata_field, value, evidence in _candidate_rows(source):
+            vocabulary = vocabularies.get(metadata_field)
             validation = {
                 "status": (
                     "no_vocabulary"
@@ -227,7 +258,8 @@ async def extract_evidence_candidates(
             candidate = CatalogEvidenceCandidate(
                 session_id=evidence_session.session_id,
                 source_id=source.source_id,
-                metadata_field=field,
+                binding_id=binding_id,
+                metadata_field=metadata_field,
                 value=value,
                 evidence_state="EXTRAÍDO",
                 evidence_json=evidence,
@@ -334,7 +366,10 @@ async def copy_candidates_to_draft(
                 f"{candidate.metadata_field}"
             )
         current_vocabulary = current_vocabularies.get(candidate.metadata_field)
-        if current_vocabulary is not None and candidate.value not in current_vocabulary.terms:
+        if (
+            current_vocabulary is not None
+            and candidate.value not in current_vocabulary.terms
+        ):
             raise EvidenceValidationError(
                 "Candidate is outside the current active controlled vocabulary: "
                 f"{candidate.metadata_field}"
