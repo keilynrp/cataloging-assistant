@@ -28,9 +28,14 @@ def test_agent_tools_module_never_references_a_write_function() -> None:
 
 
 def test_every_registered_tool_has_a_handler_and_schema() -> None:
-    assert len(TOOLS) >= 8
+    assert len(TOOLS) >= 9
     for tool in TOOLS:
         assert tool.name
         assert tool.description
         assert tool.input_schema.get("type") == "object"
         assert callable(tool.handler)
+
+
+def test_agent_can_read_the_master_cataloging_contract() -> None:
+    names = {tool.name for tool in TOOLS}
+    assert "get_cataloging_contract" in names

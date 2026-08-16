@@ -16,6 +16,14 @@ def test_normalize_metadata_patch_preserves_repeated_value_order() -> None:
     assert all(value["authority"] is None for value in values)
 
 
+def test_normalize_metadata_patch_accepts_linguistic_variant() -> None:
+    patch = normalize_metadata_patch(
+        {"dc.subject.linguisticVariant": [" mexicano del centro alto "]}
+    )
+
+    assert patch["dc.subject.linguisticVariant"][0]["value"] == "mexicano del centro alto"
+
+
 def test_normalize_metadata_patch_rejects_unknown_fields() -> None:
     with pytest.raises(DraftValidationError):
         normalize_metadata_patch({"dc.title": ["Invented title"]})

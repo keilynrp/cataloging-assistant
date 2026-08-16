@@ -101,7 +101,12 @@ async def test_vocabulary_revisions_are_auditable_idempotent_and_validate_exactl
         validation = await validate_item_metadata(session, item_uuid)
         assert validation is not None
         assert validation["status"] == "valid"
-        assert validation["fields"][0]["values"][0]["approved"] is True
+        family_entry = next(
+            entry
+            for entry in validation["fields"]
+            if entry["field"] == "dc.subject.linguisticFamily"
+        )
+        assert family_entry["values"][0]["approved"] is True
 
         with pytest.raises(VocabularyConflictError):
             await replace_active_vocabulary(
@@ -133,7 +138,12 @@ async def test_vocabulary_revisions_are_auditable_idempotent_and_validate_exactl
         validation = await validate_item_metadata(session, item_uuid)
         assert validation is not None
         assert validation["status"] == "invalid"
-        assert validation["fields"][0]["values"][0]["approved"] is False
+        family_entry = next(
+            entry
+            for entry in validation["fields"]
+            if entry["field"] == "dc.subject.linguisticFamily"
+        )
+        assert family_entry["values"][0]["approved"] is False
     finally:
         await session.close()
         await transaction.rollback()

@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from cataloging_api.cataloging_contract import DRAFTABLE_LINGUISTIC_FIELDS
 from cataloging_api.db.models import (
     CatalogDraft,
     CatalogDraftRevision,
@@ -16,12 +17,8 @@ from cataloging_api.vocabularies.service import (
     load_active_vocabulary_rules,
 )
 
-LINGUISTIC_FIELDS = (
-    "dc.subject.linguisticFamily",
-    "dc.subject.linguisticBranch",
-    "dc.subject.linguiscgroup",
-    "dc.description.registeredLanguage",
-)
+# Backward-compatible local name. The authoritative list lives in cataloging_contract.
+LINGUISTIC_FIELDS = DRAFTABLE_LINGUISTIC_FIELDS
 
 
 class DraftConflictError(Exception):
@@ -40,7 +37,7 @@ def normalize_metadata_patch(changes: dict[str, list[str]]) -> dict[str, list[di
     if not changes:
         raise DraftValidationError("At least one linguistic field is required")
     if set(changes) - set(LINGUISTIC_FIELDS):
-        raise DraftValidationError("Only the four linguistic fields may be drafted")
+        raise DraftValidationError("Only the approved linguistic fields may be drafted")
 
     normalized: dict[str, list[dict[str, Any]]] = {}
     for field in LINGUISTIC_FIELDS:

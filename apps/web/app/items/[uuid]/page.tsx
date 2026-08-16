@@ -2,17 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { getItem, getItemMetadataValidation, getItemSuggestions, getSimilarItems, getSuggestionHistory } from "@/lib/api";
+import { getCatalogingContract } from "@/lib/cataloging-contract";
 
 import { generateSuggestions, recordReviewDecision } from "./actions";
 import { DraftEditor } from "./draft-editor";
 import { SuggestionDecisionForm } from "./suggestion-decision-form";
-
-const LINGUISTIC_FIELDS = [
-  "dc.subject.linguisticFamily",
-  "dc.subject.linguisticBranch",
-  "dc.subject.linguiscgroup",
-  "dc.description.registeredLanguage",
-] as const;
 
 const REVIEW_LABELS = {
   confirmed: "Confirmado",
@@ -44,6 +38,7 @@ const DRAFT_MESSAGES: Record<string, string> = {
   conflict: "El registro fuente o la versión del borrador cambió. Recarga antes de continuar.",
   error: "No fue posible guardar el borrador. Revisa los valores e inténtalo de nuevo.",
   unavailable: "Los borradores están deshabilitados porque falta la configuración segura.",
+  "contract-unavailable": "No se pudo cargar el contrato maestro. No se modificó el borrador.",
 };
 const SUGGESTION_MESSAGES: Record<string, string> = {
   saved: "Las sugerencias vigentes quedaron registradas como evidencia auditable.",
@@ -66,13 +61,15 @@ export default async function ItemPage({
 }) {
   const { uuid } = await params;
   const { review, draft: draftOutcome, suggestions: suggestionsOutcome, suggestionDecision, prepare } = await searchParams;
-  const [itemResult, similarResult, validationResult, suggestionResult, historyResult] = await Promise.allSettled([
-    getItem(uuid),
-    getSimilarItems(uuid),
-    getItemMetadataValidation(uuid),
-    getItemSuggestions(uuid),
-    getSuggestionHistory(uuid),
-  ]);
+  const [itemResult, similarResult, validationResult, suggestionResult, historyResult, contractResult] =
+    await Promise.allSettled([
+      getItem(uuid),
+      getSimilarItems(uuid),
+      getItemMetadataValidation(uuid),
+      getItemSuggestions(uuid),
+      getSuggestionHistory(uuid),
+      getCatalogingContract(),
+    ]);
   if (itemResult.status === "rejected") {
     notFound();
   }
@@ -82,15 +79,19 @@ export default async function ItemPage({
     validationResult.status === "fulfilled" ? validationResult.value : null;
   const suggestions = suggestionResult.status === "fulfilled" ? suggestionResult.value : null;
   const suggestionHistory = historyResult.status === "fulfilled" ? historyResult.value : null;
+  const linguisticFields =
+    contractResult.status === "fulfilled"
+      ? contractResult.value.fields.filter((field) => field.runtime_draftable)
+      : [];
   const latestReviews = new Map(
     item.review_decisions.map((decision) => [decision.finding_fingerprint, decision]),
   );
   const localDraft = item.drafts[0] ?? null;
   const latestDraftRevision = localDraft?.revisions.at(-1) ?? null;
   const draftValues = Object.fromEntries(
-    LINGUISTIC_FIELDS.map((field) => [
-      field,
-      latestDraftRevision?.metadata_patch[field] ?? item.metadata[field] ?? [],
+    linguisticFields.map((field) => [
+      field.metadata_field,
+      latestDraftRevision?.metadata_patch[field.metadata_field] ?? item.metadata[field.metadata_field] ?? [],
     ]),
   );
   const duplicateFields = item.diagnostics.findings
@@ -247,19 +248,29 @@ export default async function ItemPage({
 
       <section>
         <h2>Campos lingüísticos</h2>
-        <div className="field-grid">
-          {LINGUISTIC_FIELDS.map((field) => {
-            const values = item.metadata[field] ?? [];
-            return (
-              <div className={values.length ? "field-card" : "field-card missing"} key={field}>
-                <h3>{field}</h3>
-                {values.length ? (
-                  <ul>{values.map((value) => <li key={`${value.place}-${value.value}`}>{value.value}</li>)}</ul>
-                ) : <p>Ausente</p>}
-              </div>
-            );
-          })}
-        </div>
+        {contractResult.status === "rejected" ? (
+          <div className="diagnostic-notice stale" role="status">
+            No se pudo cargar el contrato maestro. Los campos lingüísticos no están disponibles
+            temporalmente.
+          </div>
+        ) : (
+          <div className="field-grid">
+            {linguisticFields.map((field) => {
+              const values = item.metadata[field.metadata_field] ?? [];
+              return (
+                <div
+                  className={values.length ? "field-card" : "field-card missing"}
+                  key={field.binding_id}
+                >
+                  <h3>{field.ui_label}</h3>
+                  {values.length ? (
+                    <ul>{values.map((value) => <li key={`${value.place}-${value.value}`}>{value.value}</li>)}</ul>
+                  ) : <p>Ausente</p>}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
       <section aria-labelledby="vocabulary-validation-heading">
         <div className="section-heading">
@@ -331,8 +342,8 @@ export default async function ItemPage({
           </span>
         </div>
         <p className="draft-intro">
-          Prepare valores humanos para los cuatro campos lingüísticos. Una línea representa un
-          valor repetible; no se aplicará a DSpace.
+          Prepare valores humanos para los {linguisticFields.length} campos lingüísticos del
+          contrato maestro. Una línea representa un valor repetible; no se aplicará a DSpace.
         </p>
         {localDraft?.stale ? (
           <div className="diagnostic-notice stale" role="status">
@@ -345,9 +356,9 @@ export default async function ItemPage({
           draftId={localDraft?.draft_id ?? null}
           expectedVersion={latestDraftRevision?.version ?? null}
           initialValues={Object.fromEntries(
-            LINGUISTIC_FIELDS.map((field) => [
-              field,
-              draftValues[field].map((entry) => entry.value).join("\n"),
+            linguisticFields.map((field) => [
+              field.metadata_field,
+              draftValues[field.metadata_field].map((entry) => entry.value).join("\n"),
             ]),
           )}
           stale={localDraft?.stale ?? false}

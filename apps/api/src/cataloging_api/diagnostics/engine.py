@@ -5,19 +5,16 @@ from collections import Counter
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 
-RULE_SET_VERSION = "2026-08-11.1"
-
-LINGUISTIC_FAMILY = "dc.subject.linguisticFamily"
-LINGUISTIC_BRANCH = "dc.subject.linguisticBranch"
-LINGUISTIC_GROUP = "dc.subject.linguiscgroup"
-REGISTERED_LANGUAGE = "dc.description.registeredLanguage"
-
-CONTROLLED_LINGUISTIC_FIELDS = (
-    LINGUISTIC_FAMILY,
+from cataloging_api.cataloging_contract import (
+    CONTROLLED_RUNTIME_FIELDS,
     LINGUISTIC_BRANCH,
+    LINGUISTIC_FAMILY,
     LINGUISTIC_GROUP,
-    REGISTERED_LANGUAGE,
+    LINGUISTIC_VARIANT,
 )
+
+RULE_SET_VERSION = "2026-08-15.2"
+CONTROLLED_LINGUISTIC_FIELDS = CONTROLLED_RUNTIME_FIELDS
 
 
 @dataclass(frozen=True)
@@ -83,24 +80,17 @@ def evaluate_metadata(
     required_fields: Iterable[str] = (),
     vocabularies: Mapping[str, VocabularyRule] | None = None,
 ) -> list[Finding]:
-    """Evaluate only deterministic rules approved for the current pilot profile."""
+    """Evaluate only deterministic rules approved for the current pilot profile.
+
+    CLIN is modeled as Familia → Agrupación → Variante. ``Rama`` is an
+    optional genealogical enrichment and therefore family-without-branch is not
+    an error. ``Lengua de registro`` is the language of the resource and is not
+    part of that subject hierarchy.
+    """
     present_fields = {
         field for field, values in metadata.items() if any(value.strip() for value in values)
     }
     findings: list[Finding] = []
-
-    if LINGUISTIC_FAMILY in present_fields and LINGUISTIC_BRANCH not in present_fields:
-        findings.append(
-            Finding(
-                code="CAT-LING-001",
-                severity="warning",
-                affected_fields=(LINGUISTIC_FAMILY, LINGUISTIC_BRANCH),
-                explanation=(
-                    "El registro contiene familia lingüística, pero no contiene rama "
-                    "lingüística. Requiere revisión catalográfica."
-                ),
-            )
-        )
 
     if LINGUISTIC_BRANCH in present_fields and LINGUISTIC_FAMILY not in present_fields:
         findings.append(
@@ -110,7 +100,35 @@ def evaluate_metadata(
                 affected_fields=(LINGUISTIC_BRANCH, LINGUISTIC_FAMILY),
                 explanation=(
                     "El registro contiene rama lingüística, pero no contiene familia "
-                    "lingüística. Falta contexto de completitud."
+                    "lingüística. La rama es un enriquecimiento genealógico opcional, "
+                    "pero cuando se usa necesita contexto de familia."
+                ),
+            )
+        )
+
+    if LINGUISTIC_GROUP in present_fields and LINGUISTIC_FAMILY not in present_fields:
+        findings.append(
+            Finding(
+                code="CAT-LING-004",
+                severity="warning",
+                affected_fields=(LINGUISTIC_GROUP, LINGUISTIC_FAMILY),
+                explanation=(
+                    "El registro contiene agrupación lingüística, pero no familia. "
+                    "Para lenguas indígenas de México, revise la jerarquía CLIN "
+                    "Familia → Agrupación → Variante."
+                ),
+            )
+        )
+
+    if LINGUISTIC_VARIANT in present_fields and LINGUISTIC_GROUP not in present_fields:
+        findings.append(
+            Finding(
+                code="CAT-LING-005",
+                severity="warning",
+                affected_fields=(LINGUISTIC_VARIANT, LINGUISTIC_GROUP),
+                explanation=(
+                    "El registro contiene variante lingüística, pero no agrupación. "
+                    "Revise la correspondencia de autoridad antes de aceptar la variante."
                 ),
             )
         )
@@ -129,10 +147,6 @@ def evaluate_metadata(
                 )
             )
 
-    # Repeated metadata values preserve their DSpace positions, but duplicate
-    # literals after Unicode/case normalization are still reviewable data.
-    # This rule deliberately makes no claim about relationships between the
-    # four flat vocabularies.
     for field in CONTROLLED_LINGUISTIC_FIELDS:
         values = [value.strip() for value in metadata.get(field, ()) if value.strip()]
         normalized = [unicodedata.normalize("NFKC", value).casefold() for value in values]
@@ -158,6 +172,7 @@ def evaluate_metadata(
                 evidence_key=evidence_key,
             )
         )
+
     for field, vocabulary in sorted((vocabularies or {}).items()):
         values = {value.strip() for value in metadata.get(field, ()) if value.strip()}
         invalid_values = sorted(values - vocabulary.terms)
