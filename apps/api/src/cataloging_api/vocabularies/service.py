@@ -23,6 +23,7 @@ CONTROLLED_FIELDS = (
     "dc.subject.linguisticFamily",
     "dc.subject.linguisticBranch",
     "dc.subject.linguiscgroup",
+    "dc.subject.linguisticVariant",
     "dc.description.registeredLanguage",
 )
 
