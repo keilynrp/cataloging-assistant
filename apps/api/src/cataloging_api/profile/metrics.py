@@ -3,25 +3,15 @@ from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-FIELD_SPECS = (
-    ("dc.subject.linguisticFamily", "Familia lingüística"),
-    ("dc.subject.linguisticBranch", "Rama lingüística"),
-    ("dc.subject.linguiscgroup", "Agrupación lingüística"),
-    ("dc.subject.linguisticVariant", "Variante lingüística"),
-    ("dc.description.registeredLanguage", "Lengua de registro"),
+from cataloging_api.cataloging_contract import (
+    PROFILE_FIELD_LABELS,
+    PROFILE_LINGUISTIC_FIELDS,
+    PROFILE_RELATIONSHIPS,
 )
-FIELD_KEYS = tuple(field for field, _label in FIELD_SPECS)
-FIELD_LABELS = dict(FIELD_SPECS)
 
-# Observed corpus relationships are descriptive only. CLIN's normative spine is
-# Familia → Agrupación → Variante. Rama is optional genealogical enrichment;
-# Lengua de registro is an independent document-language axis.
-RELATIONSHIP_SPECS = (
-    ("dc.subject.linguisticFamily", "dc.subject.linguisticBranch"),
-    ("dc.subject.linguisticFamily", "dc.subject.linguiscgroup"),
-    ("dc.subject.linguisticBranch", "dc.subject.linguiscgroup"),
-    ("dc.subject.linguiscgroup", "dc.subject.linguisticVariant"),
-)
+FIELD_KEYS = PROFILE_LINGUISTIC_FIELDS
+FIELD_LABELS = PROFILE_FIELD_LABELS
+RELATIONSHIP_SPECS = PROFILE_RELATIONSHIPS
 
 
 @dataclass(frozen=True)
