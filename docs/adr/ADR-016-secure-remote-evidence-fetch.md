@@ -157,6 +157,21 @@ independiente de IP:
   privado"; `remote_redirect_blocked` se reserva para el caso de bucle de
   redirecciones detectado (URL ya visitada en esta cadena). Superar el
   máximo de saltos es `remote_redirect_limit`.
+- **Sólo un código `2xx` final se acepta como éxito.** Tras resolver los
+  saltos de redirección soportados (`301`/`302`/`303`/`307`/`308`), la
+  respuesta final se valida con `200 <= status_code < 300` **antes** de
+  mirar `Content-Type` o leer un solo byte del cuerpo. Cualquier otro
+  estado — `4xx`, `5xx`, o un `3xx` no manejado como redirect (`304`, por
+  ejemplo) — se rechaza como `remote_upstream_error` sin procesar su
+  cuerpo/MIME como si fuera evidencia real: una página de error 404 en
+  HTML, o un cuerpo 401/403, nunca se convierten en fuente ni en
+  candidatos.
+- **Provenance de DNS por salto.** `resolved_ips` conserva las IPs
+  validadas del salto final (compatibilidad simple para el caso común sin
+  redirects); `resolved_hops` conserva la traza completa —
+  `[{"url", "host", "resolved_ips"}, ...]` — para la URL inicial **y**
+  cada redirect, en el orden en que se intentaron. Esto hace auditable qué
+  IP se validó en cada paso, no sólo en el último.
 - **Limitación residual de DNS rebinding, documentada y aceptada:** la
   validación DNS y la conexión TCP real son dos operaciones separadas en el
   tiempo (la validación usa `getaddrinfo` propio; la conexión la hace
@@ -217,10 +232,23 @@ con `remote_content_type_not_allowed` **antes** de leer el cuerpo completo.
 No se confía sólo en `Content-Type`:
 
 - **PDF:** se exige `%PDF-` en los primeros bytes del cuerpo ya descargado
-  (`pdf_extraction.looks_like_pdf`, reutilizado sin cambios de VERTICAL-019)
-  y se reutiliza `extract_pdf_text` íntegro: mismos límites de páginas (300),
-  mismo timeout de extracción, sin OCR. Un PDF remoto que pypdf rechaza
-  (cifrado, corrupto, demasiadas páginas) da `remote_pdf_invalid`.
+  (verificado dentro de `pdf_extraction.extract_pdf_text`, igual que la
+  subida local) y se reutiliza `extract_pdf_text` íntegro: mismos límites
+  de páginas (300), sin OCR. **El timeout de extracción es un helper
+  compartido** (`service._extract_pdf_text_off_loop`, `asyncio.to_thread` +
+  `asyncio.wait_for(..., timeout=EVIDENCE_PDF_EXTRACTION_TIMEOUT_SECONDS)`):
+  tanto la subida local (`add_pdf_evidence_source`) como el fetch remoto
+  (`_persist_remote_source`) lo llaman, así que ninguna de las dos rutas
+  puede invocar `extract_pdf_text` directamente ni saltarse el timeout.
+  `extract_pdf_text` sigue siendo síncrona pura; el parseo real de `pypdf`
+  siempre ocurre en un hilo aparte, nunca en el event loop. Un PDF remoto
+  que pypdf rechaza (cifrado, corrupto, demasiadas páginas, no es
+  realmente un PDF) da `remote_pdf_invalid`; un PDF remoto cuya extracción
+  excede el timeout falla cerrado (nada se persiste) con un código propio,
+  `remote_pdf_timeout` — distinto de `remote_fetch_timeout` (que cubre la
+  fase de descarga HTTP, no la de parseo) para que el catalogador pueda
+  distinguir "el servidor tardó en responder" de "el PDF descargado es
+  patológicamente lento de parsear".
 - **HTML/XHTML/XML:** nunca se ejecuta JS. Se decodifica con
   `errors="replace"` (una página HTML real casi nunca es UTF-8 estricto al
   100 %; sustituir bytes inválidos por U+FFFD es el mismo comportamiento
@@ -230,13 +258,19 @@ No se confía sólo en `Content-Type`:
   `noscript` y `template` (y todo su contenido) antes de recolectar texto
   visible; no se resuelven `<img>`, `<link>`, `<iframe>`, `<a href>` ni se
   hacen subrequests de ningún tipo. Se conserva el SHA-256 del cuerpo
-  original y del texto derivado por separado (mismo patrón que PDF).
+  original y del texto derivado por separado (mismo patrón que PDF). Si el
+  texto derivado excede `MAX_TEXT_CHARS` (250 000), se **rechaza** con
+  `remote_content_invalid` — la misma política que `text/plain` abajo — en
+  vez de truncarlo en silencio: un truncamiento silencioso dejaría una
+  fuente marcada `extraction_status = "extracted"` cuyo texto no
+  corresponde íntegramente al documento remoto, sin ninguna señal de que
+  faltan datos.
 - **`text/plain`:** decodificación estricta UTF-8 (`errors="strict"`); un
   cuerpo que no es UTF-8 válido se rechaza con `remote_content_invalid` en
   vez de sustituir bytes silenciosamente, porque aquí el texto se trata como
   contenido literal citable, no como marcado tolerante a errores como HTML.
   Se aplica el mismo límite de 250 000 caracteres (`MAX_TEXT_CHARS`) que el
-  texto pegado a mano de VERTICAL-017.
+  texto pegado a mano de VERTICAL-017; excederlo se rechaza, no se trunca.
 
 ## Streaming y tamaño (Fase 6)
 
@@ -288,6 +322,9 @@ texto derivado cuando existe. `extraction_metadata_json` añade:
   "final_url": "...",
   "redirect_chain": ["..."],
   "resolved_ips": ["..."],
+  "resolved_hops": [
+    { "url": "...", "host": "...", "resolved_ips": ["..."] }
+  ],
   "status_code": 200,
   "content_length": 1234,
   "fetched_at": "2026-08-16T12:00:00+00:00",

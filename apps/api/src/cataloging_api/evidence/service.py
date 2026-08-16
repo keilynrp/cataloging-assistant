@@ -43,7 +43,6 @@ from cataloging_api.evidence.pdf_extraction import (
     MAX_PDF_BYTES,
     PdfRejectedError,
     extract_pdf_text,
-    looks_like_pdf,
     page_for_offset,
 )
 from cataloging_api.evidence.remote_fetch import (
@@ -126,6 +125,10 @@ class EvidenceRemoteContentInvalidError(EvidenceValidationError):
 
 
 class EvidenceRemotePdfInvalidError(EvidenceValidationError):
+    pass
+
+
+class EvidenceRemotePdfTimeoutError(EvidenceValidationError):
     pass
 
 
@@ -295,6 +298,22 @@ async def _next_source_position(session: AsyncSession, session_id: uuid.UUID) ->
     return 0 if current_max is None else current_max + 1
 
 
+async def _extract_pdf_text_off_loop(data: bytes, *, timeout_seconds: float):
+    """Run the pure-sync `extract_pdf_text` off the event loop, timeout-enforced.
+
+    Shared by local PDF upload and remote PDF fetch so both get the exact
+    same off-loop dispatch and the exact same configurable timeout
+    (`EVIDENCE_PDF_EXTRACTION_TIMEOUT_SECONDS`) — neither path may call
+    `extract_pdf_text` directly. Raises the stdlib `TimeoutError` or
+    `PdfRejectedError` as-is; callers map both to their own domain-specific
+    error types, since local and remote ingestion have distinct stable API
+    codes for the same underlying failure.
+    """
+    return await asyncio.wait_for(
+        asyncio.to_thread(extract_pdf_text, data), timeout=timeout_seconds
+    )
+
+
 async def add_pdf_evidence_source(
     session: AsyncSession,
     evidence_session: CatalogEvidenceSession,
@@ -329,10 +348,9 @@ async def add_pdf_evidence_source(
     if len(file_bytes) > MAX_PDF_BYTES:
         raise EvidencePdfTooLargeError("PDF exceeds the maximum allowed size")
 
-    timeout_seconds = get_settings().evidence_pdf_extraction_timeout_seconds
     try:
-        result = await asyncio.wait_for(
-            asyncio.to_thread(extract_pdf_text, file_bytes), timeout=timeout_seconds
+        result = await _extract_pdf_text_off_loop(
+            file_bytes, timeout_seconds=get_settings().evidence_pdf_extraction_timeout_seconds
         )
     except TimeoutError as error:
         # Fails closed: nothing has been written to disk or the database yet.
@@ -485,10 +503,16 @@ async def _persist_remote_source(
     page_count: int | None = None
 
     if is_pdf:
-        if not looks_like_pdf(outcome.body):
-            raise EvidenceRemotePdfInvalidError("Remote content is not a valid PDF")
         try:
-            result = extract_pdf_text(outcome.body)
+            result = await _extract_pdf_text_off_loop(
+                outcome.body,
+                timeout_seconds=get_settings().evidence_pdf_extraction_timeout_seconds,
+            )
+        except TimeoutError as error:
+            # Fails closed, same as local upload: nothing is persisted.
+            raise EvidenceRemotePdfTimeoutError(
+                "Remote PDF extraction exceeded the configured timeout"
+            ) from error
         except PdfRejectedError as error:
             raise EvidenceRemotePdfInvalidError(f"PDF rejected: {error.reason}") from error
         extraction_status = result.status
@@ -499,7 +523,13 @@ async def _persist_remote_source(
         extraction_metadata["extractor"] = EXTRACTOR_NAME
     elif is_markup:
         text = extract_html_text(outcome.body)
-        text = text[:MAX_TEXT_CHARS]
+        if len(text) > MAX_TEXT_CHARS:
+            # Reject rather than silently truncate: identical policy to
+            # text/plain below, so a source is never persisted as
+            # "extracted" while quietly discarding part of the document.
+            raise EvidenceRemoteContentInvalidError(
+                f"Remote HTML/XML derived text exceeds {MAX_TEXT_CHARS} characters"
+            )
         extracted_text = text or None
         extraction_status = "extracted" if text.strip() else "no_extractable_text"
         extraction_metadata["extractor"] = "html_stdlib_parser"
@@ -529,6 +559,7 @@ async def _persist_remote_source(
             "final_url": outcome.final_url,
             "redirect_chain": outcome.redirect_chain,
             "resolved_ips": outcome.resolved_ips,
+            "resolved_hops": outcome.resolved_hops,
             "status_code": outcome.status_code,
             "content_length": outcome.content_length,
             "fetched_at": outcome.fetched_at.isoformat(),

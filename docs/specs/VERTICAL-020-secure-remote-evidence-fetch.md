@@ -90,8 +90,10 @@ bloqueo defensivo de `localhost`/formas numéricas de IP).
   completo (`remote_target_not_public`) — cubre respuestas DNS mixtas
   público+privado.
 - Las IPs validadas del salto final quedan en
-  `extraction_metadata_json.resolved_ips` (provenance/API; nunca en la UI
-  pública, ver Fase 11).
+  `extraction_metadata_json.resolved_ips`; la traza completa por salto
+  (inicial + cada redirect) queda en `extraction_metadata_json.resolved_hops`
+  (`[{"url", "host", "resolved_ips"}, ...]`) — provenance/API; nunca en la UI
+  pública, ver Fase 11.
 - Limitación residual de DNS rebinding documentada en ADR-016; no se
   implementa *pinning* de conexión TCP en este corte.
 
@@ -109,6 +111,18 @@ bloqueo defensivo de `localhost`/formas numéricas de IP).
 - Un bucle de redirecciones (URL ya visitada en la misma cadena) se detecta
   y rechaza como `remote_redirect_blocked`. Superar el máximo de saltos es
   `remote_redirect_limit`.
+- Sólo el código de estado del salto **final** importa para MIME/tamaño:
+  una vez agotados los saltos de redirect soportados, la respuesta debe
+  ser `2xx` para procesarse; ver "Aceptación de status HTTP" más abajo.
+
+## Aceptación de status HTTP
+
+Tras resolver los redirects soportados, únicamente `200 <= status_code <
+300` se trata como éxito. La comprobación ocurre **antes** de mirar
+`Content-Type` o leer el cuerpo. Cualquier otro estado — `4xx`, `5xx`, o un
+`3xx` no reconocido como redirect (`304`, `300`) — se rechaza como
+`remote_upstream_error` (`502`) sin procesar su cuerpo ni su MIME: una
+página de error 404 en HTML nunca se convierte en fuente ni en candidatos.
 
 ## MIME policy
 
@@ -128,16 +142,18 @@ ejecutables, `application/octet-stream`) se rechaza con
 | `EVIDENCE_REMOTE_FETCH_TIMEOUT_SECONDS` | 10 s | `read`/`write`/`pool` de `httpx.Timeout`; `connect` usa `min(5.0, timeout)`. |
 | `EVIDENCE_REMOTE_FETCH_MAX_REDIRECTS` | 3 | Saltos de redirección, no peticiones totales (máximo 4 peticiones). |
 | Páginas PDF | 300 (reutilizado de VERTICAL-019) | Mismo `MAX_PDF_PAGES`. |
-| Caracteres de texto | 250 000 (reutilizado de VERTICAL-017) | Aplica a `text/plain` y al texto derivado de HTML/XML. |
+| Caracteres de texto | 250 000 (reutilizado de VERTICAL-017) | Aplica a `text/plain` y al texto derivado de HTML/XML; excederlo se **rechaza** (`remote_content_invalid`), nunca se trunca en silencio. |
+| Timeout de extracción PDF | `EVIDENCE_PDF_EXTRACTION_TIMEOUT_SECONDS` (VERTICAL-019, default 20 s) | Compartido vía un helper (`_extract_pdf_text_off_loop`) entre subida local y PDF remoto; el remoto falla cerrado con `remote_pdf_timeout` sin persistir nada. |
 
 ## Provenance contract
 
 Cada fuente `kind="remote"` conserva en `extraction_metadata_json`:
 
 `requested_url`, `final_url`, `redirect_chain`, `resolved_ips`,
-`status_code`, `content_length`, `fetched_at`, `response_body_sha256`,
-`derived_text_sha256`, `remote_fetch_policy_version`, `extractor`, y
-(para PDF remoto) `page_char_offsets`. `content_hash` (columna existente)
+`resolved_hops` (traza por salto: `url`/`host`/`resolved_ips` para la URL
+inicial y cada redirect), `status_code`, `content_length`, `fetched_at`,
+`response_body_sha256`, `derived_text_sha256`, `remote_fetch_policy_version`,
+`extractor`, y (para PDF remoto) `page_char_offsets`. `content_hash` (columna existente)
 duplica `response_body_sha256` para consistencia con el resto de fuentes;
 `locator` (columna existente) guarda `final_url`. No se guardan cabeceras
 sensibles ni ninguna cabecera fuera de esta lista.
@@ -153,11 +169,12 @@ sensibles ni ninguna cabecera fuera de esta lista.
 | 422 | `remote_redirect_blocked` | Bucle de redirecciones detectado. |
 | 422 | `remote_redirect_limit` | Se superó `EVIDENCE_REMOTE_FETCH_MAX_REDIRECTS`. |
 | 422 | `remote_content_type_not_allowed` | `Content-Type` fuera del allowlist. |
-| 422 | `remote_content_invalid` | Cuerpo no decodificable como el tipo declarado (p. ej. `text/plain` no UTF-8). |
+| 422 | `remote_content_invalid` | Cuerpo no decodificable como el tipo declarado (p. ej. `text/plain` no UTF-8), o texto derivado (`text/plain` o HTML/XML) que excede `MAX_TEXT_CHARS`. |
 | 422 | `remote_pdf_invalid` | Magic bytes ausentes o `pypdf` rechaza el PDF (cifrado/corrupto/demasiadas páginas). |
+| 422 | `remote_pdf_timeout` | La extracción del PDF (local o remoto, mismo helper compartido) excedió `EVIDENCE_PDF_EXTRACTION_TIMEOUT_SECONDS`; distinto de `remote_fetch_timeout` (fase de descarga HTTP, no de parseo). |
 | 413 | `remote_content_too_large` | `Content-Length` o el cuerpo en streaming exceden el máximo. |
-| 422 | `remote_fetch_timeout` | Se superó `EVIDENCE_REMOTE_FETCH_TIMEOUT_SECONDS` (ver ADR-016 sobre por qué `422` y no `504`). |
-| 502 | `remote_upstream_error` | Error de red/conexión o `5xx` del servidor remoto. |
+| 422 | `remote_fetch_timeout` | Se superó `EVIDENCE_REMOTE_FETCH_TIMEOUT_SECONDS` durante la descarga HTTP (ver ADR-016 sobre por qué `422` y no `504`). |
+| 502 | `remote_upstream_error` | Error de red/conexión, `5xx` del servidor remoto, o cualquier estado final que no sea `2xx` ni un redirect soportado (`4xx`, `304`, etc.) — el cuerpo/MIME de una respuesta así nunca se procesa como evidencia. |
 | 409 | *(sin código de detalle nuevo)* | Sesión stale, mismo gate que URL/texto/PDF. |
 
 Ningún mensaje de error incluye stack trace ni IP interna; el `detail` de
@@ -230,7 +247,9 @@ recibe el mismo tratamiento.
 13. Una sesión `stale` bloquea un nuevo fetch remoto, igual que bloquea
     `/extract`, `copy-to-draft` y subida de PDF.
 14. `pytest tests/golden -q` pasa con un mínimo de 34 casos (14 previos +
-    20 de esta vertical).
+    20 de esta vertical; 39 tras la revisión pre-Ready del PR #5, que añadió
+    5 casos más: rechazo de `4xx`/`401`/`403`, rechazo por truncamiento de
+    HTML, y provenance DNS por salto).
 15. Ninguna prueba de esta vertical realiza una llamada HTTP real ni
     resolución DNS real: todo el tráfico se intercepta a nivel de
     transporte (`respx`) y toda resolución DNS por hostname (no IP literal)
@@ -238,6 +257,19 @@ recibe el mismo tratamiento.
     real (`net_policy` se ejecuta sin modificar en todos los casos).
 16. Ninguna operación de esta vertical llama a la capa DSpace ni añade
     herramientas de red al agente conversacional.
+17. Un `4xx` o cualquier estado final que no sea `2xx` ni un redirect
+    soportado (incluidos `401`, `403`, `404`, `304`) nunca crea una fuente
+    ni candidatos; se rechaza como `remote_upstream_error` antes de mirar
+    `Content-Type` o leer el cuerpo.
+18. Un texto derivado (HTML/XML o `text/plain`) que excede `MAX_TEXT_CHARS`
+    se rechaza (`remote_content_invalid`); ninguna fuente queda persistida
+    con `extraction_status = "extracted"` y texto truncado en silencio.
+19. La extracción de un PDF remoto usa el mismo helper de timeout que la
+    subida local (`_extract_pdf_text_off_loop`, fuera del event loop vía
+    `asyncio.to_thread`); si excede `EVIDENCE_PDF_EXTRACTION_TIMEOUT_SECONDS`,
+    falla cerrado con `remote_pdf_timeout` sin persistir nada.
+20. `extraction_metadata_json.resolved_hops` conserva la traza DNS validada
+    de cada salto (URL inicial y cada redirect), no sólo del último.
 
 ## Relación con VERTICAL-017/019
 

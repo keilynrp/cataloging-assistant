@@ -1,0 +1,45 @@
+{
+  "id": "remote-redirect-dns-provenance-per-hop",
+  "handler": "remote_fetch",
+  "url": "https://source.example.test:443/start",
+  "dns": {
+    "source.example.test": ["93.184.216.34"],
+    "target.example.test": ["93.184.216.35"]
+  },
+  "responses": [
+    {
+      "url": "https://source.example.test:443/start",
+      "status": 302,
+      "headers": { "location": "https://target.example.test:443/final.txt" }
+    },
+    {
+      "url": "https://target.example.test:443/final.txt",
+      "status": 200,
+      "headers": { "content-type": "text/plain" },
+      "body_text": "DOI 10.9999/hop.test\n"
+    }
+  ],
+  "expect_source": {
+    "kind": "remote",
+    "media_type": "text/plain",
+    "extraction_status": "extracted",
+    "final_url": "https://target.example.test:443/final.txt",
+    "redirect_hops": 1,
+    "resolved_hops": [
+      {
+        "url": "https://source.example.test:443/start",
+        "host": "source.example.test",
+        "resolved_ips": ["93.184.216.34"]
+      },
+      {
+        "url": "https://target.example.test:443/final.txt",
+        "host": "target.example.test",
+        "resolved_ips": ["93.184.216.35"]
+      }
+    ]
+  },
+  "expected_binding_ids": ["doi"],
+  "expected_metadata_fields": ["dc.identifier.doi"],
+  "expected_values": ["10.9999/hop.test"],
+  "expected_order": ["doi"]
+}

@@ -34,6 +34,7 @@ from cataloging_api.evidence.service import (
     EvidenceRemoteFetchDisabledError,
     EvidenceRemoteFetchTimeoutError,
     EvidenceRemotePdfInvalidError,
+    EvidenceRemotePdfTimeoutError,
     EvidenceRemoteRedirectBlockedError,
     EvidenceRemoteRedirectLimitError,
     EvidenceRemoteTargetNotPublicError,
@@ -376,6 +377,9 @@ async def upload_remote_source(
     except EvidenceRemotePdfInvalidError as error:
         await session.rollback()
         raise HTTPException(status_code=422, detail="remote_pdf_invalid") from error
+    except EvidenceRemotePdfTimeoutError as error:
+        await session.rollback()
+        raise HTTPException(status_code=422, detail="remote_pdf_timeout") from error
     except EvidenceRemoteContentTooLargeError as error:
         await session.rollback()
         raise HTTPException(status_code=413, detail="remote_content_too_large") from error

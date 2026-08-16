@@ -1,0 +1,14 @@
+{
+  "id": "remote-http-401-not-created",
+  "handler": "remote_fetch",
+  "url": "https://93.184.216.34:443/private.txt",
+  "responses": [
+    {
+      "url": "https://93.184.216.34:443/private.txt",
+      "status": 401,
+      "headers": { "content-type": "text/plain" },
+      "body_text": "unauthorized"
+    }
+  ],
+  "expect_error": "EvidenceRemoteUpstreamError"
+}

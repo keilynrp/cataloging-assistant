@@ -44,6 +44,7 @@ const REMOTE_MESSAGES: Record<string, string> = {
   remote_content_type_not_allowed: "El tipo de contenido remoto no está permitido.",
   remote_content_invalid: "El contenido remoto no pudo decodificarse como se esperaba.",
   remote_pdf_invalid: "El PDF remoto no pudo procesarse (cifrado, corrupto o no es un PDF real).",
+  remote_pdf_timeout: "La extracción del PDF remoto excedió el tiempo máximo configurado.",
   remote_fetch_timeout: "La solicitud remota excedió el tiempo máximo configurado.",
   remote_upstream_error: "El servidor remoto falló o no respondió.",
   rejected: "No fue posible obtener el contenido remoto.",

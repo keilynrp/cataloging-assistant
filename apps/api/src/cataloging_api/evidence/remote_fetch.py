@@ -85,6 +85,7 @@ class RemoteFetchOutcome:
     final_url: str
     redirect_chain: list[str]
     resolved_ips: list[str]
+    resolved_hops: list[dict[str, object]]
     status_code: int
     media_type: str
     content_length: int
@@ -119,6 +120,7 @@ async def fetch_remote_resource(
     requested_url = url
     chain: list[str] = []
     visited: set[str] = set()
+    resolved_hops: list[dict[str, object]] = []
     next_url = url
     hop = 0
 
@@ -143,6 +145,12 @@ async def fetch_remote_resource(
                 raise RedirectLoopError(current_url)
             visited.add(current_url)
             resolved_ips = await resolver(validated.host, validated.port)
+            # Recorded for every hop attempted (initial URL and each
+            # redirect Location), not just the final one, so provenance
+            # shows exactly which IPs were validated at each step.
+            resolved_hops.append(
+                {"url": current_url, "host": validated.host, "resolved_ips": resolved_ips}
+            )
 
             try:
                 async with client.stream("GET", current_url) as response:
@@ -156,6 +164,14 @@ async def fetch_remote_resource(
                         next_url = urljoin(current_url, location)
                         hop += 1
                         continue
+
+                    status_code = response.status_code
+                    if not (200 <= status_code < 300):
+                        # Only a genuine 2xx is evidence. A 4xx/5xx (or any
+                        # other non-redirect, non-2xx status such as 304)
+                        # must never have its body/MIME processed as if it
+                        # were a real document — reject before either check.
+                        raise UpstreamError(f"upstream_status_{status_code}")
 
                     content_type_raw = response.headers.get("content-type", "")
                     media_type = content_type_raw.split(";")[0].strip().lower()
@@ -177,10 +193,6 @@ async def fetch_remote_resource(
                         body.extend(chunk)
                         if len(body) > max_bytes:
                             raise ContentTooLargeError(str(len(body)))
-
-                    status_code = response.status_code
-                    if status_code >= 500:
-                        raise UpstreamError(f"upstream_status_{status_code}")
                     break
             except httpx.TimeoutException as error:
                 raise FetchTimeoutError(current_url) from error
@@ -193,6 +205,7 @@ async def fetch_remote_resource(
         final_url=current_url,
         redirect_chain=chain,
         resolved_ips=resolved_ips,
+        resolved_hops=resolved_hops,
         status_code=status_code,
         media_type=media_type,
         content_length=len(body_bytes),

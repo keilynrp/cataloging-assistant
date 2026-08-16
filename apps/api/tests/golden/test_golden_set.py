@@ -337,6 +337,9 @@ async def _run_remote_fetch_case(
             error_cls = getattr(evidence_service, expect_error)
             with pytest.raises(error_cls):
                 await do_fetch()
+            _, sources, candidates, _ = await get_evidence_session(session, evidence.session_id)
+            assert sources == [], "a rejected fetch must not persist a source"
+            assert candidates == []
             return
         source = await do_fetch()
 
@@ -352,6 +355,13 @@ async def _run_remote_fetch_case(
     if "redirect_hops" in expected:
         redirect_chain = source.extraction_metadata_json["redirect_chain"]
         assert len(redirect_chain) == expected["redirect_hops"]
+    if "resolved_hops" in expected:
+        actual_hops = source.extraction_metadata_json["resolved_hops"]
+        assert len(actual_hops) == len(expected["resolved_hops"])
+        for actual_hop, expected_hop in zip(actual_hops, expected["resolved_hops"], strict=True):
+            assert actual_hop["url"] == expected_hop["url"]
+            assert actual_hop["host"] == expected_hop["host"]
+            assert actual_hop["resolved_ips"] == expected_hop["resolved_ips"]
     for needle in expected.get("text_includes", []):
         assert needle in (source.content_text or "")
     for needle in expected.get("text_excludes", []):

@@ -135,6 +135,26 @@
     {
       "id": "remote-repeat-fetch-append-only-snapshots",
       "description": "Dos fetches explícitos de la misma URL crean dos fuentes append-only distintas."
+    },
+    {
+      "id": "remote-http-404-not-created",
+      "description": "Un 404 no crea source ni candidatos; el cuerpo/MIME de un no-2xx nunca se procesa como evidencia."
+    },
+    {
+      "id": "remote-http-401-not-created",
+      "description": "Un 401 no crea source ni candidatos."
+    },
+    {
+      "id": "remote-http-403-not-created",
+      "description": "Un 403 no crea source ni candidatos."
+    },
+    {
+      "id": "remote-html-over-max-chars-rejected",
+      "description": "Texto derivado de HTML por encima de MAX_TEXT_CHARS se rechaza en vez de truncarse en silencio."
+    },
+    {
+      "id": "remote-redirect-dns-provenance-per-hop",
+      "description": "La provenance conserva la resolución DNS validada de cada salto (inicial y redirect), no sólo la del último."
     }
   ]
 }
