@@ -53,3 +53,10 @@ class EvidenceCopyToDraft(BaseModel):
     note: str = Field(min_length=1, max_length=2000)
     draft_id: uuid.UUID | None = None
     expected_version: int | None = Field(default=None, ge=1)
+
+
+class EvidenceCopyResult(BaseModel):
+    draft_id: uuid.UUID
+    revision_id: uuid.UUID
+    version: int
+    item_uuid: uuid.UUID
