@@ -24,9 +24,9 @@ Primera vertical del MVP para **P'UHREPECHA** (`123456789/4`).
 ```bash
 cd /home/keilyn/cat
 cp .env.example .env
-docker-compose up -d postgres api web
-docker-compose run --rm api python -m cataloging_api.sync.cli
-docker-compose run --rm api python -m cataloging_api.diagnostics.cli
+docker compose up -d postgres api web
+docker compose run --rm api python -m cataloging_api.sync.cli
+docker compose run --rm api python -m cataloging_api.diagnostics.cli
 ```
 
 - Web: `http://localhost:3000`
@@ -129,7 +129,7 @@ backlog/edad/reintentos de la cola de salida y conexiones WebSocket aceptadas
 o rechazadas.
 
 ```bash
-docker-compose run --rm api python -m cataloging_api.notifications.digest_cli
+docker compose run --rm api python -m cataloging_api.notifications.digest_cli
 ```
 
 Genera un aviso `digest.summary` con el conteo de actividad desde el resumen
@@ -144,7 +144,7 @@ host (por ejemplo con `cron`).
 `GET /api/sync-runs/latest` muestra el checkpoint. Para reanudar:
 
 ```bash
-docker-compose run --rm api python -m cataloging_api.sync.cli --resume-page 3
+docker compose run --rm api python -m cataloging_api.sync.cli --resume-page 3
 ```
 
 Una reanudación no marca ausentes como eliminados. La conciliación sólo ocurre tras un recorrido completo exitoso desde la página cero.
@@ -177,7 +177,7 @@ PostgreSQL (`agent_conversations`, `agent_messages`, append-only).
 ```bash
 make test
 make lint
-docker-compose build web
+docker compose build web
 ```
 
 La suite usa fixtures HAL+JSON y PostgreSQL local; DSpace real no es una dependencia obligatoria.

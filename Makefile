@@ -1,4 +1,4 @@
-COMPOSE ?= docker-compose
+COMPOSE ?= docker compose
 
 .PHONY: up down test lint migrate sync diagnose digest logs
 
