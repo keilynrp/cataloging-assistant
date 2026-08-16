@@ -201,10 +201,10 @@ When the session is stale, the UX must:
 
 - preserve all evidence for historical inspection;
 - show a prominent session-level warning;
-- block actions governed by backend staleness rules;
+- block all evidence mutations and downstream draft mutations that the backend governs as stale-sensitive, including adding local or remote sources, extraction, and copy-to-draft where applicable;
 - not imply that individual immutable remote/PDF snapshots are being rewritten.
 
-Current blocked operations include remote fetch, extraction, and copy-to-draft according to the runtime implementation.
+The backend remains authoritative for the exact stale-session mutation set; the UX must reflect those disabled actions rather than maintain an independent list.
 
 ## 13. PDF governance
 
