@@ -1,0 +1,24 @@
+{
+  "id": "remote-text-plain-valid",
+  "handler": "remote_fetch",
+  "url": "https://93.184.216.34:443/notes.txt",
+  "responses": [
+    {
+      "url": "https://93.184.216.34:443/notes.txt",
+      "status": 200,
+      "headers": { "content-type": "text/plain" },
+      "body_text": "dc.subject.linguisticFamily: Maya\nDOI 10.9999/remote.text\n"
+    }
+  ],
+  "expect_source": {
+    "kind": "remote",
+    "media_type": "text/plain",
+    "extraction_status": "extracted",
+    "final_url": "https://93.184.216.34:443/notes.txt",
+    "redirect_hops": 0
+  },
+  "expected_binding_ids": ["linguistic-family", "doi"],
+  "expected_metadata_fields": ["dc.subject.linguisticFamily", "dc.identifier.doi"],
+  "expected_values": ["Maya", "10.9999/remote.text"],
+  "expected_order": ["linguistic-family", "doi"]
+}

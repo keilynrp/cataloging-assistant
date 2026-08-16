@@ -128,11 +128,13 @@ Por tanto:
 
 ## Siguiente iteración
 
-Ver **VERTICAL-019** (`docs/specs/VERTICAL-019-golden-set-pdf-evidence.md`)
-y **ADR-015** (`docs/adr/ADR-015-pdf-evidence-and-golden-set.md`):
+Ver **VERTICAL-019** (`docs/specs/VERTICAL-019-golden-set-pdf-evidence.md`),
+**ADR-015** (`docs/adr/ADR-015-pdf-evidence-and-golden-set.md`),
+**VERTICAL-020** (`docs/specs/VERTICAL-020-secure-remote-evidence-fetch.md`) y
+**ADR-016** (`docs/adr/ADR-016-secure-remote-evidence-fetch.md`):
 
 1. Golden Set end-to-end compartido con `dspace-cataloger` — **hecho en VERTICAL-019**.
 2. Upload controlado de PDF con límites MIME/tamaño y extracción de texto — **hecho en VERTICAL-019**.
-3. Fetch HTTP seguro con allow/deny de red, timeout, tamaño y redirecciones — pendiente, sigue fuera de alcance.
+3. Fetch HTTP seguro con allow/deny de red, timeout, tamaño y redirecciones — **hecho en VERTICAL-020**.
 4. Capa LLM provider-independent para candidatos no deterministas, siempre marcada `INFERIDO` o `GENERADO` hasta verificación — pendiente.
 5. Extender el contrato de borrador más allá de los campos lingüísticos mediante una vertical/ADR independiente, sin escritura DSpace — pendiente.

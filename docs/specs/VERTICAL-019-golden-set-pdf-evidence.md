@@ -2,8 +2,8 @@
 
 ## Estado
 
-**Implementado en rama `feat/golden-set-pdf-evidence`; pendiente de revisión
-y merge.**
+**Implementado / merged en main** (PR #4). Ver "Siguiente iteración" al
+final de este documento.
 
 ## Objetivo
 
@@ -155,3 +155,13 @@ una conexión de red saliente.
 Este documento no reescribe VERTICAL-017; lo continúa. VERTICAL-017 queda
 marcado como implementado/fusionado en `main`, con su "Siguiente iteración"
 apuntando aquí y a ADR-015.
+
+## Siguiente iteración
+
+Ver **VERTICAL-020** (`docs/specs/VERTICAL-020-secure-remote-evidence-fetch.md`)
+y **ADR-016** (`docs/adr/ADR-016-secure-remote-evidence-fetch.md`): fetch
+HTTP(S) seguro de una URL de evidencia, con SSRF como amenaza central de
+diseño (allowlist de IP pública, validación de redirecciones salto a salto,
+límites de tamaño en streaming), cerrando el punto 3 pendiente de la
+"Siguiente iteración" de VERTICAL-017. No reescribe nada de este documento;
+sólo añade un cuarto tipo de fuente (`kind="remote"`) junto a `url`/`text`/`pdf`.

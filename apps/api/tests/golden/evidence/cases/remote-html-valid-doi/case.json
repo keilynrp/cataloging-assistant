@@ -1,0 +1,26 @@
+{
+  "id": "remote-html-valid-doi",
+  "handler": "remote_fetch",
+  "url": "https://93.184.216.34:443/record.html",
+  "responses": [
+    {
+      "url": "https://93.184.216.34:443/record.html",
+      "status": 200,
+      "headers": { "content-type": "text/html; charset=utf-8" },
+      "body_text": "<html><head><style>.x{color:red}</style><script>evil()</script></head><body><p>Ver DOI 10.9999/remote.html en el registro.</p><noscript>contenido oculto sin JS</noscript></body></html>"
+    }
+  ],
+  "expect_source": {
+    "kind": "remote",
+    "media_type": "text/html",
+    "extraction_status": "extracted",
+    "final_url": "https://93.184.216.34:443/record.html",
+    "redirect_hops": 0,
+    "text_includes": ["DOI 10.9999/remote.html"],
+    "text_excludes": ["evil()", "color:red", "contenido oculto"]
+  },
+  "expected_binding_ids": ["doi"],
+  "expected_metadata_fields": ["dc.identifier.doi"],
+  "expected_values": ["10.9999/remote.html"],
+  "expected_order": ["doi"]
+}

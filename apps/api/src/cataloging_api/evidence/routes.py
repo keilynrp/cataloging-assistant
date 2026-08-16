@@ -18,6 +18,7 @@ from cataloging_api.evidence.schemas import (
     EvidenceCandidateOut,
     EvidenceCopyResult,
     EvidenceCopyToDraft,
+    EvidenceRemoteSourceCreate,
     EvidenceSessionCreate,
     EvidenceSessionOut,
     EvidenceSourceOut,
@@ -26,9 +27,23 @@ from cataloging_api.evidence.service import (
     EvidencePdfInvalidTypeError,
     EvidencePdfTimeoutError,
     EvidencePdfTooLargeError,
+    EvidenceRemoteContentInvalidError,
+    EvidenceRemoteContentTooLargeError,
+    EvidenceRemoteContentTypeNotAllowedError,
+    EvidenceRemoteDnsResolutionError,
+    EvidenceRemoteFetchDisabledError,
+    EvidenceRemoteFetchTimeoutError,
+    EvidenceRemotePdfInvalidError,
+    EvidenceRemotePdfTimeoutError,
+    EvidenceRemoteRedirectBlockedError,
+    EvidenceRemoteRedirectLimitError,
+    EvidenceRemoteTargetNotPublicError,
+    EvidenceRemoteUpstreamError,
+    EvidenceRemoteUrlInvalidError,
     EvidenceStaleError,
     EvidenceValidationError,
     add_pdf_evidence_source,
+    add_remote_evidence_source,
     copy_candidates_to_draft,
     create_evidence_session,
     delete_pdf_artifact,
@@ -92,6 +107,7 @@ def _to_out(
                 media_type=source.media_type,
                 metadata_json=source.metadata_json,
                 extraction_status=source.extraction_status,
+                extraction_metadata_json=source.extraction_metadata_json,
                 extracted_text_hash=source.extracted_text_hash,
                 page_count=source.page_count,
                 created_at=source.created_at,
@@ -297,6 +313,90 @@ async def upload_pdf_source(
         # avoid an orphan under evidence_pdf_storage_dir.
         await session.rollback()
         delete_pdf_artifact(source.source_id)
+        raise
+
+    loaded, sources, candidates, stale = await get_evidence_session(session, session_id)
+    assert loaded is not None
+    return _to_out(loaded, sources, candidates, stale=stale)
+
+
+@router.post(
+    "/{session_id}/sources/remote",
+    response_model=EvidenceSessionOut,
+    dependencies=[Depends(require_review_token)],
+)
+async def upload_remote_source(
+    session_id: uuid.UUID,
+    payload: EvidenceRemoteSourceCreate,
+    session: SessionDep,
+) -> EvidenceSessionOut:
+    """Explicit backend-only remote fetch (ADR-016). The browser never fetches
+    the URL itself: this route is the only place that opens the connection,
+    behind the same CATALOG_REVIEW_TOKEN as every other evidence mutation.
+    """
+    loaded, _, _, stale = await get_evidence_session(session, session_id)
+    if loaded is None:
+        raise HTTPException(status_code=404, detail="Evidence session not found")
+    if stale:
+        raise HTTPException(
+            status_code=409,
+            detail="Evidence session is stale against DSpace",
+        )
+
+    try:
+        await add_remote_evidence_source(
+            session,
+            loaded,
+            url=payload.url,
+            author=payload.author,
+        )
+    except EvidenceRemoteFetchDisabledError as error:
+        await session.rollback()
+        raise HTTPException(status_code=403, detail="remote_fetch_disabled") from error
+    except EvidenceRemoteUrlInvalidError as error:
+        await session.rollback()
+        raise HTTPException(status_code=422, detail="remote_url_invalid") from error
+    except EvidenceRemoteTargetNotPublicError as error:
+        await session.rollback()
+        raise HTTPException(status_code=422, detail="remote_target_not_public") from error
+    except EvidenceRemoteDnsResolutionError as error:
+        await session.rollback()
+        raise HTTPException(status_code=422, detail="remote_dns_resolution_failed") from error
+    except EvidenceRemoteRedirectBlockedError as error:
+        await session.rollback()
+        raise HTTPException(status_code=422, detail="remote_redirect_blocked") from error
+    except EvidenceRemoteRedirectLimitError as error:
+        await session.rollback()
+        raise HTTPException(status_code=422, detail="remote_redirect_limit") from error
+    except EvidenceRemoteContentTypeNotAllowedError as error:
+        await session.rollback()
+        raise HTTPException(status_code=422, detail="remote_content_type_not_allowed") from error
+    except EvidenceRemoteContentInvalidError as error:
+        await session.rollback()
+        raise HTTPException(status_code=422, detail="remote_content_invalid") from error
+    except EvidenceRemotePdfInvalidError as error:
+        await session.rollback()
+        raise HTTPException(status_code=422, detail="remote_pdf_invalid") from error
+    except EvidenceRemotePdfTimeoutError as error:
+        await session.rollback()
+        raise HTTPException(status_code=422, detail="remote_pdf_timeout") from error
+    except EvidenceRemoteContentTooLargeError as error:
+        await session.rollback()
+        raise HTTPException(status_code=413, detail="remote_content_too_large") from error
+    except EvidenceRemoteFetchTimeoutError as error:
+        await session.rollback()
+        raise HTTPException(status_code=422, detail="remote_fetch_timeout") from error
+    except EvidenceRemoteUpstreamError as error:
+        await session.rollback()
+        raise HTTPException(status_code=502, detail="remote_upstream_error") from error
+
+    try:
+        await session.commit()
+    except Exception:
+        # No filesystem artifact to clean up here: add_remote_evidence_source
+        # never writes the fetched body to disk (see ADR-016 Fase 7), so a
+        # commit failure only needs a DB rollback.
+        await session.rollback()
         raise
 
     loaded, sources, candidates, stale = await get_evidence_session(session, session_id)

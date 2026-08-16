@@ -448,6 +448,7 @@ async def test_commit_failure_after_flush_cleans_up_pdf_and_row(monkeypatch) -> 
             )
         )
         evidence = await _pdf_only_session(session, item_uuid)
+        evidence_session_id = evidence.session_id
         await session.commit()
 
         source = await add_pdf_evidence_source(
@@ -458,7 +459,8 @@ async def test_commit_failure_after_flush_cleans_up_pdf_and_row(monkeypatch) -> 
             content_type=PDF_TYPE,
             author="Catalogadora",
         )
-        pdf_path = storage_dir / f"{source.source_id}.pdf"
+        source_id = source.source_id
+        pdf_path = storage_dir / f"{source_id}.pdf"
         assert pdf_path.exists(), "file must be written before commit is attempted"
 
         original_commit = session.commit
@@ -468,13 +470,18 @@ async def test_commit_failure_after_flush_cleans_up_pdf_and_row(monkeypatch) -> 
 
         monkeypatch.setattr(session, "commit", _failing_commit)
         try:
-            # Same shape as upload_pdf_source's commit except-clause.
+            # Same shape as upload_pdf_source's commit except-clause. Both
+            # IDs are captured locals (see above), not ORM attribute reads:
+            # session.rollback() expires every attribute on every object
+            # still attached to this session, and a bare synchronous
+            # attribute access on an expired ORM object outside of
+            # SQLAlchemy's own greenlet context raises MissingGreenlet.
             with pytest.raises(RuntimeError):
                 try:
                     await session.commit()
                 except Exception:
                     await session.rollback()
-                    evidence_service.delete_pdf_artifact(source.source_id)
+                    evidence_service.delete_pdf_artifact(source_id)
                     raise
         finally:
             monkeypatch.setattr(session, "commit", original_commit)
@@ -484,7 +491,7 @@ async def test_commit_failure_after_flush_cleans_up_pdf_and_row(monkeypatch) -> 
         verify_connection = await engine.connect()
         verify_session = AsyncSession(bind=verify_connection, expire_on_commit=False)
         try:
-            persisted = await verify_session.get(CatalogEvidenceSource, source.source_id)
+            persisted = await verify_session.get(CatalogEvidenceSource, source_id)
             assert persisted is None, "PDF row must not be persisted when commit fails"
         finally:
             await verify_session.close()
@@ -493,12 +500,12 @@ async def test_commit_failure_after_flush_cleans_up_pdf_and_row(monkeypatch) -> 
         if evidence is not None:
             await session.execute(
                 delete(CatalogEvidenceSource).where(
-                    CatalogEvidenceSource.session_id == evidence.session_id
+                    CatalogEvidenceSource.session_id == evidence_session_id
                 )
             )
             await session.execute(
                 delete(CatalogEvidenceSession).where(
-                    CatalogEvidenceSession.session_id == evidence.session_id
+                    CatalogEvidenceSession.session_id == evidence_session_id
                 )
             )
         await session.execute(delete(DSpaceItem).where(DSpaceItem.uuid == item_uuid))

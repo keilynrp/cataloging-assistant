@@ -1,0 +1,14 @@
+{
+  "id": "remote-http-404-not-created",
+  "handler": "remote_fetch",
+  "url": "https://93.184.216.34:443/missing.html",
+  "responses": [
+    {
+      "url": "https://93.184.216.34:443/missing.html",
+      "status": 404,
+      "headers": { "content-type": "text/html" },
+      "body_text": "<html><body>No encontrado</body></html>"
+    }
+  ],
+  "expect_error": "EvidenceRemoteUpstreamError"
+}

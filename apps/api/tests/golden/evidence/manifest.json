@@ -55,6 +55,106 @@
     {
       "id": "url-text-pdf-combined-position",
       "description": "URL + texto + PDF en una sesión conservan source.position combinado."
+    },
+    {
+      "id": "remote-text-plain-valid",
+      "description": "Fetch remoto de text/plain válido produce candidatos deterministas."
+    },
+    {
+      "id": "remote-html-valid-doi",
+      "description": "Fetch remoto de HTML válido produce texto derivado sin script/style/noscript y un DOI."
+    },
+    {
+      "id": "remote-pdf-valid",
+      "description": "Fetch remoto de PDF válido reutiliza el pipeline PDF existente."
+    },
+    {
+      "id": "remote-localhost-blocked",
+      "description": "localhost es rechazado antes de cualquier resolución DNS."
+    },
+    {
+      "id": "remote-127-0-0-1-blocked",
+      "description": "127.0.0.1 como IP literal es rechazado por la política de IP pública."
+    },
+    {
+      "id": "remote-ipv6-loopback-blocked",
+      "description": "::1 como IP literal IPv6 es rechazado por la política de IP pública."
+    },
+    {
+      "id": "remote-cloud-metadata-blocked",
+      "description": "169.254.169.254 (metadata cloud) es rechazado por caer en link-local."
+    },
+    {
+      "id": "remote-rfc1918-blocked",
+      "description": "Una IP RFC1918 literal es rechazada por la política de IP pública."
+    },
+    {
+      "id": "remote-hostname-resolves-private-blocked",
+      "description": "Un hostname que resuelve a una IP privada es rechazado igual que la IP literal."
+    },
+    {
+      "id": "remote-hostname-mixed-dns-blocked",
+      "description": "Una resolución DNS con IPs pública y privada mezcladas rechaza el destino completo."
+    },
+    {
+      "id": "remote-redirect-to-private-blocked",
+      "description": "Una redirección hacia un destino privado se rechaza con la misma comprobación que la URL inicial."
+    },
+    {
+      "id": "remote-redirect-loop-blocked",
+      "description": "Un bucle de redirecciones (A→B→A) se detecta y rechaza."
+    },
+    {
+      "id": "remote-redirect-limit-exceeded",
+      "description": "Más de EVIDENCE_REMOTE_FETCH_MAX_REDIRECTS saltos se rechaza."
+    },
+    {
+      "id": "remote-content-length-too-large",
+      "description": "Un Content-Length declarado por encima del máximo se rechaza sin leer el cuerpo."
+    },
+    {
+      "id": "remote-streaming-exceeds-max-without-content-length",
+      "description": "Un cuerpo que excede el máximo en streaming, sin Content-Length fiable, se corta y rechaza."
+    },
+    {
+      "id": "remote-mime-not-allowed",
+      "description": "Un Content-Type fuera del allowlist se rechaza antes de leer el cuerpo."
+    },
+    {
+      "id": "remote-userinfo-url-blocked",
+      "description": "Una URL con userinfo (usuario:contraseña@host) se rechaza."
+    },
+    {
+      "id": "remote-feature-disabled",
+      "description": "Con EVIDENCE_REMOTE_FETCH_ENABLED=false, el fetch se rechaza sin tocar red."
+    },
+    {
+      "id": "stale-session-blocks-remote-fetch",
+      "description": "Sesión stale bloquea fetch remoto en la capa de rutas, igual que URL/texto/PDF."
+    },
+    {
+      "id": "remote-repeat-fetch-append-only-snapshots",
+      "description": "Dos fetches explícitos de la misma URL crean dos fuentes append-only distintas."
+    },
+    {
+      "id": "remote-http-404-not-created",
+      "description": "Un 404 no crea source ni candidatos; el cuerpo/MIME de un no-2xx nunca se procesa como evidencia."
+    },
+    {
+      "id": "remote-http-401-not-created",
+      "description": "Un 401 no crea source ni candidatos."
+    },
+    {
+      "id": "remote-http-403-not-created",
+      "description": "Un 403 no crea source ni candidatos."
+    },
+    {
+      "id": "remote-html-over-max-chars-rejected",
+      "description": "Texto derivado de HTML por encima de MAX_TEXT_CHARS se rechaza en vez de truncarse en silencio."
+    },
+    {
+      "id": "remote-redirect-dns-provenance-per-hop",
+      "description": "La provenance conserva la resolución DNS validada de cada salto (inicial y redirect), no sólo la del último."
     }
   ]
 }

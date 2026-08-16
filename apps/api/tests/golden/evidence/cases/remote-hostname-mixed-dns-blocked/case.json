@@ -1,0 +1,7 @@
+{
+  "id": "remote-hostname-mixed-dns-blocked",
+  "handler": "remote_fetch",
+  "url": "https://mixed.example.test:443/doc.txt",
+  "dns": { "mixed.example.test": ["93.184.216.34", "10.0.0.5"] },
+  "expect_error": "EvidenceRemoteTargetNotPublicError"
+}

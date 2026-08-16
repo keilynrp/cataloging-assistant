@@ -1,0 +1,21 @@
+{
+  "id": "remote-repeat-fetch-append-only-snapshots",
+  "handler": "remote_fetch",
+  "url": "https://93.184.216.34:443/notes.txt",
+  "second_fetch": true,
+  "responses": [
+    {
+      "url": "https://93.184.216.34:443/notes.txt",
+      "status": 200,
+      "headers": { "content-type": "text/plain" },
+      "body_text": "DOI 10.9999/remote.repeat\n"
+    }
+  ],
+  "expect_source": {
+    "kind": "remote",
+    "media_type": "text/plain",
+    "extraction_status": "extracted",
+    "final_url": "https://93.184.216.34:443/notes.txt",
+    "redirect_hops": 0
+  }
+}

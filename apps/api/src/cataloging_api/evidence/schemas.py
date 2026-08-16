@@ -21,9 +21,15 @@ class EvidenceSourceOut(BaseModel):
     media_type: str | None
     metadata_json: dict[str, object]
     extraction_status: str
+    extraction_metadata_json: dict[str, object]
     extracted_text_hash: str | None
     page_count: int | None
     created_at: datetime
+
+
+class EvidenceRemoteSourceCreate(BaseModel):
+    url: str = Field(min_length=1, max_length=4000)
+    author: str = Field(min_length=2, max_length=120)
 
 
 class EvidenceCandidateOut(BaseModel):

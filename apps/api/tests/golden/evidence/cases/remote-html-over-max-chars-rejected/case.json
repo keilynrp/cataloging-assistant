@@ -1,0 +1,14 @@
+{
+  "id": "remote-html-over-max-chars-rejected",
+  "handler": "remote_fetch",
+  "url": "https://93.184.216.34:443/huge.html",
+  "responses": [
+    {
+      "url": "https://93.184.216.34:443/huge.html",
+      "status": 200,
+      "headers": { "content-type": "text/html" },
+      "body_repeat": { "char": "a", "count": 250001 }
+    }
+  ],
+  "expect_error": "EvidenceRemoteContentInvalidError"
+}

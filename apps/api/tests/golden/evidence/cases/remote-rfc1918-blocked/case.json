@@ -1,0 +1,6 @@
+{
+  "id": "remote-rfc1918-blocked",
+  "handler": "remote_fetch",
+  "url": "http://10.0.0.5/",
+  "expect_error": "EvidenceRemoteTargetNotPublicError"
+}

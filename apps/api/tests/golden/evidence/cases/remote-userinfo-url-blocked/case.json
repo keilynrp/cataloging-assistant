@@ -1,0 +1,6 @@
+{
+  "id": "remote-userinfo-url-blocked",
+  "handler": "remote_fetch",
+  "url": "https://user:pass@93.184.216.34/secret",
+  "expect_error": "EvidenceRemoteUrlInvalidError"
+}

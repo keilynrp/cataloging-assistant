@@ -1,0 +1,14 @@
+{
+  "id": "remote-content-length-too-large",
+  "handler": "remote_fetch",
+  "url": "https://93.184.216.34:443/huge.txt",
+  "responses": [
+    {
+      "url": "https://93.184.216.34:443/huge.txt",
+      "status": 200,
+      "headers": { "content-type": "text/plain", "content-length": "999999999" },
+      "body_text": "tiny"
+    }
+  ],
+  "expect_error": "EvidenceRemoteContentTooLargeError"
+}

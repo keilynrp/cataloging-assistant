@@ -1,0 +1,13 @@
+{
+  "id": "remote-redirect-to-private-blocked",
+  "handler": "remote_fetch",
+  "url": "https://93.184.216.34:443/start",
+  "responses": [
+    {
+      "url": "https://93.184.216.34:443/start",
+      "status": 302,
+      "headers": { "location": "http://169.254.169.254/latest/meta-data/" }
+    }
+  ],
+  "expect_error": "EvidenceRemoteTargetNotPublicError"
+}

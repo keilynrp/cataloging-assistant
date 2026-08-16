@@ -1,0 +1,6 @@
+{
+  "id": "remote-localhost-blocked",
+  "handler": "remote_fetch",
+  "url": "http://localhost/",
+  "expect_error": "EvidenceRemoteUrlInvalidError"
+}

@@ -8,7 +8,9 @@ import uuid
 from collections import defaultdict
 from collections.abc import Iterable
 from pathlib import Path
+from urllib.parse import urlsplit
 
+import structlog
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -23,10 +25,18 @@ from cataloging_api.cataloging_contract import (
 from cataloging_api.config import get_settings
 from cataloging_api.db.models import CatalogDraft, DSpaceItem
 from cataloging_api.drafts.service import append_draft_revision, create_draft
+from cataloging_api.evidence.html_extraction import extract_html_text
 from cataloging_api.evidence.models import (
     CatalogEvidenceCandidate,
     CatalogEvidenceSession,
     CatalogEvidenceSource,
+)
+from cataloging_api.evidence.net_policy import (
+    DnsResolutionError,
+    DnsResolver,
+    TargetNotPublicError,
+    UrlShapeError,
+    resolve_public_ips,
 )
 from cataloging_api.evidence.pdf_extraction import (
     EXTRACTOR_NAME,
@@ -35,7 +45,21 @@ from cataloging_api.evidence.pdf_extraction import (
     extract_pdf_text,
     page_for_offset,
 )
+from cataloging_api.evidence.remote_fetch import (
+    ContentTooLargeError,
+    ContentTypeNotAllowedError,
+    FetchTimeoutError,
+    RedirectLimitError,
+    RedirectLoopError,
+    RemoteFetchOutcome,
+    UpstreamError,
+    fetch_remote_resource,
+)
 from cataloging_api.vocabularies.service import load_active_vocabulary_rules
+
+logger = structlog.get_logger()
+
+REMOTE_FETCH_POLICY_VERSION = "2026-08-16"
 
 MAX_TEXT_CHARS = 250_000
 FIELD_LINE = re.compile(r"^\s*([A-Za-z0-9_.-]+)\s*:\s*(.+?)\s*$")
@@ -61,6 +85,58 @@ class EvidencePdfInvalidTypeError(EvidenceValidationError):
 
 
 class EvidencePdfTimeoutError(EvidenceValidationError):
+    pass
+
+
+class EvidenceRemoteFetchDisabledError(EvidenceValidationError):
+    pass
+
+
+class EvidenceRemoteUrlInvalidError(EvidenceValidationError):
+    pass
+
+
+class EvidenceRemoteTargetNotPublicError(EvidenceValidationError):
+    pass
+
+
+class EvidenceRemoteDnsResolutionError(EvidenceValidationError):
+    pass
+
+
+class EvidenceRemoteRedirectBlockedError(EvidenceValidationError):
+    pass
+
+
+class EvidenceRemoteRedirectLimitError(EvidenceValidationError):
+    pass
+
+
+class EvidenceRemoteContentTypeNotAllowedError(EvidenceValidationError):
+    pass
+
+
+class EvidenceRemoteContentTooLargeError(EvidenceValidationError):
+    pass
+
+
+class EvidenceRemoteContentInvalidError(EvidenceValidationError):
+    pass
+
+
+class EvidenceRemotePdfInvalidError(EvidenceValidationError):
+    pass
+
+
+class EvidenceRemotePdfTimeoutError(EvidenceValidationError):
+    pass
+
+
+class EvidenceRemoteFetchTimeoutError(EvidenceValidationError):
+    pass
+
+
+class EvidenceRemoteUpstreamError(EvidenceValidationError):
     pass
 
 
@@ -222,6 +298,22 @@ async def _next_source_position(session: AsyncSession, session_id: uuid.UUID) ->
     return 0 if current_max is None else current_max + 1
 
 
+async def _extract_pdf_text_off_loop(data: bytes, *, timeout_seconds: float):
+    """Run the pure-sync `extract_pdf_text` off the event loop, timeout-enforced.
+
+    Shared by local PDF upload and remote PDF fetch so both get the exact
+    same off-loop dispatch and the exact same configurable timeout
+    (`EVIDENCE_PDF_EXTRACTION_TIMEOUT_SECONDS`) — neither path may call
+    `extract_pdf_text` directly. Raises the stdlib `TimeoutError` or
+    `PdfRejectedError` as-is; callers map both to their own domain-specific
+    error types, since local and remote ingestion have distinct stable API
+    codes for the same underlying failure.
+    """
+    return await asyncio.wait_for(
+        asyncio.to_thread(extract_pdf_text, data), timeout=timeout_seconds
+    )
+
+
 async def add_pdf_evidence_source(
     session: AsyncSession,
     evidence_session: CatalogEvidenceSession,
@@ -256,10 +348,9 @@ async def add_pdf_evidence_source(
     if len(file_bytes) > MAX_PDF_BYTES:
         raise EvidencePdfTooLargeError("PDF exceeds the maximum allowed size")
 
-    timeout_seconds = get_settings().evidence_pdf_extraction_timeout_seconds
     try:
-        result = await asyncio.wait_for(
-            asyncio.to_thread(extract_pdf_text, file_bytes), timeout=timeout_seconds
+        result = await _extract_pdf_text_off_loop(
+            file_bytes, timeout_seconds=get_settings().evidence_pdf_extraction_timeout_seconds
         )
     except TimeoutError as error:
         # Fails closed: nothing has been written to disk or the database yet.
@@ -314,6 +405,200 @@ async def add_pdf_evidence_source(
     return source
 
 
+async def add_remote_evidence_source(
+    session: AsyncSession,
+    evidence_session: CatalogEvidenceSession,
+    *,
+    url: str,
+    author: str,
+    resolver: DnsResolver = resolve_public_ips,
+) -> CatalogEvidenceSource:
+    """Fetch `url` under the SSRF/size/MIME policy and persist it as a source.
+
+    Explicit, one-shot, backend-only fetch (ADR-016): no crawling, no
+    following of links found in the downloaded content, no LLM, no DSpace
+    write. `resolver` is a test seam only (default is the real DNS
+    resolver); production callers never override it, so the SSRF policy in
+    `net_policy` is exercised unmodified on every real request. The raw
+    body is never written to disk, so there is no filesystem artifact to
+    clean up if persistence fails after a successful fetch — only the SHA-256
+    and, when applicable, the derived text are retained.
+    """
+    settings = get_settings()
+    if not settings.evidence_remote_fetch_enabled:
+        raise EvidenceRemoteFetchDisabledError("Remote evidence fetch is disabled")
+
+    try:
+        outcome = await fetch_remote_resource(url, settings=settings, resolver=resolver)
+    except UrlShapeError as error:
+        raise EvidenceRemoteUrlInvalidError(str(error)) from error
+    except TargetNotPublicError as error:
+        raise EvidenceRemoteTargetNotPublicError(str(error)) from error
+    except DnsResolutionError as error:
+        raise EvidenceRemoteDnsResolutionError(str(error)) from error
+    except RedirectLoopError as error:
+        raise EvidenceRemoteRedirectBlockedError(str(error)) from error
+    except RedirectLimitError as error:
+        raise EvidenceRemoteRedirectLimitError(str(error)) from error
+    except ContentTypeNotAllowedError as error:
+        raise EvidenceRemoteContentTypeNotAllowedError(str(error)) from error
+    except ContentTooLargeError as error:
+        raise EvidenceRemoteContentTooLargeError(str(error)) from error
+    except FetchTimeoutError as error:
+        raise EvidenceRemoteFetchTimeoutError(str(error)) from error
+    except UpstreamError as error:
+        raise EvidenceRemoteUpstreamError(str(error)) from error
+
+    logger.info(
+        "remote_evidence_fetch",
+        session_id=str(evidence_session.session_id),
+        requested_host=_host_of(outcome.requested_url),
+        final_host=_host_of(outcome.final_url),
+        status=outcome.status_code,
+        bytes=outcome.content_length,
+        media_type=outcome.media_type,
+        redirects=len(outcome.redirect_chain),
+        result="fetched",
+    )
+
+    source = await _persist_remote_source(
+        session, evidence_session, outcome=outcome, author=author
+    )
+
+    logger.info(
+        "remote_evidence_fetch",
+        session_id=str(evidence_session.session_id),
+        source_id=str(source.source_id),
+        requested_host=_host_of(outcome.requested_url),
+        final_host=_host_of(outcome.final_url),
+        status=outcome.status_code,
+        bytes=outcome.content_length,
+        media_type=outcome.media_type,
+        extraction_status=source.extraction_status,
+        result="persisted",
+    )
+    return source
+
+
+def _host_of(url: str) -> str:
+    return urlsplit(url).hostname or ""
+
+
+async def _persist_remote_source(
+    session: AsyncSession,
+    evidence_session: CatalogEvidenceSession,
+    *,
+    outcome: RemoteFetchOutcome,
+    author: str,
+) -> CatalogEvidenceSource:
+    media_type = outcome.media_type
+    is_pdf = media_type == "application/pdf"
+    is_markup = media_type in ("text/html", "application/xhtml+xml", "application/xml", "text/xml")
+    is_plain_text = media_type == "text/plain"
+
+    extracted_text: str | None = None
+    extracted_text_hash: str | None = None
+    extraction_status = "extracted"
+    extraction_metadata: dict[str, object] = {}
+    page_count: int | None = None
+
+    if is_pdf:
+        try:
+            result = await _extract_pdf_text_off_loop(
+                outcome.body,
+                timeout_seconds=get_settings().evidence_pdf_extraction_timeout_seconds,
+            )
+        except TimeoutError as error:
+            # Fails closed, same as local upload: nothing is persisted.
+            raise EvidenceRemotePdfTimeoutError(
+                "Remote PDF extraction exceeded the configured timeout"
+            ) from error
+        except PdfRejectedError as error:
+            raise EvidenceRemotePdfInvalidError(f"PDF rejected: {error.reason}") from error
+        extraction_status = result.status
+        extracted_text = result.text or None
+        extracted_text_hash = result.extracted_text_hash
+        page_count = result.page_count
+        extraction_metadata["page_char_offsets"] = result.page_char_offsets
+        extraction_metadata["extractor"] = EXTRACTOR_NAME
+    elif is_markup:
+        text = extract_html_text(outcome.body)
+        if len(text) > MAX_TEXT_CHARS:
+            # Reject rather than silently truncate: identical policy to
+            # text/plain below, so a source is never persisted as
+            # "extracted" while quietly discarding part of the document.
+            raise EvidenceRemoteContentInvalidError(
+                f"Remote HTML/XML derived text exceeds {MAX_TEXT_CHARS} characters"
+            )
+        extracted_text = text or None
+        extraction_status = "extracted" if text.strip() else "no_extractable_text"
+        extraction_metadata["extractor"] = "html_stdlib_parser"
+    elif is_plain_text:
+        try:
+            text = outcome.body.decode("utf-8")
+        except UnicodeDecodeError as error:
+            raise EvidenceRemoteContentInvalidError(
+                "Remote text/plain body is not valid UTF-8"
+            ) from error
+        if len(text) > MAX_TEXT_CHARS:
+            raise EvidenceRemoteContentInvalidError(
+                f"Remote text exceeds {MAX_TEXT_CHARS} characters"
+            )
+        extracted_text = text or None
+        extraction_status = "extracted" if text.strip() else "no_extractable_text"
+        extraction_metadata["extractor"] = "utf8_decode"
+    else:  # pragma: no cover - fetch_remote_resource already enforces the allowlist
+        raise EvidenceRemoteContentTypeNotAllowedError(f"Unsupported media type: {media_type}")
+
+    if extracted_text:
+        extracted_text_hash = _sha256(extracted_text)
+
+    extraction_metadata.update(
+        {
+            "requested_url": outcome.requested_url,
+            "final_url": outcome.final_url,
+            "redirect_chain": outcome.redirect_chain,
+            "resolved_ips": outcome.resolved_ips,
+            "resolved_hops": outcome.resolved_hops,
+            "status_code": outcome.status_code,
+            "content_length": outcome.content_length,
+            "fetched_at": outcome.fetched_at.isoformat(),
+            "response_body_sha256": outcome.body_sha256,
+            "derived_text_sha256": extracted_text_hash,
+            "remote_fetch_policy_version": REMOTE_FETCH_POLICY_VERSION,
+        }
+    )
+
+    await session.execute(
+        select(CatalogEvidenceSession.session_id)
+        .where(CatalogEvidenceSession.session_id == evidence_session.session_id)
+        .with_for_update()
+    )
+    position = await _next_source_position(session, evidence_session.session_id)
+
+    source = CatalogEvidenceSource(
+        session_id=evidence_session.session_id,
+        position=position,
+        kind="remote",
+        locator=outcome.final_url,
+        content_text=extracted_text,
+        content_hash=outcome.body_sha256,
+        media_type=media_type,
+        metadata_json={
+            "captured_by": author,
+            "immutable_snapshot": True,
+            "requested_url": outcome.requested_url,
+        },
+        extraction_status=extraction_status,
+        extraction_metadata_json=extraction_metadata,
+        extracted_text_hash=extracted_text_hash,
+        page_count=page_count,
+    )
+    session.add(source)
+    await session.flush()
+    return source
+
+
 def _candidate_rows(
     source: CatalogEvidenceSource,
 ) -> Iterable[tuple[str, str, str, dict[str, object]]]:
@@ -324,11 +609,13 @@ def _candidate_rows(
             "locator": source.locator,
         }
         return
-    if source.kind not in ("text", "pdf") or not source.content_text:
+    if source.kind not in ("text", "pdf", "remote") or not source.content_text:
         return
 
     text = source.content_text
-    is_pdf = source.kind == "pdf"
+    is_pdf = source.kind == "pdf" or (
+        source.kind == "remote" and source.media_type == "application/pdf"
+    )
     page_offsets: list[int] = (
         source.extraction_metadata_json.get("page_char_offsets", []) if is_pdf else []
     )

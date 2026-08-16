@@ -1,0 +1,18 @@
+{
+  "id": "remote-redirect-loop-blocked",
+  "handler": "remote_fetch",
+  "url": "https://93.184.216.34:443/a",
+  "responses": [
+    {
+      "url": "https://93.184.216.34:443/a",
+      "status": 302,
+      "headers": { "location": "https://93.184.216.34:443/b" }
+    },
+    {
+      "url": "https://93.184.216.34:443/b",
+      "status": 302,
+      "headers": { "location": "https://93.184.216.34:443/a" }
+    }
+  ],
+  "expect_error": "EvidenceRemoteRedirectBlockedError"
+}

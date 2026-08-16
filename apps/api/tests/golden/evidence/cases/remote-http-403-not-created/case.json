@@ -1,0 +1,14 @@
+{
+  "id": "remote-http-403-not-created",
+  "handler": "remote_fetch",
+  "url": "https://93.184.216.34:443/forbidden.pdf",
+  "responses": [
+    {
+      "url": "https://93.184.216.34:443/forbidden.pdf",
+      "status": 403,
+      "headers": { "content-type": "application/pdf" },
+      "body_text": "forbidden"
+    }
+  ],
+  "expect_error": "EvidenceRemoteUpstreamError"
+}

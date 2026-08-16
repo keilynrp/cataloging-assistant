@@ -1,0 +1,7 @@
+{
+  "id": "remote-hostname-resolves-private-blocked",
+  "handler": "remote_fetch",
+  "url": "https://internal.example.test:443/doc.txt",
+  "dns": { "internal.example.test": ["10.0.0.5"] },
+  "expect_error": "EvidenceRemoteTargetNotPublicError"
+}

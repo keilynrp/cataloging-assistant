@@ -1,0 +1,6 @@
+{
+  "id": "remote-ipv6-loopback-blocked",
+  "handler": "remote_fetch",
+  "url": "http://[::1]/",
+  "expect_error": "EvidenceRemoteTargetNotPublicError"
+}
