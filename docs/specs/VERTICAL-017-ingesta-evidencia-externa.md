@@ -23,7 +23,7 @@ Deliberadamente **no** descarga la URL, no procesa PDF/binarios, no sigue autent
 1. DSpace continúa como fuente de verdad para registros ya sincronizados.
 2. Una URL o texto aportado es **fuente de evidencia externa**, no fuente de verdad del repositorio.
 3. Cada fuente se captura como snapshot local con SHA-256.
-4. Cada candidato conserva fuente, campo, valor, estado y fragmento/locator de evidencia.
+4. Cada candidato conserva `binding_id`, `metadata_field`, fuente, valor, estado y fragmento/locator de evidencia.
 5. El MVP sólo crea candidatos `EXTRAÍDO`; no eleva automáticamente valores a `VERIFICADO` ni convierte inferencias en hechos.
 6. Los vocabularios activos de la aplicación gobiernan la validación literal cuando un campo tiene vocabulario.
 7. Ninguna salida se aplica a DSpace automáticamente.
@@ -44,11 +44,14 @@ Deliberadamente **no** descarga la URL, no procesa PDF/binarios, no sigue autent
 
 El MVP reconoce:
 
-- URL aportada → `dc.identifier.url`;
-- líneas explícitas `metadataField: valor` si `metadataField` pertenece a los 56 bindings del contrato maestro;
+- URL aportada → binding `digital-url` / `dc.identifier.url`;
+- líneas explícitas `bindingId: valor` para cualquiera de los 56 bindings;
+- líneas `metadataField: valor` únicamente cuando ese `metadataField` corresponde a un solo binding;
 - DOI;
 - ISSN;
 - ISBN.
+
+Los `metadataField` compartidos, por ejemplo `dc.subject` y `dc.format.medium`, no se aceptan sin `binding_id`, porque hacerlo perdería la distinción UI Fidelity entre Palabras Clave/Tópicos o Soporte/Tipo de extensión.
 
 No intenta inferir título, autores, lengua, agrupación o variante a partir de prosa libre.
 
@@ -60,7 +63,7 @@ Entidades implementadas:
 - `catalog_evidence_sources`;
 - `catalog_evidence_candidates`.
 
-No se añadió `catalog_evidence_candidate_values`: el MVP usa un candidato por campo/valor para mantener una estructura simple y trazable.
+No se añadió `catalog_evidence_candidate_values`: el MVP usa un candidato por binding/campo/valor para mantener una estructura simple y trazable.
 
 ## API implementada
 
@@ -75,20 +78,21 @@ Las operaciones mutables exigen `CATALOG_REVIEW_TOKEN`. `copy-to-draft` reutiliz
 ## UI implementada
 
 - `/evidence`: crea sesiones con catalogador, UUID opcional de ítem, URL y/o texto.
-- `/evidence/{sessionId}`: muestra hashes de fuentes, estado stale, candidatos, evidencia localizada, validación y selección copiable.
+- `/evidence/{sessionId}`: muestra hashes de fuentes, estado stale, candidatos, binding, evidencia localizada, validación y selección copiable.
 - La portada enlaza al flujo de evidencia externa.
 - El `CATALOG_REVIEW_TOKEN` permanece del lado servidor mediante Server Actions.
 
 ## Reconciliación y copy-to-draft
 
-La extracción puede producir evidencia para cualquier `metadataField` conocido por el contrato maestro. Sin embargo, el borrador local actual sólo admite los campos lingüísticos `runtime_draftable`.
+La extracción puede producir evidencia para cualquiera de los 56 bindings del contrato maestro. Sin embargo, el borrador local actual sólo admite los campos lingüísticos `runtime_draftable`.
 
 Por tanto:
 
 - candidatos bibliográficos como DOI/ISSN/ISBN/URL permanecen como evidencia revisable;
 - sólo candidatos lingüísticos explícitos pueden copiarse al borrador actual;
 - al copiar, se vuelve a consultar el vocabulario activo vigente; si existe y el candidato no coincide literalmente, la copia queda bloqueada;
-- si no existe vocabulario activo, el candidato se conserva como no configurado y requiere revisión humana posterior.
+- si no existe vocabulario activo, el candidato se conserva como no configurado y requiere revisión humana posterior;
+- al añadir evidencia a un borrador existente se preservan los valores de la revisión previa y se agregan los candidatos seleccionados sin duplicarlos.
 
 ## Seguridad y límites
 
@@ -104,7 +108,7 @@ Por tanto:
 
 - **P0:** política inicial = URL locator + texto, sin fetch/binarios; límite 250 000 caracteres.
 - **P1:** extracción inicial determinista.
-- **P2:** contrato por candidato con campo, valor, estado, source_id y evidencia localizada.
+- **P2:** contrato por candidato con binding, campo, valor, estado, `source_id` y evidencia localizada.
 - **P3:** 56 bindings para extracción; `runtime_draftable` para copia.
 - **P4:** se añaden fixtures unitarios e integración para el extractor determinista; el Golden Set completo queda para PDF/LLM.
 
@@ -114,10 +118,10 @@ Por tanto:
 - una sesión asociada a ítem se vuelve stale si cambia `source_hash`;
 - URL no provoca fetch remoto;
 - texto fuera del límite es rechazado;
-- sólo claves del contrato maestro se extraen desde líneas explícitas;
+- una clave compartida no pierde su identidad de binding;
 - DOI/ISSN/ISBN conservan contexto de evidencia;
 - una segunda extracción no reemplaza el snapshot de candidatos;
-- copy-to-draft rechaza campos no `runtime_draftable` y revalida contra el vocabulario activo actual;
+- copy-to-draft rechaza campos no `runtime_draftable`, preserva revisiones previas y revalida contra el vocabulario activo actual;
 - el flujo UI no expone `CATALOG_REVIEW_TOKEN` al navegador;
 - ninguna operación escribe DSpace.
 
