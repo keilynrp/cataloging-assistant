@@ -115,7 +115,7 @@ FIELDS: Final = (
         "Variante lingüística (CLIN)",
         repeatable=True,
         controlled=True,
-        vocabulary_id="linguisticVariantPairs",
+        vocabulary_id=None,
         runtime_draftable=True,
         runtime_profiled=True,
         runtime_vocabularied=True,
