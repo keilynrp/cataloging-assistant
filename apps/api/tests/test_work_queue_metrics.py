@@ -2,7 +2,6 @@ from cataloging_api.work_queue.metrics import (
     classify_queue_item,
     closed_finding_fingerprints,
     summarize_queue,
-    derive_draft_state,
 )
 
 
