@@ -10,9 +10,8 @@ EVIDENCE_STATES: Final = (
     "EXTRAÍDO",
     "VERIFICADO",
     "INFERIDO",
-    "GENERADO",
     "PENDIENTE",
-    "APP_SCHEMA_GAP",
+    "GENERADO",
 )
 
 
