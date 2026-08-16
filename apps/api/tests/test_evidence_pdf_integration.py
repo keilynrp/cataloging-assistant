@@ -413,6 +413,105 @@ async def test_flush_failure_cleans_up_orphaned_pdf_file(monkeypatch) -> None:
 
 @pytest.mark.integration
 @pytest.mark.asyncio
+async def test_commit_failure_after_flush_cleans_up_pdf_and_row(monkeypatch) -> None:
+    # add_pdf_evidence_source only guards up to flush(): the row is visible
+    # in-session and the file is on disk once it returns. This mirrors the
+    # route's own transaction boundary (upload_pdf_source calls commit()
+    # separately, after add_pdf_evidence_source returns) to verify that a
+    # commit failure in the caller still rolls back the DB *and* removes the
+    # now-orphaned file, exactly as upload_pdf_source's commit except-clause
+    # does via delete_pdf_artifact.
+    storage_dir = Path(get_settings().evidence_pdf_storage_dir)
+
+    setup_connection = await engine.connect()
+    session = AsyncSession(bind=setup_connection, expire_on_commit=False)
+    collection_uuid = uuid.uuid4()
+    item_uuid = uuid.uuid4()
+    evidence: CatalogEvidenceSession | None = None
+    try:
+        session.add(
+            DSpaceCollection(
+                uuid=collection_uuid,
+                handle="test/evidence-pdf-commit-fail",
+                name="Evidence PDF commit-fail test",
+                raw_json={"uuid": str(collection_uuid)},
+            )
+        )
+        session.add(
+            DSpaceItem(
+                uuid=item_uuid,
+                collection_uuid=collection_uuid,
+                handle="test/evidence-pdf-commit-fail-item",
+                name="Evidence PDF commit-fail item",
+                raw_json={"uuid": str(item_uuid)},
+                source_hash="c" * 64,
+            )
+        )
+        evidence = await _pdf_only_session(session, item_uuid)
+        await session.commit()
+
+        source = await add_pdf_evidence_source(
+            session,
+            evidence,
+            file_bytes=pdf_with_text(["a punto de fallar"]),
+            original_filename="fallo.pdf",
+            content_type=PDF_TYPE,
+            author="Catalogadora",
+        )
+        pdf_path = storage_dir / f"{source.source_id}.pdf"
+        assert pdf_path.exists(), "file must be written before commit is attempted"
+
+        original_commit = session.commit
+
+        async def _failing_commit() -> None:
+            raise RuntimeError("simulated commit failure")
+
+        monkeypatch.setattr(session, "commit", _failing_commit)
+        try:
+            # Same shape as upload_pdf_source's commit except-clause.
+            with pytest.raises(RuntimeError):
+                try:
+                    await session.commit()
+                except Exception:
+                    await session.rollback()
+                    evidence_service.delete_pdf_artifact(source.source_id)
+                    raise
+        finally:
+            monkeypatch.setattr(session, "commit", original_commit)
+
+        assert not pdf_path.exists(), "orphaned PDF must be removed when commit fails"
+
+        verify_connection = await engine.connect()
+        verify_session = AsyncSession(bind=verify_connection, expire_on_commit=False)
+        try:
+            persisted = await verify_session.get(CatalogEvidenceSource, source.source_id)
+            assert persisted is None, "PDF row must not be persisted when commit fails"
+        finally:
+            await verify_session.close()
+            await verify_connection.close()
+    finally:
+        if evidence is not None:
+            await session.execute(
+                delete(CatalogEvidenceSource).where(
+                    CatalogEvidenceSource.session_id == evidence.session_id
+                )
+            )
+            await session.execute(
+                delete(CatalogEvidenceSession).where(
+                    CatalogEvidenceSession.session_id == evidence.session_id
+                )
+            )
+        await session.execute(delete(DSpaceItem).where(DSpaceItem.uuid == item_uuid))
+        await session.execute(
+            delete(DSpaceCollection).where(DSpaceCollection.uuid == collection_uuid)
+        )
+        await session.commit()
+        await session.close()
+        await setup_connection.close()
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
 async def test_concurrent_pdf_uploads_get_distinct_positions() -> None:
     # Real concurrency, across two independent connections/transactions, to
     # exercise the SELECT ... FOR UPDATE lock in add_pdf_evidence_source:
@@ -422,6 +521,7 @@ async def test_concurrent_pdf_uploads_get_distinct_positions() -> None:
     collection_uuid = uuid.uuid4()
     item_uuid = uuid.uuid4()
     session_id: uuid.UUID | None = None
+    results: list[CatalogEvidenceSource] = []
     try:
         setup_session.add(
             DSpaceCollection(
@@ -496,7 +596,10 @@ async def test_concurrent_pdf_uploads_get_distinct_positions() -> None:
     finally:
         # This test commits real rows across separate connections (needed to
         # exercise genuine lock contention), so clean up explicitly instead
-        # of relying on a rollback.
+        # of relying on a rollback. That includes the PDF files written to
+        # evidence_pdf_storage_dir: a DB rollback would never touch them.
+        for result in results:
+            evidence_service.delete_pdf_artifact(result.source_id)
         if session_id is not None:
             await setup_session.execute(
                 delete(CatalogEvidenceSource).where(

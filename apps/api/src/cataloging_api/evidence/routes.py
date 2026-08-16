@@ -31,6 +31,7 @@ from cataloging_api.evidence.service import (
     add_pdf_evidence_source,
     copy_candidates_to_draft,
     create_evidence_session,
+    delete_pdf_artifact,
     extract_evidence_candidates,
     get_evidence_session,
 )
@@ -263,7 +264,7 @@ async def upload_pdf_source(
     data = await file.read(MAX_PDF_BYTES + 1)
 
     try:
-        await add_pdf_evidence_source(
+        source = await add_pdf_evidence_source(
             session,
             loaded,
             file_bytes=data,
@@ -271,7 +272,6 @@ async def upload_pdf_source(
             content_type=file.content_type or "",
             author=author,
         )
-        await session.commit()
     except EvidencePdfTooLargeError as error:
         await session.rollback()
         raise HTTPException(status_code=413, detail=str(error)) from error
@@ -287,6 +287,17 @@ async def upload_pdf_source(
     except EvidenceValidationError as error:
         await session.rollback()
         raise HTTPException(status_code=422, detail=str(error)) from error
+
+    try:
+        await session.commit()
+    except Exception:
+        # add_pdf_evidence_source already flushed the row and wrote the
+        # file to disk. If commit fails here, Postgres rolls the row back
+        # but the file is untouched, so it must be removed explicitly to
+        # avoid an orphan under evidence_pdf_storage_dir.
+        await session.rollback()
+        delete_pdf_artifact(source.source_id)
+        raise
 
     loaded, sources, candidates, stale = await get_evidence_session(session, session_id)
     assert loaded is not None

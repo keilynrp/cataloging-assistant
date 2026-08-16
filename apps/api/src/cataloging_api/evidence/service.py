@@ -95,6 +95,16 @@ def _write_pdf_bytes(source_id: uuid.UUID, data: bytes) -> None:
     _pdf_storage_path(source_id).write_bytes(data)
 
 
+def delete_pdf_artifact(source_id: uuid.UUID) -> None:
+    """Remove a PDF evidence artifact from disk, if present.
+
+    Safe to call whether or not the corresponding row was ever persisted
+    (e.g. flush succeeded but the caller's later commit failed) or the file
+    is already gone.
+    """
+    _pdf_storage_path(source_id).unlink(missing_ok=True)
+
+
 def _resolve_binding(key: str) -> tuple[CatalogField | None, str | None]:
     by_id = BINDINGS_BY_ID.get(key)
     if by_id is not None:
@@ -230,6 +240,11 @@ async def add_pdf_evidence_source(
     or the database, so no partial state is left behind. If persistence
     fails *after* the file was written (e.g. a concurrent position
     collision), the file is unlinked before the error propagates.
+
+    This only covers failure up to and including `flush()`. The row is not
+    committed here, so a caller that commits separately and has that commit
+    fail is responsible for calling `delete_pdf_artifact(source.source_id)`
+    itself once it rolls back.
     """
     normalized_type = (content_type or "").split(";")[0].strip().lower()
     if normalized_type != "application/pdf" or not (original_filename or "").lower().endswith(
@@ -294,7 +309,7 @@ async def add_pdf_evidence_source(
     try:
         await session.flush()
     except Exception:
-        _pdf_storage_path(source_id).unlink(missing_ok=True)
+        delete_pdf_artifact(source_id)
         raise
     return source
 
