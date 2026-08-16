@@ -2,7 +2,8 @@
 
 ## Estado
 
-**MVP determinista implementado en rama; pendiente de revisión y merge.**
+**Implementado / merged en main** (PR #2, `main@5ec7506`). El MVP
+determinista descrito en este documento está en producción.
 
 ## Objetivo
 
@@ -127,8 +128,11 @@ Por tanto:
 
 ## Siguiente iteración
 
-1. Incorporar el Golden Set compartido con `dspace-cataloger` como aceptación end-to-end.
-2. Upload controlado de PDF con límites MIME/tamaño y extracción de texto en sandbox.
-3. Fetch HTTP seguro con allow/deny de red, timeout, tamaño y redirecciones.
-4. Capa LLM provider-independent para candidatos no deterministas, siempre marcada `INFERIDO` o `GENERADO` hasta verificación.
-5. Extender el contrato de borrador más allá de los campos lingüísticos mediante una vertical/ADR independiente, sin escritura DSpace.
+Ver **VERTICAL-019** (`docs/specs/VERTICAL-019-golden-set-pdf-evidence.md`)
+y **ADR-015** (`docs/adr/ADR-015-pdf-evidence-and-golden-set.md`):
+
+1. Golden Set end-to-end compartido con `dspace-cataloger` — **hecho en VERTICAL-019**.
+2. Upload controlado de PDF con límites MIME/tamaño y extracción de texto — **hecho en VERTICAL-019**.
+3. Fetch HTTP seguro con allow/deny de red, timeout, tamaño y redirecciones — pendiente, sigue fuera de alcance.
+4. Capa LLM provider-independent para candidatos no deterministas, siempre marcada `INFERIDO` o `GENERADO` hasta verificación — pendiente.
+5. Extender el contrato de borrador más allá de los campos lingüísticos mediante una vertical/ADR independiente, sin escritura DSpace — pendiente.
