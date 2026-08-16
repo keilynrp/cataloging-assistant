@@ -1,0 +1,28 @@
+{
+  "id": "remote-redirect-limit-exceeded",
+  "handler": "remote_fetch",
+  "url": "https://93.184.216.34:443/1",
+  "responses": [
+    {
+      "url": "https://93.184.216.34:443/1",
+      "status": 302,
+      "headers": { "location": "https://93.184.216.34:443/2" }
+    },
+    {
+      "url": "https://93.184.216.34:443/2",
+      "status": 302,
+      "headers": { "location": "https://93.184.216.34:443/3" }
+    },
+    {
+      "url": "https://93.184.216.34:443/3",
+      "status": 302,
+      "headers": { "location": "https://93.184.216.34:443/4" }
+    },
+    {
+      "url": "https://93.184.216.34:443/4",
+      "status": 302,
+      "headers": { "location": "https://93.184.216.34:443/5" }
+    }
+  ],
+  "expect_error": "EvidenceRemoteRedirectLimitError"
+}

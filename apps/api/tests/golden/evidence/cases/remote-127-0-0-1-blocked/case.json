@@ -1,0 +1,6 @@
+{
+  "id": "remote-127-0-0-1-blocked",
+  "handler": "remote_fetch",
+  "url": "http://127.0.0.1/",
+  "expect_error": "EvidenceRemoteTargetNotPublicError"
+}

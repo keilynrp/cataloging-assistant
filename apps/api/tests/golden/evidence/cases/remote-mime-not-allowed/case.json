@@ -1,0 +1,14 @@
+{
+  "id": "remote-mime-not-allowed",
+  "handler": "remote_fetch",
+  "url": "https://93.184.216.34:443/archive.zip",
+  "responses": [
+    {
+      "url": "https://93.184.216.34:443/archive.zip",
+      "status": 200,
+      "headers": { "content-type": "application/zip" },
+      "body_text": "not-a-real-zip-just-bytes"
+    }
+  ],
+  "expect_error": "EvidenceRemoteContentTypeNotAllowedError"
+}

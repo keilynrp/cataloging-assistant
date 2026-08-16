@@ -1,0 +1,6 @@
+{
+  "id": "remote-cloud-metadata-blocked",
+  "handler": "remote_fetch",
+  "url": "http://169.254.169.254/latest/meta-data/",
+  "expect_error": "EvidenceRemoteTargetNotPublicError"
+}

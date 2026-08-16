@@ -1,0 +1,16 @@
+{
+  "id": "remote-streaming-exceeds-max-without-content-length",
+  "handler": "remote_fetch",
+  "url": "https://93.184.216.34:443/stream.txt",
+  "settings_overrides": { "evidence_remote_fetch_max_bytes": 64 },
+  "responses": [
+    {
+      "url": "https://93.184.216.34:443/stream.txt",
+      "status": 200,
+      "headers": { "content-type": "text/plain" },
+      "body_repeat": { "char": "a", "count": 5000 },
+      "omit_content_length": true
+    }
+  ],
+  "expect_error": "EvidenceRemoteContentTooLargeError"
+}

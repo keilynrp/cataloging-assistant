@@ -5,7 +5,12 @@ import { getItem } from "@/lib/api";
 import { getCatalogingContract } from "@/lib/cataloging-contract";
 import { getEvidenceSession } from "@/lib/evidence";
 
-import { copyEvidenceToDraft, extractEvidence, uploadPdfEvidence } from "../actions";
+import {
+  copyEvidenceToDraft,
+  extractEvidence,
+  fetchRemoteEvidence,
+  uploadPdfEvidence,
+} from "../actions";
 
 const EXTRACT_MESSAGES: Record<string, string> = {
   saved: "La extracción determinista quedó congelada como evidencia local.",
@@ -23,6 +28,27 @@ const PDF_MESSAGES: Record<string, string> = {
   invalid: "Verifica el catalogador y selecciona un archivo PDF antes de enviar.",
   error: "No fue posible subir el PDF.",
   unavailable: "La subida está deshabilitada porque falta la configuración segura.",
+};
+
+const REMOTE_MESSAGES: Record<string, string> = {
+  saved: "La URL se obtuvo desde el backend y quedó capturada como fuente de evidencia local.",
+  disabled: "El fetch remoto está deshabilitado en esta instalación (EVIDENCE_REMOTE_FETCH_ENABLED).",
+  too_large: "El contenido remoto supera el tamaño máximo permitido.",
+  stale: "El registro DSpace cambió desde la captura. Reabre una sesión con la versión vigente.",
+  invalid: "Verifica el catalogador y escribe una URL http/https antes de enviar.",
+  remote_url_invalid: "La URL no es válida (esquema, usuario/contraseña en la URL, host o puerto).",
+  remote_target_not_public: "El destino resuelve a una dirección de red no pública.",
+  remote_dns_resolution_failed: "No fue posible resolver el nombre de dominio.",
+  remote_redirect_blocked: "Se detectó un bucle de redirecciones.",
+  remote_redirect_limit: "La URL redirige más veces de las permitidas.",
+  remote_content_type_not_allowed: "El tipo de contenido remoto no está permitido.",
+  remote_content_invalid: "El contenido remoto no pudo decodificarse como se esperaba.",
+  remote_pdf_invalid: "El PDF remoto no pudo procesarse (cifrado, corrupto o no es un PDF real).",
+  remote_fetch_timeout: "La solicitud remota excedió el tiempo máximo configurado.",
+  remote_upstream_error: "El servidor remoto falló o no respondió.",
+  rejected: "No fue posible obtener el contenido remoto.",
+  error: "No fue posible obtener la evidencia remota.",
+  unavailable: "El fetch remoto está deshabilitado porque falta la configuración segura.",
 };
 
 const EXTRACTION_STATUS_LABELS: Record<string, string> = {
@@ -45,10 +71,10 @@ export default async function EvidenceSessionPage({
   searchParams,
 }: {
   params: Promise<{ sessionId: string }>;
-  searchParams: Promise<{ extract?: string; copy?: string; pdf?: string }>;
+  searchParams: Promise<{ extract?: string; copy?: string; pdf?: string; remote?: string }>;
 }) {
   const { sessionId } = await params;
-  const { extract, copy, pdf } = await searchParams;
+  const { extract, copy, pdf, remote } = await searchParams;
 
   const [evidenceResult, contractResult] = await Promise.allSettled([
     getEvidenceSession(sessionId),
@@ -108,6 +134,11 @@ export default async function EvidenceSessionPage({
           {PDF_MESSAGES[pdf]}
         </div>
       ) : null}
+      {remote ? (
+        <div className={remote === "saved" ? "review-status" : "review-status error"} role="status">
+          {REMOTE_MESSAGES[remote] ?? REMOTE_MESSAGES.error}
+        </div>
+      ) : null}
 
       <section>
         <div className="section-heading">
@@ -115,28 +146,60 @@ export default async function EvidenceSessionPage({
           <span>{evidence.sources.length}</span>
         </div>
         <div className="item-list">
-          {evidence.sources.map((source) => (
-            <article className="item-card" key={source.source_id}>
-              <div>
-                <h3>
-                  {source.kind === "url" ? "URL" : source.kind === "pdf" ? "PDF" : "Texto"}
-                </h3>
-                {source.kind === "pdf" ? (
-                  <>
-                    <p>{String(source.metadata_json.original_filename ?? "documento.pdf")}</p>
-                    <p>
-                      {EXTRACTION_STATUS_LABELS[source.extraction_status] ??
-                        source.extraction_status}
-                      {source.page_count !== null ? ` · ${source.page_count} páginas` : ""}
-                    </p>
-                  </>
-                ) : (
-                  <p>{source.locator ?? source.media_type ?? "Fuente textual"}</p>
-                )}
-                <small>SHA-256: {source.content_hash}</small>
-              </div>
-            </article>
-          ))}
+          {evidence.sources.map((source) => {
+            const kindLabel =
+              source.kind === "url"
+                ? "URL"
+                : source.kind === "pdf"
+                  ? "PDF"
+                  : source.kind === "remote"
+                    ? "Obtenida por fetch remoto"
+                    : "Texto";
+            return (
+              <article className="item-card" key={source.source_id}>
+                <div>
+                  <h3>{kindLabel}</h3>
+                  {source.kind === "pdf" ? (
+                    <>
+                      <p>{String(source.metadata_json.original_filename ?? "documento.pdf")}</p>
+                      <p>
+                        {EXTRACTION_STATUS_LABELS[source.extraction_status] ??
+                          source.extraction_status}
+                        {source.page_count !== null ? ` · ${source.page_count} páginas` : ""}
+                      </p>
+                    </>
+                  ) : source.kind === "remote" ? (
+                    <>
+                      <p>{String(source.extraction_metadata_json.final_url ?? source.locator)}</p>
+                      <p>
+                        {source.media_type ?? "tipo desconocido"}
+                        {" · "}
+                        {EXTRACTION_STATUS_LABELS[source.extraction_status] ??
+                          source.extraction_status}
+                        {typeof source.extraction_metadata_json.content_length === "number"
+                          ? ` · ${source.extraction_metadata_json.content_length} bytes`
+                          : ""}
+                      </p>
+                      {Array.isArray(source.extraction_metadata_json.redirect_chain) &&
+                      source.extraction_metadata_json.redirect_chain.length ? (
+                        <p>
+                          {source.extraction_metadata_json.redirect_chain.length} redirección(es)
+                          antes de la URL final.
+                        </p>
+                      ) : null}
+                      <small>
+                        Obtenida el{" "}
+                        {String(source.extraction_metadata_json.fetched_at ?? source.created_at)}
+                      </small>
+                    </>
+                  ) : (
+                    <p>{source.locator ?? source.media_type ?? "Fuente textual"}</p>
+                  )}
+                  <small>SHA-256: {source.content_hash}</small>
+                </div>
+              </article>
+            );
+          })}
         </div>
         <form
           action={uploadPdfEvidence}
@@ -156,6 +219,32 @@ export default async function EvidenceSessionPage({
           <small>
             El PDF se guarda localmente; nunca se ejecuta su contenido ni se sigue ningún enlace
             que contenga.
+          </small>
+        </form>
+        <form action={fetchRemoteEvidence} className="review-form">
+          <input type="hidden" name="session_id" value={evidence.session_id} />
+          <label>
+            Obtener evidencia desde URL
+            <input
+              type="url"
+              name="url"
+              placeholder="https://…"
+              maxLength={4000}
+              required
+              disabled={evidence.stale}
+            />
+          </label>
+          <label>
+            Catalogador
+            <input name="author" minLength={2} maxLength={120} autoComplete="name" required />
+          </label>
+          <button type="submit" disabled={evidence.stale}>Obtener desde URL</button>
+          <small>
+            La aplicación realizará una solicitud HTTP externa desde el servidor (nunca desde el
+            navegador) sólo a esta URL: sin autenticación, sin cookies, sin seguir enlaces
+            encontrados en el contenido descargado, y sólo si el destino resuelve a una dirección
+            de red pública. Si esta instalación no tiene el fetch remoto habilitado, la solicitud
+            se rechaza sin tocar la red.
           </small>
         </form>
       </section>

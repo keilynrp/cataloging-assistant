@@ -1,0 +1,27 @@
+{
+  "id": "remote-pdf-valid",
+  "handler": "remote_fetch",
+  "url": "https://93.184.216.34:443/document.pdf",
+  "responses": [
+    {
+      "url": "https://93.184.216.34:443/document.pdf",
+      "status": 200,
+      "headers": { "content-type": "application/pdf" },
+      "body_pdf_fixture": {
+        "kind": "with_text",
+        "lines": ["dc.subject.linguisticFamily: Zapoteca", "DOI 10.9999/remote.pdf"]
+      }
+    }
+  ],
+  "expect_source": {
+    "kind": "remote",
+    "media_type": "application/pdf",
+    "extraction_status": "extracted",
+    "final_url": "https://93.184.216.34:443/document.pdf",
+    "redirect_hops": 0
+  },
+  "expected_binding_ids": ["linguistic-family", "doi"],
+  "expected_metadata_fields": ["dc.subject.linguisticFamily", "dc.identifier.doi"],
+  "expected_values": ["Zapoteca", "10.9999/remote.pdf"],
+  "expected_order": ["linguistic-family", "doi"]
+}

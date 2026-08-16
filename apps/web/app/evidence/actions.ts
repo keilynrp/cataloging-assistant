@@ -112,6 +112,56 @@ export async function uploadPdfEvidence(formData: FormData): Promise<never> {
   redirect(`/evidence/${encodeURIComponent(sessionId)}?pdf=${outcome}`);
 }
 
+export async function fetchRemoteEvidence(formData: FormData): Promise<never> {
+  const sessionId = value(formData, "session_id");
+  const author = value(formData, "author");
+  const url = value(formData, "url");
+  const token = getCatalogReviewToken();
+
+  if (!token) redirect(`/evidence/${encodeURIComponent(sessionId)}?remote=unavailable`);
+  if (!UUID_PATTERN.test(sessionId) || author.length < 2 || author.length > 120 || url.length < 1) {
+    redirect(`/evidence/${encodeURIComponent(sessionId)}?remote=invalid`);
+  }
+
+  // The backend performs the HTTP fetch; this Server Action only relays the
+  // catalogador's request to it. The browser never opens the connection to
+  // the remote URL itself.
+  let outcome = "error";
+  try {
+    const response = await fetch(
+      `${API_URL}/api/evidence-sessions/${encodeURIComponent(sessionId)}/sources/remote`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Catalog-Review-Token": token,
+        },
+        body: JSON.stringify({ url, author }),
+        cache: "no-store",
+      },
+    );
+    if (response.ok) {
+      outcome = "saved";
+    } else if (response.status === 403) {
+      outcome = "disabled";
+    } else if (response.status === 413) {
+      outcome = "too_large";
+    } else if (response.status === 409) {
+      outcome = "stale";
+    } else if (response.status === 422 || response.status === 502) {
+      const payload = (await response.json().catch(() => null)) as { detail?: string } | null;
+      outcome = payload?.detail ?? "rejected";
+    } else {
+      outcome = "error";
+    }
+  } catch {
+    outcome = "error";
+  }
+
+  if (outcome === "saved") revalidatePath(`/evidence/${sessionId}`);
+  redirect(`/evidence/${encodeURIComponent(sessionId)}?remote=${encodeURIComponent(outcome)}`);
+}
+
 export async function extractEvidence(formData: FormData): Promise<never> {
   const sessionId = value(formData, "session_id");
   const token = getCatalogReviewToken();

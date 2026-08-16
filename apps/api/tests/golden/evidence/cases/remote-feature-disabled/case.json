@@ -1,0 +1,7 @@
+{
+  "id": "remote-feature-disabled",
+  "handler": "remote_fetch",
+  "url": "https://93.184.216.34:443/notes.txt",
+  "settings_overrides": { "evidence_remote_fetch_enabled": false },
+  "expect_error": "EvidenceRemoteFetchDisabledError"
+}

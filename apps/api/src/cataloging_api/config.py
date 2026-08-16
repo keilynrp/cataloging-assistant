@@ -34,6 +34,11 @@ class Settings(BaseSettings):
     settings_encryption_key: str = ""
     evidence_pdf_storage_dir: str = "data/evidence-pdfs"
     evidence_pdf_extraction_timeout_seconds: float = Field(default=20, gt=0, le=120)
+    evidence_remote_fetch_enabled: bool = False
+    evidence_remote_fetch_timeout_seconds: float = Field(default=10, gt=0, le=120)
+    evidence_remote_fetch_max_bytes: int = Field(default=25 * 1024 * 1024, gt=0)
+    evidence_remote_fetch_max_redirects: int = Field(default=3, ge=0, le=10)
+    evidence_remote_fetch_user_agent: str = "CatalogingAssistantEvidenceFetcher/1.0"
 
     @property
     def required_fields(self) -> tuple[str, ...]:
