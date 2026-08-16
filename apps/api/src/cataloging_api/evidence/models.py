@@ -68,6 +68,7 @@ class CatalogEvidenceCandidate(Base):
         ForeignKey("catalog_evidence_sources.source_id", ondelete="CASCADE"),
         index=True,
     )
+    binding_id: Mapped[str] = mapped_column(String(120), index=True)
     metadata_field: Mapped[str] = mapped_column(String(255), index=True)
     value: Mapped[str] = mapped_column(Text)
     evidence_state: Mapped[str] = mapped_column(String(30), index=True)
