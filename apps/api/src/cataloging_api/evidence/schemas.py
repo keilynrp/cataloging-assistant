@@ -26,6 +26,7 @@ class EvidenceSourceOut(BaseModel):
 class EvidenceCandidateOut(BaseModel):
     candidate_id: uuid.UUID
     source_id: uuid.UUID
+    binding_id: str
     metadata_field: str
     value: str
     evidence_state: str
