@@ -2,25 +2,36 @@ from cataloging_api.diagnostics.engine import (
     CONTROLLED_LINGUISTIC_FIELDS,
     LINGUISTIC_BRANCH,
     LINGUISTIC_FAMILY,
+    LINGUISTIC_GROUP,
+    LINGUISTIC_VARIANT,
     VocabularyRule,
     diagnostic_profile_version,
     evaluate_metadata,
 )
 
 
-def test_family_without_branch_produces_reproducible_warning() -> None:
-    first = evaluate_metadata({LINGUISTIC_FAMILY: ["Yuto-nahua"]})
-    second = evaluate_metadata({LINGUISTIC_FAMILY: ["Yuto-nahua"]})
-
-    assert [(finding.code, finding.severity) for finding in first] == [("CAT-LING-001", "warning")]
-    assert first[0].affected_fields == (LINGUISTIC_FAMILY, LINGUISTIC_BRANCH)
-    assert first[0].fingerprint == second[0].fingerprint
+def test_family_without_branch_is_valid_because_branch_is_optional() -> None:
+    assert evaluate_metadata({LINGUISTIC_FAMILY: ["Yuto-nahua"]}) == []
 
 
 def test_branch_without_family_produces_completeness_error() -> None:
-    findings = evaluate_metadata({LINGUISTIC_BRANCH: ["Tarasca"]})
+    findings = evaluate_metadata({LINGUISTIC_BRANCH: ["Nahuatlano"]})
 
     assert [(finding.code, finding.severity) for finding in findings] == [("CAT-LING-002", "error")]
+
+
+def test_group_without_family_produces_clin_warning() -> None:
+    findings = evaluate_metadata({LINGUISTIC_GROUP: ["Náhuatl"]})
+
+    assert [(finding.code, finding.severity) for finding in findings] == [("CAT-LING-004", "warning")]
+    assert findings[0].affected_fields == (LINGUISTIC_GROUP, LINGUISTIC_FAMILY)
+
+
+def test_variant_without_group_produces_authority_warning() -> None:
+    findings = evaluate_metadata({LINGUISTIC_VARIANT: ["mexicano del centro alto"]})
+
+    assert [(finding.code, finding.severity) for finding in findings] == [("CAT-LING-005", "warning")]
+    assert findings[0].affected_fields == (LINGUISTIC_VARIANT, LINGUISTIC_GROUP)
 
 
 def test_empty_values_count_as_absent_for_configured_required_field() -> None:
@@ -103,7 +114,12 @@ def test_diagnostic_profile_tracks_active_vocabulary_revision() -> None:
 
 def test_duplicate_controlled_values_are_detected_without_inventing_hierarchy() -> None:
     for field in CONTROLLED_LINGUISTIC_FIELDS:
-        findings = evaluate_metadata({field: [" Inglés ", "ingle\u0301s"]})
+        metadata = {field: [" Inglés ", "ingle\u0301s"]}
+        if field == LINGUISTIC_GROUP:
+            metadata[LINGUISTIC_FAMILY] = ["Familia"]
+        if field == LINGUISTIC_VARIANT:
+            metadata[LINGUISTIC_GROUP] = ["Grupo"]
+        findings = evaluate_metadata(metadata)
 
         duplicate_findings = [finding for finding in findings if finding.code == "CAT-LING-003"]
         assert len(duplicate_findings) == 1
@@ -111,14 +127,17 @@ def test_duplicate_controlled_values_are_detected_without_inventing_hierarchy() 
         assert duplicate_findings[0].evidence_key is not None
 
 
+def test_registered_language_is_independent_from_subject_hierarchy() -> None:
+    assert evaluate_metadata({REGISTERED_LANGUAGE: ["Español"]}) == []
+
+
 def test_distinct_values_do_not_create_cross_vocabulary_inferences() -> None:
     metadata = {
-        field: [value]
-        for field, value in zip(
-            CONTROLLED_LINGUISTIC_FIELDS,
-            ("Familia", "Rama", "Grupo", "Lengua"),
-            strict=True,
-        )
+        LINGUISTIC_FAMILY: ["Familia"],
+        LINGUISTIC_BRANCH: ["Rama"],
+        LINGUISTIC_GROUP: ["Grupo"],
+        LINGUISTIC_VARIANT: ["Variante"],
+        REGISTERED_LANGUAGE: ["Lengua"],
     }
 
     assert evaluate_metadata(metadata) == []
