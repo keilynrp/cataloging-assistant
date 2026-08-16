@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from cataloging_api.cataloging_contract import DRAFTABLE_LINGUISTIC_FIELDS
 from cataloging_api.db.models import (
     CatalogDraft,
     CatalogDraftRevision,
@@ -16,13 +17,8 @@ from cataloging_api.vocabularies.service import (
     load_active_vocabulary_rules,
 )
 
-LINGUISTIC_FIELDS = (
-    "dc.subject.linguisticFamily",
-    "dc.subject.linguisticBranch",
-    "dc.subject.linguiscgroup",
-    "dc.subject.linguisticVariant",
-    "dc.description.registeredLanguage",
-)
+# Backward-compatible local name. The authoritative list lives in cataloging_contract.
+LINGUISTIC_FIELDS = DRAFTABLE_LINGUISTIC_FIELDS
 
 
 class DraftConflictError(Exception):
