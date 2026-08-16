@@ -9,6 +9,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from cataloging_api.cataloging_contract import CONTROLLED_RUNTIME_FIELDS
 from cataloging_api.db.models import (
     CatalogControlledTerm,
     CatalogVocabularyRevision,
@@ -19,13 +20,8 @@ from cataloging_api.diagnostics.engine import VocabularyRule
 from cataloging_api.notifications.constants import EventType
 from cataloging_api.notifications.producer import record_notification_event
 
-CONTROLLED_FIELDS = (
-    "dc.subject.linguisticFamily",
-    "dc.subject.linguisticBranch",
-    "dc.subject.linguiscgroup",
-    "dc.subject.linguisticVariant",
-    "dc.description.registeredLanguage",
-)
+# Backward-compatible local name. Authority lives in cataloging_contract.
+CONTROLLED_FIELDS = CONTROLLED_RUNTIME_FIELDS
 
 
 class VocabularyValidationError(ValueError):
