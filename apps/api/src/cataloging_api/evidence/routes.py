@@ -8,7 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from cataloging_api.config import get_settings
 from cataloging_api.db.session import get_session
-from cataloging_api.drafts.service import DraftConflictError, DraftStaleError, DraftValidationError
+from cataloging_api.drafts.service import (
+    DraftConflictError,
+    DraftStaleError,
+    DraftValidationError,
+)
 from cataloging_api.evidence.schemas import (
     EvidenceCandidateOut,
     EvidenceCopyResult,
@@ -36,7 +40,10 @@ def require_review_token(
 ) -> None:
     configured_token = get_settings().catalog_review_token
     if not configured_token:
-        raise HTTPException(status_code=503, detail="Local review writes are not configured")
+        raise HTTPException(
+            status_code=503,
+            detail="Local review writes are not configured",
+        )
     if not review_token_is_valid(configured_token, x_catalog_review_token):
         raise HTTPException(status_code=401, detail="Invalid review token")
 
@@ -84,8 +91,15 @@ def _to_out(
     )
 
 
-@router.post("", response_model=EvidenceSessionOut, dependencies=[Depends(require_review_token)])
-async def create_session(payload: EvidenceSessionCreate, session: SessionDep) -> EvidenceSessionOut:
+@router.post(
+    "",
+    response_model=EvidenceSessionOut,
+    dependencies=[Depends(require_review_token)],
+)
+async def create_session(
+    payload: EvidenceSessionCreate,
+    session: SessionDep,
+) -> EvidenceSessionOut:
     try:
         created = await create_evidence_session(
             session,
@@ -99,14 +113,23 @@ async def create_session(payload: EvidenceSessionCreate, session: SessionDep) ->
         await session.rollback()
         raise HTTPException(status_code=422, detail=str(error)) from error
 
-    loaded, sources, candidates, stale = await get_evidence_session(session, created.session_id)
+    loaded, sources, candidates, stale = await get_evidence_session(
+        session,
+        created.session_id,
+    )
     assert loaded is not None
     return _to_out(loaded, sources, candidates, stale=stale)
 
 
 @router.get("/{session_id}", response_model=EvidenceSessionOut)
-async def get_session(session_id: uuid.UUID, session: SessionDep) -> EvidenceSessionOut:
-    loaded, sources, candidates, stale = await get_evidence_session(session, session_id)
+async def get_session(
+    session_id: uuid.UUID,
+    session: SessionDep,
+) -> EvidenceSessionOut:
+    loaded, sources, candidates, stale = await get_evidence_session(
+        session,
+        session_id,
+    )
     if loaded is None:
         raise HTTPException(status_code=404, detail="Evidence session not found")
     return _to_out(loaded, sources, candidates, stale=stale)
@@ -117,21 +140,36 @@ async def get_session(session_id: uuid.UUID, session: SessionDep) -> EvidenceSes
     response_model=EvidenceSessionOut,
     dependencies=[Depends(require_review_token)],
 )
-async def extract_session(session_id: uuid.UUID, session: SessionDep) -> EvidenceSessionOut:
+async def extract_session(
+    session_id: uuid.UUID,
+    session: SessionDep,
+) -> EvidenceSessionOut:
     loaded, _, _, stale = await get_evidence_session(session, session_id)
     if loaded is None:
         raise HTTPException(status_code=404, detail="Evidence session not found")
     if stale:
-        raise HTTPException(status_code=409, detail="Evidence session is stale against DSpace")
+        raise HTTPException(
+            status_code=409,
+            detail="Evidence session is stale against DSpace",
+        )
     await extract_evidence_candidates(session, loaded)
     await session.commit()
-    loaded, sources, candidates, stale = await get_evidence_session(session, session_id)
+    loaded, sources, candidates, stale = await get_evidence_session(
+        session,
+        session_id,
+    )
     assert loaded is not None
     return _to_out(loaded, sources, candidates, stale=stale)
 
 
-@router.get("/{session_id}/candidates", response_model=list[EvidenceCandidateOut])
-async def get_candidates(session_id: uuid.UUID, session: SessionDep) -> list[EvidenceCandidateOut]:
+@router.get(
+    "/{session_id}/candidates",
+    response_model=list[EvidenceCandidateOut],
+)
+async def get_candidates(
+    session_id: uuid.UUID,
+    session: SessionDep,
+) -> list[EvidenceCandidateOut]:
     loaded, _, candidates, _ = await get_evidence_session(session, session_id)
     if loaded is None:
         raise HTTPException(status_code=404, detail="Evidence session not found")
@@ -164,7 +202,10 @@ async def copy_to_draft(
     if loaded is None:
         raise HTTPException(status_code=404, detail="Evidence session not found")
     if stale:
-        raise HTTPException(status_code=409, detail="Evidence session is stale against DSpace")
+        raise HTTPException(
+            status_code=409,
+            detail="Evidence session is stale against DSpace",
+        )
     try:
         draft = await copy_candidates_to_draft(
             session,
@@ -187,7 +228,10 @@ async def copy_to_draft(
         raise HTTPException(status_code=422, detail=str(error)) from error
     except (DraftConflictError, DraftStaleError) as error:
         await session.rollback()
-        raise HTTPException(status_code=409, detail=error.__class__.__name__) from error
+        raise HTTPException(
+            status_code=409,
+            detail=error.__class__.__name__,
+        ) from error
 
     latest = draft.revisions[-1]
     return EvidenceCopyResult(
