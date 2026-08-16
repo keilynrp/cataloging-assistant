@@ -321,6 +321,7 @@ async def copy_candidates_to_draft(
             "One or more candidates do not belong to this session"
         )
 
+    current_vocabularies = await load_active_vocabulary_rules(session)
     grouped: dict[str, list[str]] = defaultdict(list)
     for candidate in selected:
         if candidate.evidence_state not in EVIDENCE_STATES:
@@ -332,9 +333,10 @@ async def copy_candidates_to_draft(
                 "Field is evidence-only and cannot be copied to a linguistic draft: "
                 f"{candidate.metadata_field}"
             )
-        if candidate.validation_json.get("status") == "invalid":
+        current_vocabulary = current_vocabularies.get(candidate.metadata_field)
+        if current_vocabulary is not None and candidate.value not in current_vocabulary.terms:
             raise EvidenceValidationError(
-                "Candidate is outside the active controlled vocabulary: "
+                "Candidate is outside the current active controlled vocabulary: "
                 f"{candidate.metadata_field}"
             )
         grouped[candidate.metadata_field].append(candidate.value)
