@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from cataloging_api.agent.routes import router as agent_router
 from cataloging_api.api.routes import router
+from cataloging_api.cataloging_contract_routes import router as cataloging_contract_router
 from cataloging_api.config import get_settings
 from cataloging_api.db.session import SessionFactory
 from cataloging_api.notifications.broadcaster import broadcaster
@@ -42,6 +43,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(router)
+app.include_router(cataloging_contract_router)
 app.include_router(provenance_audit_router)
 app.include_router(dspace_vocabulary_router)
 app.include_router(vocabulary_promotion_router)
