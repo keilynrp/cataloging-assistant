@@ -1,22 +1,16 @@
 import Link from "next/link";
 
 import { getControlledVocabularies, getDSpaceVocabularies } from "@/lib/api";
+import { getCatalogingContract } from "@/lib/cataloging-contract";
 
 import { recordVocabularyRevision } from "./actions";
-
-const FIELD_LABELS: Record<string, string> = {
-  "dc.subject.linguisticFamily": "Familia lingüística",
-  "dc.subject.linguisticBranch": "Rama lingüística",
-  "dc.subject.linguiscgroup": "Agrupación lingüística",
-  "dc.subject.linguisticVariant": "Variante lingüística",
-  "dc.description.registeredLanguage": "Lengua de registro",
-};
 
 const SAVE_MESSAGES: Record<string, string> = {
   saved: "La revisión aprobada quedó activa y la versión anterior permanece en el historial.",
   conflict: "Otra revisión cambió el estado o el identificador ya fue usado. Recarga la página.",
   error: "No fue posible guardar el vocabulario. Revisa términos, duplicados y procedencia.",
   unavailable: "La administración local está deshabilitada porque falta la configuración segura.",
+  "contract-unavailable": "No se pudo cargar el contrato maestro; no se modificó ningún vocabulario.",
 };
 
 export default async function ControlledTermsPage({
@@ -25,13 +19,13 @@ export default async function ControlledTermsPage({
   searchParams: Promise<{ save?: string }>;
 }) {
   const { save } = await searchParams;
-  let revisions: Awaited<ReturnType<typeof getControlledVocabularies>>["revisions"] | null = null;
-  try {
-    revisions = (await getControlledVocabularies(true)).revisions;
-  } catch {
-    // Preserve an explicit degraded state when the operational API is unavailable.
-  }
-  if (revisions === null) {
+  const [revisionsResult, contractResult, dspaceResult] = await Promise.allSettled([
+    getControlledVocabularies(true),
+    getCatalogingContract(),
+    getDSpaceVocabularies(),
+  ]);
+
+  if (revisionsResult.status === "rejected") {
     return (
       <div className="shell">
         <Link href="/" className="back-link">← Volver a registros</Link>
@@ -43,9 +37,15 @@ export default async function ControlledTermsPage({
     );
   }
 
+  const revisions = revisionsResult.value.revisions;
+  const contract = contractResult.status === "fulfilled" ? contractResult.value : null;
+  const dspaceMirror = dspaceResult.status === "fulfilled" ? dspaceResult.value : null;
+  const controlledFields = contract?.fields.filter((field) => field.runtime_vocabularied) ?? [];
+  const fieldLabels = Object.fromEntries(
+    controlledFields.map((field) => [field.metadata_field, field.assistant_label]),
+  );
   const active = revisions.filter((revision) => revision.is_active);
   const history = revisions.filter((revision) => !revision.is_active);
-  const dspaceMirror = await getDSpaceVocabularies().catch(() => null);
 
   return (
     <div className="shell vocabulary-page">
@@ -62,18 +62,23 @@ export default async function ControlledTermsPage({
           Registra únicamente fuentes institucionales aprobadas. Los términos se comparan de forma
           literal; esta configuración no modifica DSpace ni genera valores nuevos.
         </p>
+        {contract ? (
+          <small>Contrato activo: {contract.contract_version} · {contract.field_count} bindings DSpace.</small>
+        ) : (
+          <div className="diagnostic-notice stale">El contrato maestro no está disponible; las acciones dependientes quedan bloqueadas.</div>
+        )}
       </header>
 
       <section aria-labelledby="active-vocabularies-heading">
         <div className="section-heading">
           <h2 id="active-vocabularies-heading">Revisiones activas</h2>
-          <span>{active.length} de 5 campos configurados</span>
+          <span>{active.length} de {controlledFields.length || "?"} campos configurados</span>
         </div>
         {active.length ? (
           <div className="vocabulary-grid">
             {active.map((revision) => (
               <article className="vocabulary-card" key={revision.revision_id}>
-                <p className="eyebrow">{FIELD_LABELS[revision.field] ?? revision.field}</p>
+                <p className="eyebrow">{fieldLabels[revision.field] ?? revision.field}</p>
                 <h3>{revision.name}</h3>
                 <dl>
                   <div><dt>Versión</dt><dd>{revision.version_label}</dd></div>
@@ -121,44 +126,50 @@ export default async function ControlledTermsPage({
 
       <section aria-labelledby="new-vocabulary-heading">
         <h2 id="new-vocabulary-heading">Activar una revisión aprobada</h2>
-        <form action={recordVocabularyRevision} className="vocabulary-form">
-          <label>
-            Campo
-            <select name="field" required>
-              {Object.entries(FIELD_LABELS).map(([field, label]) => (
-                <option value={field} key={field}>{label} · {field}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Nombre del vocabulario
-            <input name="name" minLength={2} maxLength={500} required />
-          </label>
-          <label>
-            Fuente o URI institucional
-            <input name="source_uri" minLength={3} maxLength={2000} required />
-          </label>
-          <label>
-            Versión de la fuente
-            <input name="version_label" minLength={1} maxLength={120} required />
-          </label>
-          <label>
-            Aprobado por
-            <input name="approved_by" minLength={2} maxLength={120} required />
-          </label>
-          <label className="vocabulary-wide">
-            Evidencia de aprobación
-            <textarea name="approval_note" minLength={1} maxLength={2000} required />
-          </label>
-          <label className="vocabulary-wide">
-            Términos aprobados · uno por línea
-            <textarea name="terms" minLength={1} maxLength={100000} required />
-          </label>
-          <button type="submit">Activar revisión local</button>
-          <small>
-            Esta operación conserva el historial, pero cambia la revisión local usada para validar.
-          </small>
-        </form>
+        {contract ? (
+          <form action={recordVocabularyRevision} className="vocabulary-form">
+            <label>
+              Campo
+              <select name="field" required>
+                {controlledFields.map((field) => (
+                  <option value={field.metadata_field} key={field.binding_id}>
+                    {field.assistant_label} · {field.metadata_field}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Nombre del vocabulario
+              <input name="name" minLength={2} maxLength={500} required />
+            </label>
+            <label>
+              Fuente o URI institucional
+              <input name="source_uri" minLength={3} maxLength={2000} required />
+            </label>
+            <label>
+              Versión de la fuente
+              <input name="version_label" minLength={1} maxLength={120} required />
+            </label>
+            <label>
+              Aprobado por
+              <input name="approved_by" minLength={2} maxLength={120} required />
+            </label>
+            <label className="vocabulary-wide">
+              Evidencia de aprobación
+              <textarea name="approval_note" minLength={1} maxLength={2000} required />
+            </label>
+            <label className="vocabulary-wide">
+              Términos aprobados · uno por línea
+              <textarea name="terms" minLength={1} maxLength={100000} required />
+            </label>
+            <button type="submit">Activar revisión local</button>
+            <small>
+              Esta operación conserva el historial, pero cambia la revisión local usada para validar.
+            </small>
+          </form>
+        ) : (
+          <div className="diagnostic-notice stale">No se puede activar una revisión sin el contrato maestro runtime.</div>
+        )}
       </section>
 
       {history.length ? (
@@ -168,7 +179,7 @@ export default async function ControlledTermsPage({
             {history.map((revision) => (
               <details key={revision.revision_id}>
                 <summary>
-                  {FIELD_LABELS[revision.field] ?? revision.field} · {revision.version_label}
+                  {fieldLabels[revision.field] ?? revision.field} · {revision.version_label}
                 </summary>
                 <p>{revision.name} · {revision.terms.length} términos</p>
                 <small>{revision.approved_by} · {revision.approval_note}</small>
