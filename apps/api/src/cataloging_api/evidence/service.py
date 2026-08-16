@@ -6,7 +6,7 @@ import uuid
 from collections import defaultdict
 from collections.abc import Iterable
 
-from sqlalchemy import delete, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from cataloging_api.cataloging_contract import (
@@ -44,18 +44,38 @@ def _sha256(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
-def _normalized_source_payload(*, url: str | None, text: str | None) -> list[dict[str, str | None]]:
+def _normalized_source_payload(
+    *,
+    url: str | None,
+    text: str | None,
+) -> list[dict[str, str | None]]:
     sources: list[dict[str, str | None]] = []
     if url and url.strip():
         locator = url.strip()
         if not locator.startswith(("https://", "http://")):
             raise EvidenceValidationError("External URL must use http or https")
-        sources.append({"kind": "url", "locator": locator, "content_text": None, "media_type": "text/uri-list"})
+        sources.append(
+            {
+                "kind": "url",
+                "locator": locator,
+                "content_text": None,
+                "media_type": "text/uri-list",
+            }
+        )
     if text and text.strip():
         clean = text.strip()
         if len(clean) > MAX_TEXT_CHARS:
-            raise EvidenceValidationError(f"Evidence text exceeds {MAX_TEXT_CHARS} characters")
-        sources.append({"kind": "text", "locator": None, "content_text": clean, "media_type": "text/plain"})
+            raise EvidenceValidationError(
+                f"Evidence text exceeds {MAX_TEXT_CHARS} characters"
+            )
+        sources.append(
+            {
+                "kind": "text",
+                "locator": None,
+                "content_text": clean,
+                "media_type": "text/plain",
+            }
+        )
     if not sources:
         raise EvidenceValidationError("At least one URL or text source is required")
     return sources
@@ -76,7 +96,10 @@ async def create_evidence_session(
     item: DSpaceItem | None = None
     if item_uuid is not None:
         item = await session.scalar(
-            select(DSpaceItem).where(DSpaceItem.uuid == item_uuid, DSpaceItem.is_active.is_(True))
+            select(DSpaceItem).where(
+                DSpaceItem.uuid == item_uuid,
+                DSpaceItem.is_active.is_(True),
+            )
         )
         if item is None:
             raise EvidenceValidationError("Active DSpace item not found")
@@ -107,9 +130,14 @@ async def create_evidence_session(
     return evidence_session
 
 
-def _candidate_rows(source: CatalogEvidenceSource) -> Iterable[tuple[str, str, dict[str, object]]]:
+def _candidate_rows(
+    source: CatalogEvidenceSource,
+) -> Iterable[tuple[str, str, dict[str, object]]]:
     if source.kind == "url" and source.locator:
-        yield "dc.identifier.url", source.locator, {"kind": "source_url", "locator": source.locator}
+        yield "dc.identifier.url", source.locator, {
+            "kind": "source_url",
+            "locator": source.locator,
+        }
         return
     if source.kind != "text" or not source.content_text:
         return
@@ -122,7 +150,11 @@ def _candidate_rows(source: CatalogEvidenceSource) -> Iterable[tuple[str, str, d
             key = (match.group(1), match.group(2).strip())
             if key not in seen:
                 seen.add(key)
-                yield key[0], key[1], {"kind": "explicit_field_line", "line": line_number, "quote": line[:500]}
+                yield key[0], key[1], {
+                    "kind": "explicit_field_line",
+                    "line": line_number,
+                    "quote": line[:500],
+                }
 
     detectors = (
         ("dc.identifier.doi", DOI_RE),
@@ -140,7 +172,9 @@ def _candidate_rows(source: CatalogEvidenceSource) -> Iterable[tuple[str, str, d
                 "kind": "deterministic_pattern",
                 "start": match.start(),
                 "end": match.end(),
-                "quote": text[max(0, match.start() - 80): min(len(text), match.end() + 80)],
+                "quote": text[
+                    max(0, match.start() - 80) : min(len(text), match.end() + 80)
+                ],
             }
 
 
@@ -148,16 +182,29 @@ async def extract_evidence_candidates(
     session: AsyncSession,
     evidence_session: CatalogEvidenceSession,
 ) -> list[CatalogEvidenceCandidate]:
-    await session.execute(
-        delete(CatalogEvidenceCandidate).where(
-            CatalogEvidenceCandidate.session_id == evidence_session.session_id
+    existing = list(
+        await session.scalars(
+            select(CatalogEvidenceCandidate)
+            .where(
+                CatalogEvidenceCandidate.session_id == evidence_session.session_id
+            )
+            .order_by(
+                CatalogEvidenceCandidate.created_at,
+                CatalogEvidenceCandidate.candidate_id,
+            )
         )
     )
+    if existing:
+        return existing
+
     sources = list(
         await session.scalars(
             select(CatalogEvidenceSource)
             .where(CatalogEvidenceSource.session_id == evidence_session.session_id)
-            .order_by(CatalogEvidenceSource.created_at, CatalogEvidenceSource.source_id)
+            .order_by(
+                CatalogEvidenceSource.created_at,
+                CatalogEvidenceSource.source_id,
+            )
         )
     )
     vocabularies = await load_active_vocabulary_rules(session)
@@ -166,12 +213,16 @@ async def extract_evidence_candidates(
         for field, value, evidence in _candidate_rows(source):
             vocabulary = vocabularies.get(field)
             validation = {
-                "status": "no_vocabulary"
-                if vocabulary is None
-                else "valid"
-                if value in vocabulary.terms
-                else "invalid",
-                "vocabulary_revision": vocabulary.revision_key if vocabulary else None,
+                "status": (
+                    "no_vocabulary"
+                    if vocabulary is None
+                    else "valid"
+                    if value in vocabulary.terms
+                    else "invalid"
+                ),
+                "vocabulary_revision": (
+                    vocabulary.revision_key if vocabulary else None
+                ),
             }
             candidate = CatalogEvidenceCandidate(
                 session_id=evidence_session.session_id,
@@ -189,8 +240,14 @@ async def extract_evidence_candidates(
 
 
 async def get_evidence_session(
-    session: AsyncSession, session_id: uuid.UUID
-) -> tuple[CatalogEvidenceSession | None, list[CatalogEvidenceSource], list[CatalogEvidenceCandidate], bool]:
+    session: AsyncSession,
+    session_id: uuid.UUID,
+) -> tuple[
+    CatalogEvidenceSession | None,
+    list[CatalogEvidenceSource],
+    list[CatalogEvidenceCandidate],
+    bool,
+]:
     evidence_session = await session.get(CatalogEvidenceSession, session_id)
     if evidence_session is None:
         return None, [], [], False
@@ -198,14 +255,20 @@ async def get_evidence_session(
         await session.scalars(
             select(CatalogEvidenceSource)
             .where(CatalogEvidenceSource.session_id == session_id)
-            .order_by(CatalogEvidenceSource.created_at, CatalogEvidenceSource.source_id)
+            .order_by(
+                CatalogEvidenceSource.created_at,
+                CatalogEvidenceSource.source_id,
+            )
         )
     )
     candidates = list(
         await session.scalars(
             select(CatalogEvidenceCandidate)
             .where(CatalogEvidenceCandidate.session_id == session_id)
-            .order_by(CatalogEvidenceCandidate.created_at, CatalogEvidenceCandidate.candidate_id)
+            .order_by(
+                CatalogEvidenceCandidate.created_at,
+                CatalogEvidenceCandidate.candidate_id,
+            )
         )
     )
     stale = False
@@ -232,7 +295,9 @@ async def copy_candidates_to_draft(
     expected_version: int | None,
 ):
     if evidence_session.item_uuid is None:
-        raise EvidenceValidationError("Evidence session is not attached to a DSpace item")
+        raise EvidenceValidationError(
+            "Evidence session is not attached to a DSpace item"
+        )
 
     current_hash = await session.scalar(
         select(DSpaceItem.source_hash).where(
@@ -252,25 +317,33 @@ async def copy_candidates_to_draft(
         )
     )
     if len(selected) != len(set(candidate_ids)):
-        raise EvidenceValidationError("One or more candidates do not belong to this session")
+        raise EvidenceValidationError(
+            "One or more candidates do not belong to this session"
+        )
 
     grouped: dict[str, list[str]] = defaultdict(list)
     for candidate in selected:
         if candidate.evidence_state not in EVIDENCE_STATES:
-            raise EvidenceValidationError("Candidate contains an unsupported evidence state")
+            raise EvidenceValidationError(
+                "Candidate contains an unsupported evidence state"
+            )
         if candidate.metadata_field not in DRAFTABLE_LINGUISTIC_FIELDS:
             raise EvidenceValidationError(
-                f"Field is evidence-only and cannot be copied to a linguistic draft: {candidate.metadata_field}"
+                "Field is evidence-only and cannot be copied to a linguistic draft: "
+                f"{candidate.metadata_field}"
             )
         if candidate.validation_json.get("status") == "invalid":
             raise EvidenceValidationError(
-                f"Candidate is outside the active controlled vocabulary: {candidate.metadata_field}"
+                "Candidate is outside the active controlled vocabulary: "
+                f"{candidate.metadata_field}"
             )
         grouped[candidate.metadata_field].append(candidate.value)
 
     if not grouped:
         raise EvidenceValidationError("At least one draftable candidate is required")
-    provenance_note = f"{note.strip()} [evidence-session:{evidence_session.session_id}]"
+    provenance_note = (
+        f"{note.strip()} [evidence-session:{evidence_session.session_id}]"
+    )
     if draft_id is None:
         return await create_draft(
             session,
@@ -281,7 +354,9 @@ async def copy_candidates_to_draft(
             changes=dict(grouped),
         )
     if expected_version is None:
-        raise EvidenceValidationError("expected_version is required when revising a draft")
+        raise EvidenceValidationError(
+            "expected_version is required when revising a draft"
+        )
     return await append_draft_revision(
         session,
         item_uuid=evidence_session.item_uuid,
