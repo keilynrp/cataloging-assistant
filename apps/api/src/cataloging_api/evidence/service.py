@@ -8,14 +8,16 @@ from collections.abc import Iterable
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from cataloging_api.cataloging_contract import (
     CONTRACT_VERSION,
     DRAFTABLE_LINGUISTIC_FIELDS,
     EVIDENCE_STATES,
     FIELDS,
+    CatalogField,
 )
-from cataloging_api.db.models import DSpaceItem
+from cataloging_api.db.models import CatalogDraft, DSpaceItem
 from cataloging_api.drafts.service import append_draft_revision, create_draft
 from cataloging_api.evidence.models import (
     CatalogEvidenceCandidate,
@@ -30,7 +32,7 @@ DOI_RE = re.compile(r"\b10\.\d{4,9}/[-._;()/:A-Z0-9]+\b", re.IGNORECASE)
 ISSN_RE = re.compile(r"\b\d{4}-\d{3}[\dXx]\b")
 ISBN_RE = re.compile(r"\b(?:97[89][- ]?)?(?:\d[- ]?){9}[\dXx]\b")
 BINDINGS_BY_ID = {field.binding_id: field for field in FIELDS}
-BINDINGS_BY_METADATA: dict[str, list[object]] = defaultdict(list)
+BINDINGS_BY_METADATA: dict[str, list[CatalogField]] = defaultdict(list)
 for contract_field in FIELDS:
     BINDINGS_BY_METADATA[contract_field.metadata_field].append(contract_field)
 
@@ -47,7 +49,7 @@ def _sha256(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
-def _resolve_binding(key: str):
+def _resolve_binding(key: str) -> tuple[CatalogField | None, str | None]:
     by_id = BINDINGS_BY_ID.get(key)
     if by_id is not None:
         return by_id, "binding_id"
@@ -57,7 +59,7 @@ def _resolve_binding(key: str):
     return None, None
 
 
-def _binding_for_unique_metadata(metadata_field: str):
+def _binding_for_unique_metadata(metadata_field: str) -> CatalogField:
     bindings = BINDINGS_BY_METADATA.get(metadata_field, [])
     if len(bindings) != 1:
         raise EvidenceValidationError(
@@ -315,6 +317,17 @@ async def get_evidence_session(
     return evidence_session, sources, candidates, stale
 
 
+def _revision_values(draft: CatalogDraft) -> dict[str, list[str]]:
+    latest_patch = draft.revisions[-1].metadata_patch if draft.revisions else {}
+    values: dict[str, list[str]] = {}
+    for field in DRAFTABLE_LINGUISTIC_FIELDS:
+        entries = latest_patch.get(field)
+        if entries is None:
+            entries = draft.base_metadata.get(field, [])
+        values[field] = [str(entry["value"]) for entry in entries]
+    return values
+
+
 async def copy_candidates_to_draft(
     session: AsyncSession,
     *,
@@ -394,6 +407,23 @@ async def copy_candidates_to_draft(
         raise EvidenceValidationError(
             "expected_version is required when revising a draft"
         )
+
+    current_draft = await session.scalar(
+        select(CatalogDraft)
+        .where(
+            CatalogDraft.draft_id == draft_id,
+            CatalogDraft.item_uuid == evidence_session.item_uuid,
+        )
+        .options(selectinload(CatalogDraft.revisions))
+    )
+    if current_draft is None:
+        return None
+    merged_changes = _revision_values(current_draft)
+    for field, candidate_values in grouped.items():
+        for candidate_value in candidate_values:
+            if candidate_value not in merged_changes[field]:
+                merged_changes[field].append(candidate_value)
+
     return await append_draft_revision(
         session,
         item_uuid=evidence_session.item_uuid,
@@ -402,5 +432,5 @@ async def copy_candidates_to_draft(
         expected_version=expected_version,
         author=author,
         note=provenance_note,
-        changes=dict(grouped),
+        changes=merged_changes,
     )
