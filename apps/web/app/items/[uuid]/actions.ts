@@ -6,17 +6,11 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 import { API_URL } from "@/lib/api";
+import { getCatalogingContract } from "@/lib/cataloging-contract";
 import { getCatalogReviewToken } from "@/lib/server-secrets";
 
 const DECISIONS = new Set(["confirmed", "dismissed", "deferred"]);
 const SUGGESTION_DECISIONS = new Set(["accepted", "corrected", "rejected", "deferred"]);
-const LINGUISTIC_FIELDS = [
-  "dc.subject.linguisticFamily",
-  "dc.subject.linguisticBranch",
-  "dc.subject.linguiscgroup",
-  "dc.subject.linguisticVariant",
-  "dc.description.registeredLanguage",
-] as const;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function value(formData: FormData, key: string): string {
@@ -151,8 +145,17 @@ export async function recordLocalDraft(formData: FormData): Promise<never> {
   const expectedVersion = Number(value(formData, "expected_version"));
   const author = value(formData, "author");
   const note = value(formData, "note");
+  let outcome = "error";
+
+  let draftableFields: string[] = [];
+  try {
+    draftableFields = (await getCatalogingContract()).runtime.draftable_fields;
+  } catch {
+    redirect(`/items/${encodeURIComponent(itemUuid)}?draft=contract-unavailable`);
+  }
+
   const changes = Object.fromEntries(
-    LINGUISTIC_FIELDS.map((field) => [
+    draftableFields.map((field) => [
       field,
       value(formData, field)
         .split("\n")
@@ -160,7 +163,6 @@ export async function recordLocalDraft(formData: FormData): Promise<never> {
         .filter(Boolean),
     ]),
   );
-  let outcome = "error";
 
   if (
     UUID_PATTERN.test(itemUuid) &&
