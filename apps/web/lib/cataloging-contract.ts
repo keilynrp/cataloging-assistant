@@ -1,4 +1,4 @@
-import { API_URL } from "@/lib/api";
+import { API_URL, PUBLIC_API_URL } from "@/lib/api";
 
 export type CatalogingContractField = {
   binding_id: string;
@@ -34,10 +34,18 @@ export type CatalogingContract = {
   qa_rules: string[];
 };
 
-export async function getCatalogingContract(): Promise<CatalogingContract> {
-  const response = await fetch(`${API_URL}/api/cataloging-contract`, { cache: "no-store" });
+async function fetchContract(baseUrl: string): Promise<CatalogingContract> {
+  const response = await fetch(`${baseUrl}/api/cataloging-contract`, { cache: "no-store" });
   if (!response.ok) throw new Error(`Catalog contract API returned ${response.status}`);
   return response.json() as Promise<CatalogingContract>;
+}
+
+export function getCatalogingContract(): Promise<CatalogingContract> {
+  return fetchContract(API_URL);
+}
+
+export function getPublicCatalogingContract(): Promise<CatalogingContract> {
+  return fetchContract(PUBLIC_API_URL);
 }
 
 export function contractLabel(contract: CatalogingContract, metadataField: string): string {
