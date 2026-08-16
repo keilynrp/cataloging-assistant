@@ -26,6 +26,8 @@ export async function createEvidenceSession(formData: FormData): Promise<never> 
   if (createdBy.length < 2 || (!url && !text)) redirect("/evidence?create=invalid");
   if (itemUuid && !UUID_PATTERN.test(itemUuid)) redirect("/evidence?create=invalid");
 
+  let sessionId: string | null = null;
+  let outcome = "error";
   try {
     const response = await fetch(`${API_URL}/api/evidence-sessions`, {
       method: "POST",
@@ -41,12 +43,21 @@ export async function createEvidenceSession(formData: FormData): Promise<never> 
       }),
       cache: "no-store",
     });
-    if (!response.ok) redirect(`/evidence?create=${response.status === 422 ? "invalid" : "error"}`);
-    const payload = (await response.json()) as { session_id: string };
-    redirect(`/evidence/${encodeURIComponent(payload.session_id)}`);
+    if (response.ok) {
+      const payload = (await response.json()) as { session_id: string };
+      sessionId = payload.session_id;
+      outcome = "saved";
+    } else {
+      outcome = response.status === 422 ? "invalid" : "error";
+    }
   } catch {
-    redirect("/evidence?create=error");
+    outcome = "error";
   }
+
+  if (outcome === "saved" && sessionId) {
+    redirect(`/evidence/${encodeURIComponent(sessionId)}`);
+  }
+  redirect(`/evidence?create=${outcome}`);
 }
 
 export async function extractEvidence(formData: FormData): Promise<never> {
