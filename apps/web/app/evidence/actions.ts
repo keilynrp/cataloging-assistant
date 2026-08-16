@@ -23,7 +23,9 @@ export async function createEvidenceSession(formData: FormData): Promise<never> 
   const token = getCatalogReviewToken();
 
   if (!token) redirect("/evidence?create=unavailable");
-  if (createdBy.length < 2 || (!url && !text)) redirect("/evidence?create=invalid");
+  // A session may be created with neither URL nor text: PDF is an equally
+  // valid first source, added afterward from the session page.
+  if (createdBy.length < 2) redirect("/evidence?create=invalid");
   if (itemUuid && !UUID_PATTERN.test(itemUuid)) redirect("/evidence?create=invalid");
 
   let sessionId: string | null = null;

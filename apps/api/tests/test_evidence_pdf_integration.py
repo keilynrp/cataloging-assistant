@@ -1,11 +1,17 @@
+import asyncio
+import time
 import uuid
+from pathlib import Path
 
 import pytest
 from sqlalchemy import delete, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from cataloging_api.config import get_settings
 from cataloging_api.db.models import DSpaceCollection, DSpaceItem
 from cataloging_api.db.session import engine
+from cataloging_api.evidence import service as evidence_service
 from cataloging_api.evidence.models import (
     CatalogEvidenceCandidate,
     CatalogEvidenceSession,
@@ -13,6 +19,7 @@ from cataloging_api.evidence.models import (
 )
 from cataloging_api.evidence.service import (
     EvidencePdfInvalidTypeError,
+    EvidencePdfTimeoutError,
     EvidencePdfTooLargeError,
     EvidenceValidationError,
     add_pdf_evidence_source,
@@ -72,21 +79,55 @@ class _EvidenceFixture:
         await self.connection.close()
 
 
+async def _pdf_only_session(session: AsyncSession, item_uuid: uuid.UUID) -> CatalogEvidenceSession:
+    # A session may now be created with neither URL nor text (P2): PDF is a
+    # first-class, equally valid first source.
+    return await create_evidence_session(
+        session, item_uuid=item_uuid, created_by="Catalogadora", url=None, text=None
+    )
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_pdf_only_session_has_single_source_at_position_zero() -> None:
+    async with _EvidenceFixture() as (session, item_uuid):
+        evidence = await _pdf_only_session(session, item_uuid)
+        _, sources, _, _ = await get_evidence_session(session, evidence.session_id)
+        assert sources == []
+
+        source = await add_pdf_evidence_source(
+            session,
+            evidence,
+            file_bytes=pdf_with_text(["dc.subject.linguisticFamily: Tarasca"]),
+            original_filename="unica.pdf",
+            content_type=PDF_TYPE,
+            author="Catalogadora",
+        )
+        assert source.position == 0
+
+        _, sources, _, _ = await get_evidence_session(session, evidence.session_id)
+        assert [s.kind for s in sources] == ["pdf"]
+        assert [s.position for s in sources] == [0]
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_extract_on_sourceless_session_returns_empty_deterministic_snapshot() -> None:
+    async with _EvidenceFixture() as (session, item_uuid):
+        evidence = await _pdf_only_session(session, item_uuid)
+        candidates = await extract_evidence_candidates(session, evidence)
+        assert candidates == []
+        # A second call must remain the same empty, frozen snapshot, not
+        # re-derive or fabricate anything.
+        again = await extract_evidence_candidates(session, evidence)
+        assert again == []
+
+
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_pdf_with_text_is_extracted_and_persisted() -> None:
     async with _EvidenceFixture() as (session, item_uuid):
-        evidence = await create_evidence_session(
-            session,
-            item_uuid=item_uuid,
-            created_by="Catalogadora",
-            url=None,
-            # create_evidence_session requires a URL or text source at creation
-            # (VERTICAL-017, unchanged here); this is a neutral anchor that
-            # matches none of the extraction patterns, so it never produces a
-            # candidate of its own.
-            text="Sesión de evidencia sin metadatos previos.",
-        )
+        evidence = await _pdf_only_session(session, item_uuid)
         data = pdf_with_text(
             ["dc.subject.linguisticFamily: Tarasca", "DOI 10.1234/example.55"]
         )
@@ -122,17 +163,7 @@ async def test_pdf_with_text_is_extracted_and_persisted() -> None:
 @pytest.mark.asyncio
 async def test_pdf_without_text_layer_yields_no_candidates() -> None:
     async with _EvidenceFixture() as (session, item_uuid):
-        evidence = await create_evidence_session(
-            session,
-            item_uuid=item_uuid,
-            created_by="Catalogadora",
-            url=None,
-            # create_evidence_session requires a URL or text source at creation
-            # (VERTICAL-017, unchanged here); this is a neutral anchor that
-            # matches none of the extraction patterns, so it never produces a
-            # candidate of its own.
-            text="Sesión de evidencia sin metadatos previos.",
-        )
+        evidence = await _pdf_only_session(session, item_uuid)
         source = await add_pdf_evidence_source(
             session,
             evidence,
@@ -152,17 +183,7 @@ async def test_pdf_without_text_layer_yields_no_candidates() -> None:
 @pytest.mark.asyncio
 async def test_pdf_too_large_is_rejected_before_persisting() -> None:
     async with _EvidenceFixture() as (session, item_uuid):
-        evidence = await create_evidence_session(
-            session,
-            item_uuid=item_uuid,
-            created_by="Catalogadora",
-            url=None,
-            # create_evidence_session requires a URL or text source at creation
-            # (VERTICAL-017, unchanged here); this is a neutral anchor that
-            # matches none of the extraction patterns, so it never produces a
-            # candidate of its own.
-            text="Sesión de evidencia sin metadatos previos.",
-        )
+        evidence = await _pdf_only_session(session, item_uuid)
         oversized = b"%PDF-1.4\n" + b"0" * (25 * 1024 * 1024 + 1)
         with pytest.raises(EvidencePdfTooLargeError):
             await add_pdf_evidence_source(
@@ -174,24 +195,14 @@ async def test_pdf_too_large_is_rejected_before_persisting() -> None:
                 author="Catalogadora",
             )
         _, sources, _, _ = await get_evidence_session(session, evidence.session_id)
-        assert [s.kind for s in sources] == ["text"]
+        assert sources == []
 
 
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_pdf_wrong_content_type_is_rejected() -> None:
     async with _EvidenceFixture() as (session, item_uuid):
-        evidence = await create_evidence_session(
-            session,
-            item_uuid=item_uuid,
-            created_by="Catalogadora",
-            url=None,
-            # create_evidence_session requires a URL or text source at creation
-            # (VERTICAL-017, unchanged here); this is a neutral anchor that
-            # matches none of the extraction patterns, so it never produces a
-            # candidate of its own.
-            text="Sesión de evidencia sin metadatos previos.",
-        )
+        evidence = await _pdf_only_session(session, item_uuid)
         with pytest.raises(EvidencePdfInvalidTypeError):
             await add_pdf_evidence_source(
                 session,
@@ -207,17 +218,7 @@ async def test_pdf_wrong_content_type_is_rejected() -> None:
 @pytest.mark.asyncio
 async def test_pdf_wrong_extension_is_rejected() -> None:
     async with _EvidenceFixture() as (session, item_uuid):
-        evidence = await create_evidence_session(
-            session,
-            item_uuid=item_uuid,
-            created_by="Catalogadora",
-            url=None,
-            # create_evidence_session requires a URL or text source at creation
-            # (VERTICAL-017, unchanged here); this is a neutral anchor that
-            # matches none of the extraction patterns, so it never produces a
-            # candidate of its own.
-            text="Sesión de evidencia sin metadatos previos.",
-        )
+        evidence = await _pdf_only_session(session, item_uuid)
         with pytest.raises(EvidencePdfInvalidTypeError):
             await add_pdf_evidence_source(
                 session,
@@ -233,17 +234,7 @@ async def test_pdf_wrong_extension_is_rejected() -> None:
 @pytest.mark.asyncio
 async def test_pdf_bad_magic_bytes_is_rejected_despite_correct_mime() -> None:
     async with _EvidenceFixture() as (session, item_uuid):
-        evidence = await create_evidence_session(
-            session,
-            item_uuid=item_uuid,
-            created_by="Catalogadora",
-            url=None,
-            # create_evidence_session requires a URL or text source at creation
-            # (VERTICAL-017, unchanged here); this is a neutral anchor that
-            # matches none of the extraction patterns, so it never produces a
-            # candidate of its own.
-            text="Sesión de evidencia sin metadatos previos.",
-        )
+        evidence = await _pdf_only_session(session, item_uuid)
         with pytest.raises(EvidenceValidationError):
             await add_pdf_evidence_source(
                 session,
@@ -254,24 +245,14 @@ async def test_pdf_bad_magic_bytes_is_rejected_despite_correct_mime() -> None:
                 author="Catalogadora",
             )
         _, sources, _, _ = await get_evidence_session(session, evidence.session_id)
-        assert [s.kind for s in sources] == ["text"]
+        assert sources == []
 
 
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_corrupt_pdf_is_rejected_and_not_persisted() -> None:
     async with _EvidenceFixture() as (session, item_uuid):
-        evidence = await create_evidence_session(
-            session,
-            item_uuid=item_uuid,
-            created_by="Catalogadora",
-            url=None,
-            # create_evidence_session requires a URL or text source at creation
-            # (VERTICAL-017, unchanged here); this is a neutral anchor that
-            # matches none of the extraction patterns, so it never produces a
-            # candidate of its own.
-            text="Sesión de evidencia sin metadatos previos.",
-        )
+        evidence = await _pdf_only_session(session, item_uuid)
         with pytest.raises(EvidenceValidationError):
             await add_pdf_evidence_source(
                 session,
@@ -282,24 +263,14 @@ async def test_corrupt_pdf_is_rejected_and_not_persisted() -> None:
                 author="Catalogadora",
             )
         _, sources, _, _ = await get_evidence_session(session, evidence.session_id)
-        assert [s.kind for s in sources] == ["text"]
+        assert sources == []
 
 
 @pytest.mark.integration
 @pytest.mark.asyncio
 async def test_path_traversal_filename_is_sanitized_not_used_as_path() -> None:
     async with _EvidenceFixture() as (session, item_uuid):
-        evidence = await create_evidence_session(
-            session,
-            item_uuid=item_uuid,
-            created_by="Catalogadora",
-            url=None,
-            # create_evidence_session requires a URL or text source at creation
-            # (VERTICAL-017, unchanged here); this is a neutral anchor that
-            # matches none of the extraction patterns, so it never produces a
-            # candidate of its own.
-            text="Sesión de evidencia sin metadatos previos.",
-        )
+        evidence = await _pdf_only_session(session, item_uuid)
         source = await add_pdf_evidence_source(
             session,
             evidence,
@@ -317,17 +288,7 @@ async def test_path_traversal_filename_is_sanitized_not_used_as_path() -> None:
 @pytest.mark.asyncio
 async def test_stale_session_blocks_pdf_upload_via_service_precondition() -> None:
     async with _EvidenceFixture() as (session, item_uuid):
-        evidence = await create_evidence_session(
-            session,
-            item_uuid=item_uuid,
-            created_by="Catalogadora",
-            url=None,
-            # create_evidence_session requires a URL or text source at creation
-            # (VERTICAL-017, unchanged here); this is a neutral anchor that
-            # matches none of the extraction patterns, so it never produces a
-            # candidate of its own.
-            text="Sesión de evidencia sin metadatos previos.",
-        )
+        evidence = await _pdf_only_session(session, item_uuid)
         await session.execute(
             update(DSpaceItem).where(DSpaceItem.uuid == item_uuid).values(source_hash="g" * 64)
         )
@@ -367,3 +328,190 @@ async def test_url_text_and_pdf_sources_keep_stable_combined_position() -> None:
 
         _, requeried_sources, _, _ = await get_evidence_session(session, evidence.session_id)
         assert [s.source_id for s in requeried_sources] == [s.source_id for s in sources]
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_extraction_timeout_fails_closed_without_persisting(monkeypatch) -> None:
+    def slow_extract(_data: bytes):
+        time.sleep(0.3)
+        raise AssertionError("extraction must never complete once the timeout has fired")
+
+    def write_should_not_run(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("a timed-out extraction must never reach disk")
+
+    class _FastTimeoutSettings:
+        evidence_pdf_extraction_timeout_seconds = 0.05
+        evidence_pdf_storage_dir = get_settings().evidence_pdf_storage_dir
+
+    monkeypatch.setattr(evidence_service, "extract_pdf_text", slow_extract)
+    monkeypatch.setattr(evidence_service, "get_settings", lambda: _FastTimeoutSettings())
+    monkeypatch.setattr(evidence_service, "_write_pdf_bytes", write_should_not_run)
+
+    async with _EvidenceFixture() as (session, item_uuid):
+        evidence = await _pdf_only_session(session, item_uuid)
+        with pytest.raises(EvidencePdfTimeoutError):
+            await add_pdf_evidence_source(
+                session,
+                evidence,
+                file_bytes=pdf_with_text(["contenido"]),
+                original_filename="lento.pdf",
+                content_type=PDF_TYPE,
+                author="Catalogadora",
+            )
+        _, sources, _, _ = await get_evidence_session(session, evidence.session_id)
+        assert sources == []
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_flush_failure_cleans_up_orphaned_pdf_file(monkeypatch) -> None:
+    storage_dir = Path(get_settings().evidence_pdf_storage_dir)
+    before = set(storage_dir.glob("*.pdf")) if storage_dir.exists() else set()
+
+    async def _forced_collision_position(_session: AsyncSession, _session_id: uuid.UUID) -> int:
+        return 0
+
+    async with _EvidenceFixture() as (session, item_uuid):
+        evidence = await _pdf_only_session(session, item_uuid)
+        # Occupy position 0 directly so the forced-collision insert below
+        # violates UNIQUE(session_id, position) deterministically, without
+        # relying on true thread/process concurrency for this assertion.
+        session.add(
+            CatalogEvidenceSource(
+                session_id=evidence.session_id,
+                position=0,
+                kind="text",
+                locator=None,
+                content_text="Fuente existente en position 0.",
+                content_hash="0" * 64,
+                media_type="text/plain",
+                metadata_json={},
+            )
+        )
+        await session.flush()
+
+        monkeypatch.setattr(evidence_service, "_next_source_position", _forced_collision_position)
+
+        with pytest.raises(IntegrityError):
+            async with session.begin_nested():
+                await add_pdf_evidence_source(
+                    session,
+                    evidence,
+                    file_bytes=pdf_with_text(["colisión"]),
+                    original_filename="colision.pdf",
+                    content_type=PDF_TYPE,
+                    author="Catalogadora",
+                )
+
+        _, sources, _, _ = await get_evidence_session(session, evidence.session_id)
+        assert [s.kind for s in sources] == ["text"]
+
+        after = set(storage_dir.glob("*.pdf"))
+        assert after == before, "flush failure must not leave an orphaned PDF file on disk"
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_concurrent_pdf_uploads_get_distinct_positions() -> None:
+    # Real concurrency, across two independent connections/transactions, to
+    # exercise the SELECT ... FOR UPDATE lock in add_pdf_evidence_source:
+    # without it, both could read the same MAX(position) and race.
+    setup_connection = await engine.connect()
+    setup_session = AsyncSession(bind=setup_connection, expire_on_commit=False)
+    collection_uuid = uuid.uuid4()
+    item_uuid = uuid.uuid4()
+    session_id: uuid.UUID | None = None
+    try:
+        setup_session.add(
+            DSpaceCollection(
+                uuid=collection_uuid,
+                handle="test/evidence-pdf-concurrent",
+                name="Evidence PDF concurrency test",
+                raw_json={"uuid": str(collection_uuid)},
+            )
+        )
+        setup_session.add(
+            DSpaceItem(
+                uuid=item_uuid,
+                collection_uuid=collection_uuid,
+                handle="test/evidence-pdf-concurrent-item",
+                name="Evidence PDF concurrency item",
+                raw_json={"uuid": str(item_uuid)},
+                source_hash="h" * 64,
+            )
+        )
+        evidence = await _pdf_only_session(setup_session, item_uuid)
+        await setup_session.commit()
+        session_id = evidence.session_id
+
+        connection_a = await engine.connect()
+        session_a = AsyncSession(bind=connection_a, expire_on_commit=False)
+        connection_b = await engine.connect()
+        session_b = AsyncSession(bind=connection_b, expire_on_commit=False)
+        try:
+            evidence_a = await session_a.get(CatalogEvidenceSession, session_id)
+            evidence_b = await session_b.get(CatalogEvidenceSession, session_id)
+            assert evidence_a is not None
+            assert evidence_b is not None
+
+            async def _upload_and_commit(
+                target_session: AsyncSession,
+                target_evidence: CatalogEvidenceSession,
+                *,
+                label: str,
+            ) -> CatalogEvidenceSource:
+                # Commit here, inside the coroutine gather() runs concurrently:
+                # the FOR UPDATE lock in add_pdf_evidence_source is only
+                # released on commit/rollback, so the second coroutine can't
+                # proceed past its own lock acquisition until the first one
+                # commits. Deferring both commits until after gather() would
+                # deadlock (both waiting on each other's still-open lock).
+                added = await add_pdf_evidence_source(
+                    target_session,
+                    target_evidence,
+                    file_bytes=pdf_with_text([label]),
+                    original_filename=f"{label}.pdf",
+                    content_type=PDF_TYPE,
+                    author=f"Catalogadora {label}",
+                )
+                await target_session.commit()
+                return added
+
+            results = await asyncio.gather(
+                _upload_and_commit(session_a, evidence_a, label="A"),
+                _upload_and_commit(session_b, evidence_b, label="B"),
+            )
+
+            positions = sorted(result.position for result in results)
+            assert positions == [0, 1]
+        finally:
+            await session_a.close()
+            await connection_a.close()
+            await session_b.close()
+            await connection_b.close()
+
+        _, sources, _, _ = await get_evidence_session(setup_session, session_id)
+        assert sorted(s.position for s in sources) == [0, 1]
+    finally:
+        # This test commits real rows across separate connections (needed to
+        # exercise genuine lock contention), so clean up explicitly instead
+        # of relying on a rollback.
+        if session_id is not None:
+            await setup_session.execute(
+                delete(CatalogEvidenceSource).where(
+                    CatalogEvidenceSource.session_id == session_id
+                )
+            )
+            await setup_session.execute(
+                delete(CatalogEvidenceSession).where(
+                    CatalogEvidenceSession.session_id == session_id
+                )
+            )
+        await setup_session.execute(delete(DSpaceItem).where(DSpaceItem.uuid == item_uuid))
+        await setup_session.execute(
+            delete(DSpaceCollection).where(DSpaceCollection.uuid == collection_uuid)
+        )
+        await setup_session.commit()
+        await setup_session.close()
+        await setup_connection.close()

@@ -23,9 +23,11 @@ def source(*, kind: str, locator: str | None = None, text: str | None = None):
     )
 
 
-def test_requires_explicit_external_source() -> None:
-    with pytest.raises(EvidenceValidationError):
-        _normalized_source_payload(url=None, text=None)
+def test_empty_payload_yields_no_sources() -> None:
+    # VERTICAL-019: a session may start with neither URL nor text -- PDF
+    # (added afterward via add_pdf_evidence_source) is an equally valid
+    # first source, so this is a legitimate empty payload, not an error.
+    assert _normalized_source_payload(url=None, text=None) == []
 
 
 def test_rejects_non_http_external_url() -> None:
