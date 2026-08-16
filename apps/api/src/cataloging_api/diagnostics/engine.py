@@ -5,21 +5,17 @@ from collections import Counter
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 
-RULE_SET_VERSION = "2026-08-15.1"
-
-LINGUISTIC_FAMILY = "dc.subject.linguisticFamily"
-LINGUISTIC_BRANCH = "dc.subject.linguisticBranch"
-LINGUISTIC_GROUP = "dc.subject.linguiscgroup"
-LINGUISTIC_VARIANT = "dc.subject.linguisticVariant"
-REGISTERED_LANGUAGE = "dc.description.registeredLanguage"
-
-CONTROLLED_LINGUISTIC_FIELDS = (
-    LINGUISTIC_FAMILY,
+from cataloging_api.cataloging_contract import (
+    CONTROLLED_RUNTIME_FIELDS,
     LINGUISTIC_BRANCH,
+    LINGUISTIC_FAMILY,
     LINGUISTIC_GROUP,
     LINGUISTIC_VARIANT,
     REGISTERED_LANGUAGE,
 )
+
+RULE_SET_VERSION = "2026-08-15.2"
+CONTROLLED_LINGUISTIC_FIELDS = CONTROLLED_RUNTIME_FIELDS
 
 
 @dataclass(frozen=True)
@@ -152,10 +148,6 @@ def evaluate_metadata(
                 )
             )
 
-    # Repeated metadata values preserve their DSpace positions, but duplicate
-    # literals after Unicode/case normalization are still reviewable data. The
-    # rule deliberately does not infer value-to-value hierarchy across flat
-    # repeatable fields.
     for field in CONTROLLED_LINGUISTIC_FIELDS:
         values = [value.strip() for value in metadata.get(field, ()) if value.strip()]
         normalized = [unicodedata.normalize("NFKC", value).casefold() for value in values]
@@ -181,6 +173,7 @@ def evaluate_metadata(
                 evidence_key=evidence_key,
             )
         )
+
     for field, vocabulary in sorted((vocabularies or {}).items()):
         values = {value.strip() for value in metadata.get(field, ()) if value.strip()}
         invalid_values = sorted(values - vocabulary.terms)
