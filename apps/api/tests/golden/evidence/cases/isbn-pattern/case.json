@@ -1,0 +1,18 @@
+{
+  "id": "isbn-pattern",
+  "input_type": "text",
+  "sources": [
+    { "type": "text", "text": "ISBN 978-0-306-40615-7 impreso.\n" }
+  ],
+  "expected_sources": [
+    { "kind": "text", "position": 0 }
+  ],
+  "expected_candidates": [
+    { "binding_id": "isbn", "metadata_field": "dc.identifier.isbn", "value": "978-0-306-40615-7" }
+  ],
+  "expected_evidence_state": "EXTRAÍDO",
+  "expected_binding_ids": ["isbn"],
+  "expected_metadata_fields": ["dc.identifier.isbn"],
+  "expected_values": ["978-0-306-40615-7"],
+  "expected_order": ["isbn"]
+}

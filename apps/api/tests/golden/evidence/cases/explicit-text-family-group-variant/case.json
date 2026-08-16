@@ -1,0 +1,23 @@
+{
+  "id": "explicit-text-family-group-variant",
+  "input_type": "text",
+  "sources": [
+    {
+      "type": "text",
+      "text": "dc.subject.linguisticFamily: Tarasca\nlinguistic-group: Tarasco (Purépecha)\nlinguistic-variant: Central\n"
+    }
+  ],
+  "expected_sources": [
+    { "kind": "text", "position": 0 }
+  ],
+  "expected_candidates": [
+    { "binding_id": "linguistic-family", "metadata_field": "dc.subject.linguisticFamily", "value": "Tarasca" },
+    { "binding_id": "linguistic-group", "metadata_field": "dc.subject.linguiscgroup", "value": "Tarasco (Purépecha)" },
+    { "binding_id": "linguistic-variant", "metadata_field": "dc.subject.linguisticVariant", "value": "Central" }
+  ],
+  "expected_evidence_state": "EXTRAÍDO",
+  "expected_binding_ids": ["linguistic-family", "linguistic-group", "linguistic-variant"],
+  "expected_metadata_fields": ["dc.subject.linguisticFamily", "dc.subject.linguiscgroup", "dc.subject.linguisticVariant"],
+  "expected_values": ["Tarasca", "Tarasco (Purépecha)", "Central"],
+  "expected_order": ["linguistic-family", "linguistic-group", "linguistic-variant"]
+}

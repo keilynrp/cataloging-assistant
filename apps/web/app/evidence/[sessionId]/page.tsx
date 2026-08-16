@@ -5,13 +5,31 @@ import { getItem } from "@/lib/api";
 import { getCatalogingContract } from "@/lib/cataloging-contract";
 import { getEvidenceSession } from "@/lib/evidence";
 
-import { copyEvidenceToDraft, extractEvidence } from "../actions";
+import { copyEvidenceToDraft, extractEvidence, uploadPdfEvidence } from "../actions";
 
 const EXTRACT_MESSAGES: Record<string, string> = {
   saved: "La extracción determinista quedó congelada como evidencia local.",
   stale: "El registro DSpace cambió desde la captura. Reabre una sesión con la versión vigente.",
   error: "No fue posible extraer candidatos.",
   unavailable: "La extracción está deshabilitada porque falta la configuración segura.",
+};
+
+const PDF_MESSAGES: Record<string, string> = {
+  saved: "El PDF quedó capturado como fuente de evidencia local.",
+  too_large: "El PDF supera el máximo permitido de 25 MB.",
+  invalid_type: "Sólo se aceptan archivos application/pdf con extensión .pdf.",
+  rejected: "El PDF no pudo procesarse (cifrado, corrupto o no es un PDF real).",
+  stale: "El registro DSpace cambió desde la captura. Reabre una sesión con la versión vigente.",
+  invalid: "Verifica el catalogador y selecciona un archivo PDF antes de enviar.",
+  error: "No fue posible subir el PDF.",
+  unavailable: "La subida está deshabilitada porque falta la configuración segura.",
+};
+
+const EXTRACTION_STATUS_LABELS: Record<string, string> = {
+  extracted: "Texto extraído",
+  no_extractable_text: "Sin texto útil (requiere OCR, no soportado)",
+  pending: "Pendiente",
+  rejected: "Rechazado",
 };
 
 const COPY_MESSAGES: Record<string, string> = {
@@ -27,10 +45,10 @@ export default async function EvidenceSessionPage({
   searchParams,
 }: {
   params: Promise<{ sessionId: string }>;
-  searchParams: Promise<{ extract?: string; copy?: string }>;
+  searchParams: Promise<{ extract?: string; copy?: string; pdf?: string }>;
 }) {
   const { sessionId } = await params;
-  const { extract, copy } = await searchParams;
+  const { extract, copy, pdf } = await searchParams;
 
   const [evidenceResult, contractResult] = await Promise.allSettled([
     getEvidenceSession(sessionId),
@@ -85,6 +103,11 @@ export default async function EvidenceSessionPage({
           {COPY_MESSAGES[copy]}
         </div>
       ) : null}
+      {pdf && PDF_MESSAGES[pdf] ? (
+        <div className={pdf === "saved" ? "review-status" : "review-status error"} role="status">
+          {PDF_MESSAGES[pdf]}
+        </div>
+      ) : null}
 
       <section>
         <div className="section-heading">
@@ -95,13 +118,46 @@ export default async function EvidenceSessionPage({
           {evidence.sources.map((source) => (
             <article className="item-card" key={source.source_id}>
               <div>
-                <h3>{source.kind === "url" ? "URL" : "Texto"}</h3>
-                <p>{source.locator ?? source.media_type ?? "Fuente textual"}</p>
+                <h3>
+                  {source.kind === "url" ? "URL" : source.kind === "pdf" ? "PDF" : "Texto"}
+                </h3>
+                {source.kind === "pdf" ? (
+                  <>
+                    <p>{String(source.metadata_json.original_filename ?? "documento.pdf")}</p>
+                    <p>
+                      {EXTRACTION_STATUS_LABELS[source.extraction_status] ??
+                        source.extraction_status}
+                      {source.page_count !== null ? ` · ${source.page_count} páginas` : ""}
+                    </p>
+                  </>
+                ) : (
+                  <p>{source.locator ?? source.media_type ?? "Fuente textual"}</p>
+                )}
                 <small>SHA-256: {source.content_hash}</small>
               </div>
             </article>
           ))}
         </div>
+        <form
+          action={uploadPdfEvidence}
+          className="review-form"
+          encType="multipart/form-data"
+        >
+          <input type="hidden" name="session_id" value={evidence.session_id} />
+          <label>
+            Adjuntar PDF (máximo 25 MB, sólo texto extraíble; sin OCR)
+            <input type="file" name="file" accept="application/pdf" required disabled={evidence.stale} />
+          </label>
+          <label>
+            Catalogador
+            <input name="author" minLength={2} maxLength={120} autoComplete="name" required />
+          </label>
+          <button type="submit" disabled={evidence.stale}>Subir PDF</button>
+          <small>
+            El PDF se guarda localmente; nunca se ejecuta su contenido ni se sigue ningún enlace
+            que contenga.
+          </small>
+        </form>
       </section>
 
       <section>
@@ -113,8 +169,9 @@ export default async function EvidenceSessionPage({
           <>
             <div className="diagnostic-notice">
               La sesión todavía no tiene extracción. El extractor determinista reconoce líneas
-              explícitas del contrato, DOI, ISSN, ISBN y la URL aportada. Para claves compartidas
-              como `dc.subject` o `dc.format.medium`, use el `binding_id` del contrato.
+              explícitas del contrato, DOI, ISSN, ISBN, la URL aportada y el texto extraído de
+              cualquier PDF adjunto. Para claves compartidas como `dc.subject` o
+              `dc.format.medium`, use el `binding_id` del contrato.
             </div>
             <form action={extractEvidence} className="review-form">
               <input type="hidden" name="session_id" value={evidence.session_id} />

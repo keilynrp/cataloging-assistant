@@ -1,0 +1,15 @@
+{
+  "id": "pdf-without-text-requires-ocr",
+  "input_type": "pdf",
+  "sources": [
+    { "type": "pdf", "fixture": "without_text" }
+  ],
+  "expected_sources": [
+    { "kind": "pdf", "position": 0, "extraction_status": "no_extractable_text" }
+  ],
+  "expected_candidates": [],
+  "expected_binding_ids": [],
+  "expected_metadata_fields": [],
+  "expected_values": [],
+  "expected_order": []
+}

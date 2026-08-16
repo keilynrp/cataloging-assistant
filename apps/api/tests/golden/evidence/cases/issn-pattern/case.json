@@ -1,0 +1,18 @@
+{
+  "id": "issn-pattern",
+  "input_type": "text",
+  "sources": [
+    { "type": "text", "text": "ISSN 1853-1393 registrado.\n" }
+  ],
+  "expected_sources": [
+    { "kind": "text", "position": 0 }
+  ],
+  "expected_candidates": [
+    { "binding_id": "issn", "metadata_field": "dc.identifier.issn", "value": "1853-1393" }
+  ],
+  "expected_evidence_state": "EXTRAÍDO",
+  "expected_binding_ids": ["issn"],
+  "expected_metadata_fields": ["dc.identifier.issn"],
+  "expected_values": ["1853-1393"],
+  "expected_order": ["issn"]
+}

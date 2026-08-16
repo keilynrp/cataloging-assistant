@@ -3,7 +3,7 @@ import Link from "next/link";
 import { createEvidenceSession } from "./actions";
 
 const CREATE_MESSAGES: Record<string, string> = {
-  invalid: "Revisa catalogador, UUID y fuente. Debe existir una URL o texto válido.",
+  invalid: "Revisa catalogador y UUID del ítem.",
   error: "No fue posible crear la sesión de evidencia.",
   unavailable: "La creación está deshabilitada porque falta la configuración segura.",
 };
@@ -21,8 +21,9 @@ export default async function EvidencePage({
         <p className="eyebrow">VERTICAL-017 · evidencia externa</p>
         <h1>Nueva sesión de evidencia</h1>
         <p>
-          Captura una URL como locator y/o texto aportado explícitamente. Este flujo crea
-          evidencia local revisable y nunca escribe DSpace.
+          Captura una URL como locator y/o texto aportado explícitamente. También puede crear la
+          sesión vacía y adjuntar un PDF desde la página de la sesión. Este flujo crea evidencia
+          local revisable y nunca escribe DSpace.
         </p>
       </header>
 

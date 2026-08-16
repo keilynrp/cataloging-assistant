@@ -1,0 +1,15 @@
+{
+  "id": "ambiguous-dc-format-medium-no-candidate",
+  "input_type": "text",
+  "sources": [
+    { "type": "text", "text": "dc.format.medium: Digital\n" }
+  ],
+  "expected_sources": [
+    { "kind": "text", "position": 0 }
+  ],
+  "expected_candidates": [],
+  "expected_binding_ids": [],
+  "expected_metadata_fields": [],
+  "expected_values": [],
+  "expected_order": []
+}

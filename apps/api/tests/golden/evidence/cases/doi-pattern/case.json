@@ -1,0 +1,18 @@
+{
+  "id": "doi-pattern",
+  "input_type": "text",
+  "sources": [
+    { "type": "text", "text": "Ver DOI 10.5281/example.99 para más contexto.\n" }
+  ],
+  "expected_sources": [
+    { "kind": "text", "position": 0 }
+  ],
+  "expected_candidates": [
+    { "binding_id": "doi", "metadata_field": "dc.identifier.doi", "value": "10.5281/example.99" }
+  ],
+  "expected_evidence_state": "EXTRAÍDO",
+  "expected_binding_ids": ["doi"],
+  "expected_metadata_fields": ["dc.identifier.doi"],
+  "expected_values": ["10.5281/example.99"],
+  "expected_order": ["doi"]
+}

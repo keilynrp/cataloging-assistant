@@ -1,0 +1,8 @@
+{
+  "id": "stale-session-blocks-extract-and-copy",
+  "input_type": "text",
+  "handler": "stale_session",
+  "sources": [
+    { "type": "text", "text": "dc.subject.linguisticFamily: Tarasca\n" }
+  ]
+}

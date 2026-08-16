@@ -1,0 +1,19 @@
+{
+  "id": "multi-value-same-field-preserves-position",
+  "input_type": "text",
+  "sources": [
+    { "type": "text", "text": "linguistic-variant: Uno\nlinguistic-variant: Dos\n" }
+  ],
+  "expected_sources": [
+    { "kind": "text", "position": 0 }
+  ],
+  "expected_candidates": [
+    { "binding_id": "linguistic-variant", "metadata_field": "dc.subject.linguisticVariant", "value": "Uno" },
+    { "binding_id": "linguistic-variant", "metadata_field": "dc.subject.linguisticVariant", "value": "Dos" }
+  ],
+  "expected_evidence_state": "EXTRAÍDO",
+  "expected_binding_ids": ["linguistic-variant", "linguistic-variant"],
+  "expected_metadata_fields": ["dc.subject.linguisticVariant", "dc.subject.linguisticVariant"],
+  "expected_values": ["Uno", "Dos"],
+  "expected_order": ["linguistic-variant", "linguistic-variant"]
+}
