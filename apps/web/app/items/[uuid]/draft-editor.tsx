@@ -1,16 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CatalogSuggestions, ItemMetadataValidation } from "@/lib/api";
+import {
+  getPublicCatalogingContract,
+  type CatalogingContractField,
+} from "@/lib/cataloging-contract";
 import { recordLocalDraft } from "./actions";
-
-const FIELDS = [
-  "dc.subject.linguisticFamily",
-  "dc.subject.linguisticBranch",
-  "dc.subject.linguiscgroup",
-  "dc.subject.linguisticVariant",
-  "dc.description.registeredLanguage",
-] as const;
 
 type Props = {
   itemUuid: string;
@@ -59,13 +55,39 @@ function deduplicateText(text: string): string {
 }
 
 export function DraftEditor({ itemUuid, draftId, expectedVersion, initialValues, stale, validation, suggestions, deduplicateFields }: Props) {
+  const [fields, setFields] = useState<CatalogingContractField[] | null>(null);
+  const [contractUnavailable, setContractUnavailable] = useState(false);
   const [values, setValues] = useState(() => Object.fromEntries(
     Object.entries(initialValues).map(([field, value]) => [
       field,
       deduplicateFields.includes(field) ? deduplicateText(value) : value,
     ]),
   ));
-  const previews = useMemo(() => Object.fromEntries(FIELDS.map((field) => [field, getPreview(field, values[field] ?? "", validation)])), [validation, values]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getPublicCatalogingContract()
+      .then((contract) => {
+        if (!cancelled) {
+          setFields(contract.fields.filter((field) => field.runtime_draftable));
+          setContractUnavailable(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setFields([]);
+          setContractUnavailable(true);
+        }
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  const previews = useMemo(() => Object.fromEntries(
+    (fields ?? []).map((field) => [
+      field.metadata_field,
+      getPreview(field.metadata_field, values[field.metadata_field] ?? "", validation),
+    ]),
+  ), [fields, validation, values]);
   const statuses = Object.values(previews).map((preview) => preview.status);
   const hasInvalid = statuses.includes("invalid");
   const hasVocabulary = statuses.some((status) => !["unavailable", "no_vocabulary"].includes(status));
@@ -91,8 +113,14 @@ export function DraftEditor({ itemUuid, draftId, expectedVersion, initialValues,
       <input type="hidden" name="item_uuid" value={itemUuid} />
       <input type="hidden" name="draft_id" value={draftId ?? ""} />
       <input type="hidden" name="expected_version" value={expectedVersion ?? ""} />
-      <fieldset disabled={stale}>
+      {contractUnavailable ? (
+        <div className="diagnostic-notice stale" role="status">
+          El contrato maestro de catalogación no está disponible. El editor queda bloqueado para evitar usar una lista de campos divergente.
+        </div>
+      ) : null}
+      <fieldset disabled={stale || fields === null || contractUnavailable}>
         <legend>Valores propuestos</legend>
+        {fields === null ? <div className="diagnostic-notice">Cargando contrato maestro…</div> : null}
         {deduplicateFields.length ? <div className="diagnostic-notice" role="status">
           Se preparó una propuesta local conservando la primera aparición de cada valor en{" "}
           <strong>{deduplicateFields.join(", ")}</strong>. Revise el resultado y guárdelo
@@ -103,11 +131,12 @@ export function DraftEditor({ itemUuid, draftId, expectedVersion, initialValues,
           <p>{!validation ? "La validación no está disponible. El borrador puede guardarse y se evaluará en el servidor." : !hasVocabulary ? "No hay vocabularios aprobados activos. El borrador puede guardarse; la revisión quedará como no configurada." : hasInvalid ? "Hay valores sin coincidencia literal. El borrador puede guardarse y conservará esta evidencia para revisión humana." : "Los valores con vocabulario activo coinciden literalmente con su revisión aprobada."}</p>
         </div>
         <div className="draft-field-grid">
-          {FIELDS.map((field) => {
-            const preview = previews[field];
-            return <div className="draft-field" key={field}>
-              <label htmlFor={`draft-${field}`}>{field}</label>
-              <textarea id={`draft-${field}`} name={field} value={values[field] ?? ""} onChange={(event) => setValues((current) => ({ ...current, [field]: event.target.value }))} maxLength={20000} />
+          {(fields ?? []).map((field) => {
+            const metadataField = field.metadata_field;
+            const preview = previews[metadataField];
+            return <div className="draft-field" key={field.binding_id}>
+              <label htmlFor={`draft-${metadataField}`}>{field.assistant_label}<small>{metadataField}</small></label>
+              <textarea id={`draft-${metadataField}`} name={metadataField} value={values[metadataField] ?? ""} onChange={(event) => setValues((current) => ({ ...current, [metadataField]: event.target.value }))} maxLength={20000} />
               <div className={`draft-field-preview ${preview.status}`}>
                 <strong>{LABELS[preview.status]}</strong>
                 {preview.source ? <small>{preview.source}</small> : null}
