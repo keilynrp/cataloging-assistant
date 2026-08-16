@@ -48,6 +48,20 @@ def require_review_token(
         raise HTTPException(status_code=401, detail="Invalid review token")
 
 
+def _candidate_out(candidate) -> EvidenceCandidateOut:
+    return EvidenceCandidateOut(
+        candidate_id=candidate.candidate_id,
+        source_id=candidate.source_id,
+        binding_id=candidate.binding_id,
+        metadata_field=candidate.metadata_field,
+        value=candidate.value,
+        evidence_state=candidate.evidence_state,
+        evidence_json=candidate.evidence_json,
+        validation_json=candidate.validation_json,
+        created_at=candidate.created_at,
+    )
+
+
 def _to_out(
     evidence_session,
     sources,
@@ -75,19 +89,7 @@ def _to_out(
             )
             for source in sources
         ],
-        candidates=[
-            EvidenceCandidateOut(
-                candidate_id=candidate.candidate_id,
-                source_id=candidate.source_id,
-                metadata_field=candidate.metadata_field,
-                value=candidate.value,
-                evidence_state=candidate.evidence_state,
-                evidence_json=candidate.evidence_json,
-                validation_json=candidate.validation_json,
-                created_at=candidate.created_at,
-            )
-            for candidate in candidates
-        ],
+        candidates=[_candidate_out(candidate) for candidate in candidates],
     )
 
 
@@ -173,19 +175,7 @@ async def get_candidates(
     loaded, _, candidates, _ = await get_evidence_session(session, session_id)
     if loaded is None:
         raise HTTPException(status_code=404, detail="Evidence session not found")
-    return [
-        EvidenceCandidateOut(
-            candidate_id=candidate.candidate_id,
-            source_id=candidate.source_id,
-            metadata_field=candidate.metadata_field,
-            value=candidate.value,
-            evidence_state=candidate.evidence_state,
-            evidence_json=candidate.evidence_json,
-            validation_json=candidate.validation_json,
-            created_at=candidate.created_at,
-        )
-        for candidate in candidates
-    ]
+    return [_candidate_out(candidate) for candidate in candidates]
 
 
 @router.post(
