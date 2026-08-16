@@ -28,7 +28,16 @@ contra un Golden Set de aceptación end-to-end.
   es determinable de forma fiable), offsets de caracteres, extractor, hash
   del texto extraído.
 - Orden estable (`position`) para fuentes y candidatos, incluyendo PDF
-  intercalado con URL/texto en la misma sesión.
+  intercalado con URL/texto en la misma sesión, y PDF como primera y única
+  fuente (`position=0`) de una sesión creada sin URL ni texto.
+- Timeout de extracción realmente aplicado (`asyncio.wait_for` sobre
+  `asyncio.to_thread`), no sólo configurado; falla cerrada con `422`.
+- Limpieza del archivo PDF en disco si la persistencia posterior a la
+  escritura falla por cualquier motivo (incluida una colisión de
+  `position` bajo concurrencia).
+- Asignación de `position` serializada por sesión mediante un lock de fila,
+  para que dos subidas concurrentes a la misma sesión no compitan por el
+  mismo valor.
 - Golden Set de aceptación end-to-end (`tests/golden/evidence/`) ejecutable
   con `pytest tests/golden -q` e incluido en `make test`.
 - Actualización de UI (`/evidence/{sessionId}`) para subir un PDF y ver su
@@ -61,6 +70,8 @@ contra un Golden Set de aceptación end-to-end.
 | Content-Type falsificado | Se exige `application/pdf` y extensión `.pdf`, pero además se verifican los magic bytes (`%PDF-`) antes de aceptar el archivo como PDF real; un archivo que finja ser PDF sin serlo se rechaza con `422`. |
 | PDF corrupto/cifrado/con demasiadas páginas | Se rechaza con `422` **antes** de escribir a disco o persistir en base de datos; no queda estado parcial. |
 | Denegación de servicio por archivo muy grande | Límite de 25 MB aplicado en lógica de aplicación (`413`); ver ADR-015 sobre la limitación conocida de buffering de Starlette para este MVP de operador único de confianza. |
+| Denegación de servicio por PDF patológicamente lento de parsear | Timeout aplicado (`EVIDENCE_PDF_EXTRACTION_TIMEOUT_SECONDS`, default 20s) vía `asyncio.wait_for` sobre `asyncio.to_thread`; falla cerrada con `422` sin tocar disco ni base de datos. El hilo de extracción puede seguir corriendo hasta terminar por su cuenta (limitación conocida, ver ADR-015), pero la petición ya no espera. |
+| Archivo huérfano en disco tras un fallo de persistencia (incluida una colisión de `position` bajo concurrencia) | `add_pdf_evidence_source` limpia (`Path.unlink`) el archivo recién escrito si `session.flush()` falla por cualquier motivo, antes de relanzar el error. |
 | Fuga de rutas internas del filesystem | La API y la UI nunca serializan una ruta de disco; sólo `source_id`, hash, nombre saneado, página y estado. |
 | Escritura accidental a DSpace | Ningún código de esta vertical llama a la capa de sincronización/escritura DSpace; sigue sin existir tal capa en el runtime. |
 | Token de revisión expuesto al navegador | El upload se realiza desde una Server Action de Next.js; el token permanece server-side, igual que el resto de mutaciones de evidencia. |
@@ -94,6 +105,17 @@ contra un Golden Set de aceptación end-to-end.
 11. `pytest tests/golden -q` pasa con los 14 casos mínimos del Golden Set.
 12. Ninguna prueba de esta vertical realiza una llamada HTTP saliente ni
     escribe en DSpace.
+13. Una sesión puede crearse sin URL ni texto; `POST /extract` sobre ella
+    devuelve una lista vacía de candidatos sin inventar nada. Un PDF subido
+    después queda como única fuente en `position=0`.
+14. Una extracción que excede el timeout configurado falla con `422`
+    (código estable `pdf_extraction_timeout`) sin escribir el archivo a
+    disco ni persistir ninguna fuente.
+15. Si la persistencia de una fuente PDF falla después de escribir el
+    archivo a disco, no queda archivo huérfano en
+    `EVIDENCE_PDF_STORAGE_DIR` ni fila persistida.
+16. Dos subidas de PDF concurrentes a la misma sesión obtienen posiciones
+    distintas y consecutivas, sin violar `UNIQUE(session_id, position)`.
 
 ## Rollback
 

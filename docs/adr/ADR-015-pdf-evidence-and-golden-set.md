@@ -140,16 +140,76 @@ revisión ya requerido, sin exposición pública), un límite de tamaño estrict
 a nivel de proxy/ASGI queda fuera de alcance de este corte y debe resolverse
 si la aplicación se expone alguna vez a más de un operador de confianza.
 
-## Timeout de extracción
+## Timeout de extracción — ENFORCED
 
-`EVIDENCE_PDF_EXTRACTION_TIMEOUT_SECONDS` (config, default 20s, 1–120s) está
-disponible como límite configurable, documentado como parte del contrato de
-esta vertical. La extracción en este corte es síncrona dentro del propio
-request (no hay cola de trabajo en segundo plano todavía), por lo que un PDF
-particularmente grande dentro del límite de 300 páginas puede tardar; el
-valor de configuración deja la puerta abierta a envolver la llamada con
-`asyncio.wait_for` en una iteración posterior si se detectan PDFs
-patológicamente lentos dentro del límite de tamaño/páginas.
+`EVIDENCE_PDF_EXTRACTION_TIMEOUT_SECONDS` (config, default 20s, 1–120s) es
+un límite **aplicado**, no reservado para una iteración futura.
+`extract_pdf_text()` se mantiene como función síncrona pura (sin `asyncio`
+dentro); `add_pdf_evidence_source()` la ejecuta fuera del event loop con
+`asyncio.to_thread()` y envuelve esa llamada en
+`asyncio.wait_for(..., timeout=get_settings().evidence_pdf_extraction_timeout_seconds)`.
+Si el timeout se cumple, se lanza `EvidencePdfTimeoutError` (subclase de
+`EvidenceValidationError`) **antes** de calcular la posición, escribir el
+archivo a disco o tocar la base de datos — falla cerrada, sin estado
+parcial. La ruta HTTP la mapea explícitamente a `422` con un detalle de
+código estable: `pdf_extraction_timeout: PDF extraction exceeded the
+configured timeout`.
+
+Limitación conocida y aceptada: `asyncio.to_thread` no puede matar el hilo
+en ejecución cuando el `wait_for` expira; el hilo de `pypdf` sigue corriendo
+en segundo plano hasta que termina por su cuenta (liberando eventualmente
+sus recursos), aunque la petición HTTP ya recibió su error 422. Para esta
+herramienta de operador único de confianza y con el límite de 300 páginas
+ya vigente, esto es un techo aceptable de trabajo desperdiciado, no un
+problema de disponibilidad.
+
+## Consistencia filesystem/DB
+
+`_write_pdf_bytes()` escribe el binario a disco **antes** de
+`session.flush()`. Si el `flush()` falla por cualquier motivo — incluida
+una colisión de `UNIQUE(session_id, position)` — el archivo ya escrito
+quedaría huérfano. `add_pdf_evidence_source()` envuelve el `flush()` en un
+`try/except` que ejecuta `Path.unlink(missing_ok=True)` sobre el archivo
+recién escrito antes de relanzar la excepción original, de modo que
+cualquier fallo de persistencia posterior a la escritura del archivo deja
+el storage exactamente como estaba.
+
+## Concurrencia en la asignación de `position`
+
+`_next_source_position()` calcula `MAX(position) + 1` para la sesión. Sin
+control adicional, dos subidas concurrentes a la misma sesión podrían leer
+el mismo `MAX` y competir por la misma posición, con `UNIQUE(session_id,
+position)` rechazando a la segunda con `IntegrityError` — y, sin la
+limpieza descrita arriba, dejando su archivo huérfano.
+
+Se elige serializar mediante bloqueo de fila (`SELECT ... FOR UPDATE` sobre
+`catalog_evidence_sessions.session_id`), el mismo patrón ya usado en
+`vocabularies/service.replace_active_vocabulary` para el mismo tipo de
+carrera. `add_pdf_evidence_source()` adquiere ese lock antes de calcular
+`_next_source_position()`; una segunda transacción concurrente sobre la
+misma sesión queda bloqueada hasta que la primera confirma o revierte, y
+entonces lee un `MAX` ya actualizado. No se eliminó
+`UNIQUE(session_id, position)`: el lock evita la carrera en el camino feliz,
+la restricción sigue siendo la garantía de última instancia a nivel de base
+de datos. Se prefirió el lock sobre un retry-after-failure porque evita por
+completo la ventana de colisión (y por tanto el propio riesgo de archivo
+huérfano) en vez de sólo recuperarse de ella.
+
+## Sesiones sin fuentes (PDF-only real)
+
+VERTICAL-017 exigía URL o texto para crear una sesión
+(`_normalized_source_payload` lanzaba `EvidenceValidationError` si ambos
+eran `None`). Esa restricción hacía que un flujo "sólo PDF" necesitara un
+texto ancla artificial como primera fuente. Se elimina esa restricción: una
+`CatalogEvidenceSession` puede existir con cero fuentes; un PDF subido
+después queda como primera fuente en `position=0`; `POST /extract` sobre una
+sesión sin fuentes no inventa nada y devuelve una lista vacía de candidatos
+de forma determinista (el bucle de extracción simplemente no itera nada).
+La API sigue aceptando exactamente las mismas peticiones que antes
+(`url`/`text` con valor siguen funcionando igual); sólo se volvió más
+permisiva al aceptar también la ausencia de ambos, por lo que no hay cambio
+incompatible para quien ya envía `url` o `text`. El formulario web de
+creación de sesión refleja lo mismo: ya no exige ninguno de los dos campos.
 
 ## Golden Set
 
@@ -170,7 +230,12 @@ producción.
   trazabilidad (página, offsets, hash del texto) cuando la fuente es PDF, sin
   alterar el comportamiento para URL/texto.
 - La UI de evidencia gana un formulario de subida de PDF, con el mismo patrón
-  de token server-side ya usado por el resto de las Server Actions.
+  de token server-side ya usado por el resto de las Server Actions, y ya no
+  exige URL o texto para crear una sesión.
+- `add_pdf_evidence_source` ahora: aplica el timeout de extracción de forma
+  real (`EvidencePdfTimeoutError` → `422`), serializa la asignación de
+  `position` por sesión con un lock de fila, y limpia el archivo escrito en
+  disco si la persistencia posterior falla por cualquier motivo.
 - VERTICAL-017 pasa a estado "Implementado / merged en main"; su "Siguiente
   iteración" apunta a esta ADR y a VERTICAL-019.
 
