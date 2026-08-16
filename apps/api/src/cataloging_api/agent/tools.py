@@ -17,6 +17,7 @@ from cataloging_api.api.routes import (
     latest_sync_run,
     search_active_items,
 )
+from cataloging_api.cataloging_contract import contract_payload
 from cataloging_api.profile.schemas import CollectionProfileOut
 
 TOP_PROFILE_FIELDS_CITED = 3
@@ -217,6 +218,20 @@ async def _get_sync_status(session: AsyncSession, _args: dict[str, Any]) -> Tool
     )
 
 
+async def _get_cataloging_contract(_session: AsyncSession, _args: dict[str, Any]) -> ToolResult:
+    payload = contract_payload()
+    return ToolResult(
+        output=payload,
+        citations=[
+            {
+                "label": f"Contrato maestro · {payload['contract_version']}",
+                "target_path": "/controlled-terms",
+                "detail": f"{payload['field_count']} bindings DSpace; contrato runtime de solo lectura",
+            }
+        ],
+    )
+
+
 @dataclass(frozen=True)
 class ToolSpec:
     name: str
@@ -285,7 +300,7 @@ TOOLS: list[ToolSpec] = [
     ToolSpec(
         name="get_item_metadata_validation",
         description=(
-            "Compara los valores de los cuatro campos lingüísticos de un ítem contra los "
+            "Compara los valores de los campos lingüísticos runtime contra los "
             "vocabularios controlados activos, campo por campo."
         ),
         input_schema={
@@ -348,6 +363,16 @@ TOOLS: list[ToolSpec] = [
             "properties": {"field": {"type": "string"}},
         },
         handler=_get_controlled_vocabularies,
+    ),
+    ToolSpec(
+        name="get_cataloging_contract",
+        description=(
+            "Contrato maestro dspace-cataloger v3.6: 56 bindings, etiquetas, campos runtime, "
+            "relaciones CLIN, estados de evidencia y reglas de gobernanza. Úsala antes de "
+            "explicar la semántica o capacidad de un campo."
+        ),
+        input_schema={"type": "object", "properties": {}},
+        handler=_get_cataloging_contract,
     ),
     ToolSpec(
         name="get_sync_status",
