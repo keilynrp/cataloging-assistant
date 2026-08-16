@@ -41,6 +41,13 @@ def test_runtime_contract_includes_variant_and_keeps_registered_language_indepen
     assert all(REGISTERED_LANGUAGE not in pair for pair in CLIN_RELATIONSHIPS)
 
 
+def test_variant_is_controlled_without_presuming_dspace_list() -> None:
+    variant = next(field for field in FIELDS if field.metadata_field == LINGUISTIC_VARIANT)
+    assert variant.controlled is True
+    assert variant.runtime_vocabularied is True
+    assert variant.vocabulary_id is None
+
+
 def test_contract_payload_is_runtime_serializable() -> None:
     payload = contract_payload()
     assert payload["field_count"] == 56
