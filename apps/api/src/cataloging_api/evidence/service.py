@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import os
 import re
@@ -56,6 +57,10 @@ class EvidencePdfTooLargeError(EvidenceValidationError):
 
 
 class EvidencePdfInvalidTypeError(EvidenceValidationError):
+    pass
+
+
+class EvidencePdfTimeoutError(EvidenceValidationError):
     pass
 
 
@@ -141,8 +146,10 @@ def _normalized_source_payload(
                 "media_type": "text/plain",
             }
         )
-    if not sources:
-        raise EvidenceValidationError("At least one URL or text source is required")
+    # A session may be created with neither: PDF (added afterward via
+    # add_pdf_evidence_source) is an equally valid first source, so an
+    # empty list here is a legitimate "not yet populated" session, not
+    # an error.
     return sources
 
 
@@ -219,8 +226,10 @@ async def add_pdf_evidence_source(
     Only ever reads structure/text via pypdf (no JS, launch actions,
     embedded-file extraction, or link-following) and never performs network
     I/O. A rejected PDF (encrypted, corrupt, too many pages, not actually a
-    PDF) raises before anything is written to disk or the database, so no
-    partial state is left behind.
+    PDF, or one that times out) raises before anything is written to disk
+    or the database, so no partial state is left behind. If persistence
+    fails *after* the file was written (e.g. a concurrent position
+    collision), the file is unlinked before the error propagates.
     """
     normalized_type = (content_type or "").split(";")[0].strip().lower()
     if normalized_type != "application/pdf" or not (original_filename or "").lower().endswith(
@@ -232,13 +241,31 @@ async def add_pdf_evidence_source(
     if len(file_bytes) > MAX_PDF_BYTES:
         raise EvidencePdfTooLargeError("PDF exceeds the maximum allowed size")
 
+    timeout_seconds = get_settings().evidence_pdf_extraction_timeout_seconds
     try:
-        result = extract_pdf_text(file_bytes)
+        result = await asyncio.wait_for(
+            asyncio.to_thread(extract_pdf_text, file_bytes), timeout=timeout_seconds
+        )
+    except TimeoutError as error:
+        # Fails closed: nothing has been written to disk or the database yet.
+        raise EvidencePdfTimeoutError(
+            "PDF extraction exceeded the configured timeout"
+        ) from error
     except PdfRejectedError as error:
         raise EvidenceValidationError(f"PDF rejected: {error.reason}") from error
 
-    source_id = uuid.uuid4()
+    # Serialize position assignment for this session: without this lock, two
+    # concurrent uploads could both read the same MAX(position) and race on
+    # UNIQUE(session_id, position). The second transaction blocks here until
+    # the first commits or rolls back, then reads an up-to-date MAX.
+    await session.execute(
+        select(CatalogEvidenceSession.session_id)
+        .where(CatalogEvidenceSession.session_id == evidence_session.session_id)
+        .with_for_update()
+    )
     position = await _next_source_position(session, evidence_session.session_id)
+
+    source_id = uuid.uuid4()
     _write_pdf_bytes(source_id, file_bytes)
 
     source = CatalogEvidenceSource(
@@ -264,7 +291,11 @@ async def add_pdf_evidence_source(
         page_count=result.page_count,
     )
     session.add(source)
-    await session.flush()
+    try:
+        await session.flush()
+    except Exception:
+        _pdf_storage_path(source_id).unlink(missing_ok=True)
+        raise
     return source
 
 

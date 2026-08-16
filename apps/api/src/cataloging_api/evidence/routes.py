@@ -24,6 +24,7 @@ from cataloging_api.evidence.schemas import (
 )
 from cataloging_api.evidence.service import (
     EvidencePdfInvalidTypeError,
+    EvidencePdfTimeoutError,
     EvidencePdfTooLargeError,
     EvidenceStaleError,
     EvidenceValidationError,
@@ -277,6 +278,12 @@ async def upload_pdf_source(
     except EvidencePdfInvalidTypeError as error:
         await session.rollback()
         raise HTTPException(status_code=415, detail=str(error)) from error
+    except EvidencePdfTimeoutError as error:
+        await session.rollback()
+        raise HTTPException(
+            status_code=422,
+            detail="pdf_extraction_timeout: PDF extraction exceeded the configured timeout",
+        ) from error
     except EvidenceValidationError as error:
         await session.rollback()
         raise HTTPException(status_code=422, detail=str(error)) from error
