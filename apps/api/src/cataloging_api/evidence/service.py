@@ -137,11 +137,12 @@ async def create_evidence_session(
     session.add(evidence_session)
     await session.flush()
 
-    for source in _normalized_source_payload(url=url, text=text):
+    for position, source in enumerate(_normalized_source_payload(url=url, text=text)):
         material = source["content_text"] or source["locator"] or ""
         session.add(
             CatalogEvidenceSource(
                 session_id=evidence_session.session_id,
+                position=position,
                 kind=source["kind"] or "text",
                 locator=source["locator"],
                 content_text=source["content_text"],
@@ -231,10 +232,7 @@ async def extract_evidence_candidates(
         await session.scalars(
             select(CatalogEvidenceSource)
             .where(CatalogEvidenceSource.session_id == evidence_session.session_id)
-            .order_by(
-                CatalogEvidenceSource.created_at,
-                CatalogEvidenceSource.source_id,
-            )
+            .order_by(CatalogEvidenceSource.position)
         )
     )
     vocabularies = await load_active_vocabulary_rules(session)
@@ -289,10 +287,7 @@ async def get_evidence_session(
         await session.scalars(
             select(CatalogEvidenceSource)
             .where(CatalogEvidenceSource.session_id == session_id)
-            .order_by(
-                CatalogEvidenceSource.created_at,
-                CatalogEvidenceSource.source_id,
-            )
+            .order_by(CatalogEvidenceSource.position)
         )
     )
     candidates = list(
@@ -352,10 +347,12 @@ async def copy_candidates_to_draft(
 
     selected = list(
         await session.scalars(
-            select(CatalogEvidenceCandidate).where(
+            select(CatalogEvidenceCandidate)
+            .where(
                 CatalogEvidenceCandidate.session_id == evidence_session.session_id,
                 CatalogEvidenceCandidate.candidate_id.in_(candidate_ids),
             )
+            .order_by(CatalogEvidenceCandidate.position)
         )
     )
     if len(selected) != len(set(candidate_ids)):

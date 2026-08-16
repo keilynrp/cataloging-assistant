@@ -54,6 +54,7 @@ def upgrade() -> None:
             sa.ForeignKey("catalog_evidence_sessions.session_id", ondelete="CASCADE"),
             nullable=False,
         ),
+        sa.Column("position", sa.Integer(), nullable=False),
         sa.Column("kind", sa.String(length=30), nullable=False),
         sa.Column("locator", sa.Text(), nullable=True),
         sa.Column("content_text", sa.Text(), nullable=True),
@@ -70,6 +71,9 @@ def upgrade() -> None:
             sa.DateTime(timezone=True),
             server_default=sa.func.now(),
             nullable=False,
+        ),
+        sa.UniqueConstraint(
+            "session_id", "position", name="uq_evidence_sources_session_position"
         ),
     )
     op.create_index(

@@ -206,6 +206,129 @@ async def test_evidence_snapshot_is_idempotent_revalidated_and_stale_safe() -> N
 
 @pytest.mark.integration
 @pytest.mark.asyncio
+async def test_copy_to_draft_orders_values_by_candidate_position() -> None:
+    collection_uuid = uuid.uuid4()
+    item_uuid = uuid.uuid4()
+    connection = await engine.connect()
+    transaction = await connection.begin()
+    session = AsyncSession(bind=connection, expire_on_commit=False)
+    try:
+        session.add(
+            DSpaceCollection(
+                uuid=collection_uuid,
+                handle="test/evidence-copy-order",
+                name="Evidence copy order test",
+                raw_json={"uuid": str(collection_uuid)},
+            )
+        )
+        session.add(
+            DSpaceItem(
+                uuid=item_uuid,
+                collection_uuid=collection_uuid,
+                handle="test/evidence-copy-order-item",
+                name="Evidence copy order item",
+                raw_json={"uuid": str(item_uuid)},
+                source_hash="d" * 64,
+            )
+        )
+        await session.flush()
+
+        evidence = await create_evidence_session(
+            session,
+            item_uuid=item_uuid,
+            created_by="Catalogadora",
+            url=None,
+            text=(
+                "linguistic-variant: Variante uno\n"
+                "linguistic-variant: Variante dos\n"
+            ),
+        )
+        candidates = await extract_evidence_candidates(session, evidence)
+        assert [candidate.position for candidate in candidates] == [0, 1]
+        first_candidate, second_candidate = candidates
+        assert first_candidate.value == "Variante uno"
+        assert second_candidate.value == "Variante dos"
+
+        draft = await copy_candidates_to_draft(
+            session,
+            evidence_session=evidence,
+            candidate_ids=[second_candidate.candidate_id, first_candidate.candidate_id],
+            request_id=uuid.uuid4(),
+            author="Catalogadora",
+            note="El orden debe seguir position, no el orden de candidate_ids.",
+            draft_id=None,
+            expected_version=None,
+        )
+        assert draft is not None
+        values = [
+            entry["value"]
+            for entry in draft.revisions[-1].metadata_patch[
+                "dc.subject.linguisticVariant"
+            ]
+        ]
+        assert values == ["Variante uno", "Variante dos"]
+    finally:
+        await session.close()
+        await transaction.rollback()
+        await connection.close()
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_source_position_is_stable_across_requery() -> None:
+    collection_uuid = uuid.uuid4()
+    item_uuid = uuid.uuid4()
+    connection = await engine.connect()
+    transaction = await connection.begin()
+    session = AsyncSession(bind=connection, expire_on_commit=False)
+    try:
+        session.add(
+            DSpaceCollection(
+                uuid=collection_uuid,
+                handle="test/evidence-source-order",
+                name="Evidence source order test",
+                raw_json={"uuid": str(collection_uuid)},
+            )
+        )
+        session.add(
+            DSpaceItem(
+                uuid=item_uuid,
+                collection_uuid=collection_uuid,
+                handle="test/evidence-source-order-item",
+                name="Evidence source order item",
+                raw_json={"uuid": str(item_uuid)},
+                source_hash="e" * 64,
+            )
+        )
+        await session.flush()
+
+        evidence = await create_evidence_session(
+            session,
+            item_uuid=item_uuid,
+            created_by="Catalogadora",
+            url="https://example.test/article",
+            text="dc.subject.linguisticFamily: Tarasca",
+        )
+
+        _, sources, _, _ = await get_evidence_session(session, evidence.session_id)
+        assert [source.position for source in sources] == [0, 1]
+        assert sources[0].kind == "url"
+        assert sources[1].kind == "text"
+
+        _, requeried_sources, _, _ = await get_evidence_session(
+            session, evidence.session_id
+        )
+        assert [source.source_id for source in requeried_sources] == [
+            source.source_id for source in sources
+        ]
+    finally:
+        await session.close()
+        await transaction.rollback()
+        await connection.close()
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
 async def test_candidate_position_is_unique_per_session() -> None:
     collection_uuid = uuid.uuid4()
     item_uuid = uuid.uuid4()

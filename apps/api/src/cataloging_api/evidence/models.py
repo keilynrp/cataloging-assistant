@@ -31,6 +31,9 @@ class CatalogEvidenceSource(Base):
     __tablename__ = "catalog_evidence_sources"
     __table_args__ = (
         Index("ix_evidence_sources_session_created", "session_id", "created_at"),
+        UniqueConstraint(
+            "session_id", "position", name="uq_evidence_sources_session_position"
+        ),
     )
 
     source_id: Mapped[uuid.UUID] = mapped_column(
@@ -40,6 +43,10 @@ class CatalogEvidenceSource(Base):
         ForeignKey("catalog_evidence_sessions.session_id", ondelete="CASCADE"),
         index=True,
     )
+    # Stable logical order within the session, assigned deterministically in the
+    # order sources are received (0..N-1). created_at must not be used for
+    # ordering: Postgres now() is constant across statements in one transaction.
+    position: Mapped[int] = mapped_column(Integer)
     kind: Mapped[str] = mapped_column(String(30))
     locator: Mapped[str | None] = mapped_column(Text)
     content_text: Mapped[str | None] = mapped_column(Text)
