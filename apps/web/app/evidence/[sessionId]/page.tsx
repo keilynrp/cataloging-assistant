@@ -41,8 +41,8 @@ export default async function EvidenceSessionPage({
   const evidence = evidenceResult.value;
   const contract = contractResult.status === "fulfilled" ? contractResult.value : null;
   const draftableFields = new Set(contract?.runtime.draftable_fields ?? []);
-  const labels = new Map(
-    contract?.fields.map((field) => [field.metadata_field, field.assistant_label]) ?? [],
+  const bindingLabels = new Map(
+    contract?.fields.map((field) => [field.binding_id, field.assistant_label]) ?? [],
   );
 
   const item = evidence.item_uuid
@@ -113,7 +113,8 @@ export default async function EvidenceSessionPage({
           <>
             <div className="diagnostic-notice">
               La sesión todavía no tiene extracción. El extractor determinista reconoce líneas
-              explícitas del contrato, DOI, ISSN, ISBN y la URL aportada.
+              explícitas del contrato, DOI, ISSN, ISBN y la URL aportada. Para claves compartidas
+              como `dc.subject` o `dc.format.medium`, use el `binding_id` del contrato.
             </div>
             <form action={extractEvidence} className="review-form">
               <input type="hidden" name="session_id" value={evidence.session_id} />
@@ -125,10 +126,10 @@ export default async function EvidenceSessionPage({
             {evidence.candidates.map((candidate) => (
               <article className="vocabulary-validation-card" key={candidate.candidate_id}>
                 <div className="diagnostic-title">
-                  <strong>{labels.get(candidate.metadata_field) ?? candidate.metadata_field}</strong>
+                  <strong>{bindingLabels.get(candidate.binding_id) ?? candidate.binding_id}</strong>
                   <span>{candidate.evidence_state}</span>
                 </div>
-                <p><code>{candidate.metadata_field}</code></p>
+                <p><code>{candidate.binding_id}</code> · <code>{candidate.metadata_field}</code></p>
                 <p><strong>{candidate.value}</strong></p>
                 <p className="validation-source">
                   Validación: {String(candidate.validation_json.status ?? "sin estado")}
@@ -164,7 +165,7 @@ export default async function EvidenceSessionPage({
                 {copyable.map((candidate) => (
                   <label key={candidate.candidate_id}>
                     <input type="checkbox" name="candidate_id" value={candidate.candidate_id} />
-                    {labels.get(candidate.metadata_field) ?? candidate.metadata_field}: {candidate.value}
+                    {bindingLabels.get(candidate.binding_id) ?? candidate.binding_id}: {candidate.value}
                   </label>
                 ))}
               </fieldset>
