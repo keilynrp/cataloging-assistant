@@ -7,8 +7,9 @@ import { recordVocabularyRevision } from "./actions";
 const FIELD_LABELS: Record<string, string> = {
   "dc.subject.linguisticFamily": "Familia lingüística",
   "dc.subject.linguisticBranch": "Rama lingüística",
-  "dc.subject.linguiscgroup": "Grupo lingüístico",
-  "dc.description.registeredLanguage": "Lengua registrada",
+  "dc.subject.linguiscgroup": "Agrupación lingüística",
+  "dc.subject.linguisticVariant": "Variante lingüística",
+  "dc.description.registeredLanguage": "Lengua de registro",
 };
 
 const SAVE_MESSAGES: Record<string, string> = {
@@ -66,7 +67,7 @@ export default async function ControlledTermsPage({
       <section aria-labelledby="active-vocabularies-heading">
         <div className="section-heading">
           <h2 id="active-vocabularies-heading">Revisiones activas</h2>
-          <span>{active.length} de 4 campos configurados</span>
+          <span>{active.length} de 5 campos configurados</span>
         </div>
         {active.length ? (
           <div className="vocabulary-grid">
@@ -105,7 +106,7 @@ export default async function ControlledTermsPage({
           <span>{dspaceMirror ? `${dspaceMirror.total} listas · ${dspaceMirror.entry_total} entradas` : "No disponible"}</span>
         </div>
         <div className="diagnostic-notice">
-          Estas listas son evidencia de solo lectura y no están aprobadas automáticamente.
+          Estas listas son evidencia de solo lectura y no están aprobadas automáticamente. Variante lingüística puede administrarse como vocabulario local aunque la instancia no exponga una lista DSpace promocionable para ese campo.
         </div>
         {dspaceMirror ? <div className="vocabulary-grid">
           {dspaceMirror.vocabularies.map((vocabulary) => <article className="vocabulary-card" key={vocabulary.vocabulary_id}>
