@@ -36,6 +36,7 @@ def test_duplicate_terms_after_normalization_are_rejected() -> None:
 
 def test_validation_snapshot_is_evidence_and_does_not_rewrite_values() -> None:
     field = "dc.subject.linguisticFamily"
+    group_field = "dc.subject.linguiscgroup"
     rule = VocabularyRule(
         revision_key=f"{field}:revision-1",
         name="Familias aprobadas",
@@ -47,19 +48,20 @@ def test_validation_snapshot_is_evidence_and_does_not_rewrite_values() -> None:
     snapshot = build_metadata_validation_snapshot(
         {
             field: ["Tarasca", "Otra"],
-            "dc.subject.linguiscgroup": ["Grupo propuesto"],
+            group_field: ["Grupo propuesto"],
         },
         {field: rule},
     )
 
     assert snapshot["status"] == "invalid"
     assert snapshot["vocabulary_profile"] == [rule.profile_key]
-    assert snapshot["fields"][0]["values"] == [
+    entries = {entry["field"]: entry for entry in snapshot["fields"]}
+    assert entries[field]["values"] == [
         {"value": "Tarasca", "approved": True},
         {"value": "Otra", "approved": False},
     ]
-    assert snapshot["fields"][1]["status"] == "no_vocabulary"
-    assert snapshot["fields"][1]["values"][0]["approved"] is None
+    assert entries[group_field]["status"] == "no_vocabulary"
+    assert entries[group_field]["values"][0]["approved"] is None
 
 
 def test_validation_snapshot_is_not_configured_without_active_rules() -> None:

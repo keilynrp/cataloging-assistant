@@ -48,6 +48,21 @@ def test_variant_is_controlled_without_presuming_dspace_list() -> None:
     assert variant.vocabulary_id is None
 
 
+def test_master_contract_preserves_dspace_ui_order() -> None:
+    binding_ids = [field.binding_id for field in FIELDS]
+
+    assert binding_ids[27:35] == [
+        "language-usage",
+        "registered-language",
+        "linguistic-group",
+        "linguistic-family",
+        "linguistic-branch",
+        "linguistic-variant",
+        "self-denomination",
+        "iso6391",
+    ]
+
+
 def test_contract_payload_is_runtime_serializable() -> None:
     payload = contract_payload()
     assert payload["field_count"] == 56
