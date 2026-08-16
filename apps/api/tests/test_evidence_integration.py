@@ -4,14 +4,33 @@ import pytest
 from sqlalchemy import delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from cataloging_api.db.models import CatalogVocabularyRevision, DSpaceCollection, DSpaceItem
+from cataloging_api.db.models import (
+    CatalogVocabularyRevision,
+    DSpaceCollection,
+    DSpaceItem,
+)
 from cataloging_api.db.session import engine
-from cataloging_api.evidence.models import CatalogEvidenceCandidate, CatalogEvidenceSession, CatalogEvidenceSource
-from cataloging_api.evidence.service import EvidenceStaleError, EvidenceValidationError, copy_candidates_to_draft, create_evidence_session, extract_evidence_candidates, get_evidence_session
+from cataloging_api.evidence.models import (
+    CatalogEvidenceCandidate,
+    CatalogEvidenceSession,
+    CatalogEvidenceSource,
+)
+from cataloging_api.evidence.service import (
+    EvidenceStaleError,
+    EvidenceValidationError,
+    copy_candidates_to_draft,
+    create_evidence_session,
+    extract_evidence_candidates,
+    get_evidence_session,
+)
 from cataloging_api.vocabularies.service import replace_active_vocabulary
 
 
-async def activate_family_vocabulary(session: AsyncSession, terms: list[str], version: str) -> None:
+async def activate_family_vocabulary(
+    session: AsyncSession,
+    terms: list[str],
+    version: str,
+) -> None:
     await replace_active_vocabulary(
         session,
         request_id=uuid.uuid4(),
@@ -21,7 +40,10 @@ async def activate_family_vocabulary(session: AsyncSession, terms: list[str], ve
         version_label=version,
         approved_by="Catalogadora",
         approval_note="Fixture de integración VERTICAL-017.",
-        terms=[{"value": term, "authority": None, "language": "es"} for term in terms],
+        terms=[
+            {"value": term, "authority": None, "language": "es"}
+            for term in terms
+        ],
     )
 
 
@@ -67,13 +89,22 @@ async def test_evidence_snapshot_is_idempotent_revalidated_and_stale_safe() -> N
             item_uuid=item_uuid,
             created_by="Catalogadora",
             url="https://example.test/article",
-            text="dc.subject.linguisticFamily: Tarasca\nDOI 10.1234/example.55",
+            text=(
+                "dc.subject.linguisticFamily: Tarasca\n"
+                "DOI 10.1234/example.55"
+            ),
         )
         first = await extract_evidence_candidates(session, evidence)
         repeated = await extract_evidence_candidates(session, evidence)
-        assert [candidate.candidate_id for candidate in repeated] == [candidate.candidate_id for candidate in first]
+        assert [candidate.candidate_id for candidate in repeated] == [
+            candidate.candidate_id for candidate in first
+        ]
 
-        family = next(candidate for candidate in first if candidate.metadata_field == "dc.subject.linguisticFamily")
+        family = next(
+            candidate
+            for candidate in first
+            if candidate.metadata_field == "dc.subject.linguisticFamily"
+        )
         assert family.validation_json["status"] == "no_vocabulary"
 
         await activate_family_vocabulary(session, ["Yuto-nahua"], "1")
@@ -101,13 +132,22 @@ async def test_evidence_snapshot_is_idempotent_revalidated_and_stale_safe() -> N
             expected_version=None,
         )
         assert draft is not None
-        assert draft.revisions[-1].metadata_patch["dc.subject.linguisticFamily"][0]["value"] == "Tarasca"
+        assert (
+            draft.revisions[-1]
+            .metadata_patch["dc.subject.linguisticFamily"][0]["value"]
+            == "Tarasca"
+        )
 
         await session.execute(
-            update(DSpaceItem).where(DSpaceItem.uuid == item_uuid).values(source_hash="b" * 64)
+            update(DSpaceItem)
+            .where(DSpaceItem.uuid == item_uuid)
+            .values(source_hash="b" * 64)
         )
         await session.flush()
-        loaded, _, _, stale = await get_evidence_session(session, evidence.session_id)
+        loaded, _, _, stale = await get_evidence_session(
+            session,
+            evidence.session_id,
+        )
         assert loaded is not None
         assert stale is True
         with pytest.raises(EvidenceStaleError):
