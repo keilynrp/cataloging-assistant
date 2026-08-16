@@ -23,14 +23,18 @@ def test_branch_without_family_produces_completeness_error() -> None:
 def test_group_without_family_produces_clin_warning() -> None:
     findings = evaluate_metadata({LINGUISTIC_GROUP: ["Náhuatl"]})
 
-    assert [(finding.code, finding.severity) for finding in findings] == [("CAT-LING-004", "warning")]
+    assert [(finding.code, finding.severity) for finding in findings] == [
+        ("CAT-LING-004", "warning")
+    ]
     assert findings[0].affected_fields == (LINGUISTIC_GROUP, LINGUISTIC_FAMILY)
 
 
 def test_variant_without_group_produces_authority_warning() -> None:
     findings = evaluate_metadata({LINGUISTIC_VARIANT: ["mexicano del centro alto"]})
 
-    assert [(finding.code, finding.severity) for finding in findings] == [("CAT-LING-005", "warning")]
+    assert [(finding.code, finding.severity) for finding in findings] == [
+        ("CAT-LING-005", "warning")
+    ]
     assert findings[0].affected_fields == (LINGUISTIC_VARIANT, LINGUISTIC_GROUP)
 
 

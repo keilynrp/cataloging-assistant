@@ -11,7 +11,6 @@ from cataloging_api.cataloging_contract import (
     LINGUISTIC_FAMILY,
     LINGUISTIC_GROUP,
     LINGUISTIC_VARIANT,
-    REGISTERED_LANGUAGE,
 )
 
 RULE_SET_VERSION = "2026-08-15.2"

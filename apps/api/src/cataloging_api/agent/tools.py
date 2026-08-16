@@ -226,7 +226,10 @@ async def _get_cataloging_contract(_session: AsyncSession, _args: dict[str, Any]
             {
                 "label": f"Contrato maestro · {payload['contract_version']}",
                 "target_path": "/controlled-terms",
-                "detail": f"{payload['field_count']} bindings DSpace; contrato runtime de solo lectura",
+                "detail": (
+                    f"{payload['field_count']} bindings DSpace; "
+                    "contrato runtime de solo lectura"
+                ),
             }
         ],
     )
