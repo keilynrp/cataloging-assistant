@@ -6,15 +6,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { API_URL } from "@/lib/api";
+import { getCatalogingContract } from "@/lib/cataloging-contract";
 import { getCatalogReviewToken } from "@/lib/server-secrets";
-
-const CONTROLLED_FIELDS = new Set([
-  "dc.subject.linguisticFamily",
-  "dc.subject.linguisticBranch",
-  "dc.subject.linguiscgroup",
-  "dc.subject.linguisticVariant",
-  "dc.description.registeredLanguage",
-]);
 
 function value(formData: FormData, key: string): string {
   const candidate = formData.get(key);
@@ -34,8 +27,15 @@ export async function recordVocabularyRevision(formData: FormData): Promise<neve
     .filter(Boolean);
   let outcome = "error";
 
+  let controlledFields: Set<string>;
+  try {
+    controlledFields = new Set((await getCatalogingContract()).runtime.controlled_fields);
+  } catch {
+    redirect("/controlled-terms?save=contract-unavailable");
+  }
+
   if (
-    CONTROLLED_FIELDS.has(field) &&
+    controlledFields.has(field) &&
     name.length >= 2 &&
     sourceUri.length >= 3 &&
     versionLabel.length >= 1 &&
