@@ -91,6 +91,7 @@ async def test_evidence_snapshot_is_idempotent_revalidated_and_stale_safe() -> N
             url="https://example.test/article",
             text=(
                 "dc.subject.linguisticFamily: Tarasca\n"
+                "linguistic-group: Tarasco (Purépecha)\n"
                 "DOI 10.1234/example.55"
             ),
         )
@@ -104,6 +105,11 @@ async def test_evidence_snapshot_is_idempotent_revalidated_and_stale_safe() -> N
             candidate
             for candidate in first
             if candidate.metadata_field == "dc.subject.linguisticFamily"
+        )
+        group = next(
+            candidate
+            for candidate in first
+            if candidate.binding_id == "linguistic-group"
         )
         assert family.validation_json["status"] == "no_vocabulary"
 
@@ -138,6 +144,23 @@ async def test_evidence_snapshot_is_idempotent_revalidated_and_stale_safe() -> N
             == "Tarasca"
         )
 
+        revised = await copy_candidates_to_draft(
+            session,
+            evidence_session=evidence,
+            candidate_ids=[group.candidate_id],
+            request_id=uuid.uuid4(),
+            author="Catalogadora",
+            note="Añade agrupación sin perder familia.",
+            draft_id=draft.draft_id,
+            expected_version=1,
+        )
+        assert revised is not None
+        latest_patch = revised.revisions[-1].metadata_patch
+        assert latest_patch["dc.subject.linguisticFamily"][0]["value"] == "Tarasca"
+        assert latest_patch["dc.subject.linguiscgroup"][0]["value"] == (
+            "Tarasco (Purépecha)"
+        )
+
         await session.execute(
             update(DSpaceItem)
             .where(DSpaceItem.uuid == item_uuid)
@@ -159,7 +182,7 @@ async def test_evidence_snapshot_is_idempotent_revalidated_and_stale_safe() -> N
                 author="Catalogadora",
                 note="Debe bloquearse por staleness.",
                 draft_id=draft.draft_id,
-                expected_version=1,
+                expected_version=2,
             )
     finally:
         await session.close()
