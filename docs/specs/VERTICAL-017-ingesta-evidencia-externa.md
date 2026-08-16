@@ -2,50 +2,67 @@
 
 ## Estado
 
-**Especificada; no implementada en este cambio.**
+**MVP determinista implementado en rama; pendiente de revisión y merge.**
 
 ## Objetivo
 
-Llevar a la aplicación el flujo que hoy ejecuta `dspace-cataloger cataloga:` fuera del runtime: recibir una URL y/o un texto completo aportado por el catalogador, extraer evidencia bibliográfica y lingüística, y producir un **borrador de evidencia**, nunca una escritura DSpace.
+Llevar a la aplicación el flujo que hoy ejecuta `dspace-cataloger cataloga:` fuera del runtime: recibir evidencia aportada por el catalogador, conservar su trazabilidad y producir candidatos catalográficos revisables, nunca una escritura DSpace.
+
+## Alcance del MVP
+
+Este primer corte acepta:
+
+- una URL HTTP(S) como locator de evidencia;
+- texto UTF-8 aportado explícitamente, hasta 250 000 caracteres;
+- asociación opcional a un ítem DSpace sincronizado.
+
+Deliberadamente **no** descarga la URL, no procesa PDF/binarios, no sigue autenticación externa y no usa LLM para generar candidatos. Esas capacidades quedan para una iteración posterior.
 
 ## Principios
 
 1. DSpace continúa como fuente de verdad para registros ya sincronizados.
-2. Una URL, PDF o texto aportado es **fuente de evidencia externa**, no fuente de verdad del repositorio.
-3. La extracción debe conservar trazabilidad a fragmentos/páginas/URL.
-4. El resultado debe separar `EXTRAÍDO`, `VERIFICADO`, `INFERIDO`, `GENERADO` y `PENDIENTE`.
-5. Los vocabularios activos de la aplicación gobiernan la validación final; el skill no puede promover automáticamente sus propios vocabularios.
-6. Ninguna salida se aplica a DSpace automáticamente.
-7. El agente conversacional read-only de ADR-010 no recibe nuevas herramientas de escritura. La ingesta debe ser un flujo separado, explícitamente iniciado por el catalogador.
+2. Una URL o texto aportado es **fuente de evidencia externa**, no fuente de verdad del repositorio.
+3. Cada fuente se captura como snapshot local con SHA-256.
+4. Cada candidato conserva fuente, campo, valor, estado y fragmento/locator de evidencia.
+5. El MVP sólo crea candidatos `EXTRAÍDO`; no eleva automáticamente valores a `VERIFICADO` ni convierte inferencias en hechos.
+6. Los vocabularios activos de la aplicación gobiernan la validación literal cuando un campo tiene vocabulario.
+7. Ninguna salida se aplica a DSpace automáticamente.
+8. El agente conversacional read-only de ADR-010 no recibe nuevas herramientas de escritura. La ingesta es un flujo separado iniciado por el catalogador.
 
-## Flujo propuesto
+## Flujo implementado
 
-1. Crear una sesión local de evidencia con URL opcional y archivo/texto opcional.
-2. Capturar una instantánea inmutable de las fuentes y sus hashes.
-3. Extraer metadatos candidatos según el form contract DSpace.
-4. Ejecutar reglas deterministas y reconciliación literal contra vocabularios activos.
-5. Mostrar una tabla campo/valor/evidencia/estado al catalogador.
-6. Permitir que el humano copie valores aprobados hacia un borrador local versionado.
-7. Si el registro DSpace cambia durante el proceso, marcar la sesión/borrador como obsoleto mediante `source_hash`.
+1. Crear una sesión local de evidencia con URL y/o texto.
+2. Si se vincula un ítem, capturar su `source_hash`.
+3. Persistir snapshots inmutables de las fuentes.
+4. Ejecutar extracción determinista una sola vez por sesión.
+5. Conservar candidatos append-only con evidencia y snapshot de validación.
+6. Consultar sesión y candidatos por API.
+7. Permitir copiar candidatos seleccionados sólo hacia los campos `runtime_draftable` del contrato maestro.
+8. Si el registro DSpace cambia, marcar la sesión como stale y bloquear extracción/copia.
 
-## Seguridad y límites
+## Extracción determinista
 
-- No ejecutar código de archivos aportados.
-- No seguir autenticaciones ni sesiones externas del usuario.
-- Restringir tamaño, MIME y tiempo de extracción.
-- No descargar bitstreams DSpace automáticamente; este flujo trata evidencia externa aportada de forma explícita.
-- No afirmar equivalencia entre términos fuente y autoridad si no existe correspondencia aprobada.
+El MVP reconoce:
 
-## Entidades mínimas propuestas
+- URL aportada → `dc.identifier.url`;
+- líneas explícitas `metadataField: valor` si `metadataField` pertenece a los 56 bindings del contrato maestro;
+- DOI;
+- ISSN;
+- ISBN.
 
-- `catalog_evidence_sessions`
-- `catalog_evidence_sources`
-- `catalog_evidence_candidates`
-- `catalog_evidence_candidate_values`
+No intenta inferir título, autores, lengua, agrupación o variante a partir de prosa libre.
 
-Todas con historial append-only o snapshots inmutables donde corresponda.
+## Persistencia
 
-## API candidata
+Entidades implementadas:
+
+- `catalog_evidence_sessions`;
+- `catalog_evidence_sources`;
+- `catalog_evidence_candidates`.
+
+No se añadió `catalog_evidence_candidate_values`: el MVP usa un candidato por campo/valor para mantener una estructura simple y trazable.
+
+## API implementada
 
 - `POST /api/evidence-sessions`
 - `GET /api/evidence-sessions/{id}`
@@ -53,12 +70,52 @@ Todas con historial append-only o snapshots inmutables donde corresponda.
 - `GET /api/evidence-sessions/{id}/candidates`
 - `POST /api/evidence-sessions/{id}/copy-to-draft`
 
-La última operación crea/revisa únicamente un borrador PostgreSQL y exige `CATALOG_REVIEW_TOKEN`.
+Las operaciones mutables exigen `CATALOG_REVIEW_TOKEN`. `copy-to-draft` reutiliza el servicio local de borradores y nunca escribe DSpace.
 
-## Puertas antes de implementación
+## Reconciliación y copy-to-draft
 
-P0. Aprobar política de fuentes externas y límites de archivos.
-P1. Definir si la extracción inicial será determinista, LLM-assisted o híbrida.
-P2. Definir contrato de evidencia por campo y citas de página/fragmento.
-P3. Definir reconciliación entre el form contract de 56 bindings y el contrato reducido de borradores lingüísticos.
-P4. Añadir fixtures del Golden Set de `dspace-cataloger` como pruebas de aceptación compartidas.
+La extracción puede producir evidencia para cualquier `metadataField` conocido por el contrato maestro. Sin embargo, el borrador local actual sólo admite los campos lingüísticos `runtime_draftable`.
+
+Por tanto:
+
+- candidatos bibliográficos como DOI/ISSN/ISBN/URL permanecen como evidencia revisable;
+- sólo candidatos lingüísticos explícitos pueden copiarse al borrador actual;
+- si existe vocabulario activo y el candidato no coincide literalmente, la copia queda bloqueada;
+- si no existe vocabulario activo, el candidato conserva estado `no_vocabulary` y requiere revisión humana posterior.
+
+## Seguridad y límites
+
+- No ejecutar código aportado.
+- No realizar fetch remoto en este corte; evita SSRF y redirecciones no gobernadas.
+- No seguir autenticaciones ni sesiones externas.
+- No descargar bitstreams DSpace automáticamente.
+- No afirmar equivalencia entre términos fuente y autoridad si no existe correspondencia aprobada.
+- Repetir `/extract` no sustituye candidatos: devuelve el snapshot existente.
+
+## Puertas resueltas
+
+- **P0:** política inicial = URL locator + texto, sin fetch/binarios; límite 250 000 caracteres.
+- **P1:** extracción inicial determinista.
+- **P2:** contrato por candidato con campo, valor, estado, source_id y evidencia localizada.
+- **P3:** 56 bindings para extracción; `runtime_draftable` para copia.
+- **P4:** se añaden fixtures unitarios del extractor determinista; el Golden Set completo queda para PDF/LLM.
+
+## Criterios de aceptación del MVP
+
+- una sesión conserva hashes y versión del contrato;
+- una sesión asociada a ítem se vuelve stale si cambia `source_hash`;
+- URL no provoca fetch remoto;
+- texto fuera del límite es rechazado;
+- sólo claves del contrato maestro se extraen desde líneas explícitas;
+- DOI/ISSN/ISBN conservan contexto de evidencia;
+- una segunda extracción no reemplaza el snapshot de candidatos;
+- copy-to-draft rechaza campos no `runtime_draftable` y candidatos fuera de vocabulario activo;
+- ninguna operación escribe DSpace.
+
+## Siguiente iteración
+
+1. UI Next.js para crear/revisar sesiones.
+2. Upload controlado de PDF con límites MIME/tamaño y extracción de texto en sandbox.
+3. Fetch HTTP seguro con allow/deny de red, timeout, tamaño y redirecciones.
+4. Capa LLM provider-independent para candidatos no deterministas, siempre marcada `INFERIDO` o `GENERADO` hasta verificación.
+5. Golden Set compartido con `dspace-cataloger` como aceptación end-to-end.
