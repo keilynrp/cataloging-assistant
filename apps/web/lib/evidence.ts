@@ -7,6 +7,9 @@ export type EvidenceSource = {
   content_hash: string;
   media_type: string | null;
   metadata_json: Record<string, unknown>;
+  extraction_status: string;
+  extracted_text_hash: string | null;
+  page_count: number | null;
   created_at: string;
 };
 

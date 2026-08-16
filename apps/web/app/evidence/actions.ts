@@ -60,6 +60,56 @@ export async function createEvidenceSession(formData: FormData): Promise<never> 
   redirect(`/evidence?create=${outcome}`);
 }
 
+export async function uploadPdfEvidence(formData: FormData): Promise<never> {
+  const sessionId = value(formData, "session_id");
+  const author = value(formData, "author");
+  const file = formData.get("file");
+  const token = getCatalogReviewToken();
+
+  if (!token) redirect(`/evidence/${encodeURIComponent(sessionId)}?pdf=unavailable`);
+  if (
+    !UUID_PATTERN.test(sessionId) ||
+    author.length < 2 ||
+    author.length > 120 ||
+    !(file instanceof File) ||
+    file.size === 0
+  ) {
+    redirect(`/evidence/${encodeURIComponent(sessionId)}?pdf=invalid`);
+  }
+
+  let outcome = "error";
+  try {
+    const upload = new FormData();
+    upload.append("file", file, file.name);
+    upload.append("author", author);
+    const response = await fetch(
+      `${API_URL}/api/evidence-sessions/${encodeURIComponent(sessionId)}/sources/pdf`,
+      {
+        method: "POST",
+        headers: { "X-Catalog-Review-Token": token },
+        body: upload,
+        cache: "no-store",
+      },
+    );
+    outcome = response.ok
+      ? "saved"
+      : response.status === 413
+        ? "too_large"
+        : response.status === 415
+          ? "invalid_type"
+          : response.status === 409
+            ? "stale"
+            : response.status === 422
+              ? "rejected"
+              : "error";
+  } catch {
+    outcome = "error";
+  }
+
+  if (outcome === "saved") revalidatePath(`/evidence/${sessionId}`);
+  redirect(`/evidence/${encodeURIComponent(sessionId)}?pdf=${outcome}`);
+}
+
 export async function extractEvidence(formData: FormData): Promise<never> {
   const sessionId = value(formData, "session_id");
   const token = getCatalogReviewToken();
