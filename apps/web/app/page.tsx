@@ -27,6 +27,7 @@ export default async function Home({
         </p>
       </section>
       <p><Link href="/audit/provenance">Abrir auditoría restringida de procedencia →</Link></p>
+      <p><Link href="/evidence">Abrir ingesta controlada de evidencia externa →</Link></p>
 
       <form className="search" action="/">
         <label htmlFor="q">Buscar por título, handle o metadato</label>
