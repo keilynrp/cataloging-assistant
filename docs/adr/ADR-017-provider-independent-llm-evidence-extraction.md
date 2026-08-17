@@ -8,6 +8,8 @@ VERTICAL-017, VERTICAL-019 y VERTICAL-020 establecieron un pipeline de evidencia
 
 VERTICAL-021, ya incorporado como especificación arquitectónica, propone añadir una capacidad opcional de extracción/sugerencia asistida por LLM sobre evidencia ya congelada. Esta ADR fija las decisiones de arquitectura necesarias para que esa capacidad no debilite las garantías actuales de autoridad, provenance, seguridad, reproducibilidad, human-in-the-loop y rollback.
 
+ADR-010 y ADR-011 ya gobiernan la arquitectura del agente generativo, la abstracción provider-agnostic y el almacenamiento cifrado de credenciales de proveedores. ADR-017 no crea un segundo sistema de secretos: define cómo la capacidad de **evidence inference** reutiliza esa infraestructura sin heredar automáticamente permisos, tool-calling ni autorización de data egress del agente conversacional.
+
 La decisión parte de una premisa: **el modelo no es una fuente de verdad ni una autoridad catalográfica; es un generador de candidatos revisables**.
 
 ## Decisión
@@ -16,7 +18,7 @@ Adoptar una arquitectura de inferencia LLM **provider-independent, opt-in, appen
 
 El flujo gobernado será conceptualmente:
 
-`SOURCE SNAPSHOT -> DETERMINISTIC EXTRACTION -> OPTIONAL LLM RUN -> BACKEND VALIDATION -> HUMAN REVIEW -> LOCAL DRAFT`
+`SOURCE SNAPSHOT -> DETERMINISTIC EXTRACTION -> OPTIONAL LLM RUN -> CANDIDATES -> BACKEND VALIDATION -> HUMAN REVIEW -> LOCAL DRAFT`
 
 La capacidad queda deshabilitada por defecto y no podrá exponerse como `CURRENT_RUNTIME` hasta cerrar los gates definidos en VERTICAL-021.
 
@@ -42,6 +44,54 @@ El adapter concreto será infraestructura sustituible. El dominio seguirá siend
 
 El proveedor no tendrá autoridad para redefinir ninguna de estas decisiones.
 
+### 1.1 Reconciliación con ADR-010 / ADR-011
+
+ADR-011 conserva autoridad sobre almacenamiento, cifrado, rotación y selección operativa de credenciales de proveedores. ADR-017 **reutiliza** esa infraestructura de credenciales, pero introduce una frontera de capacidad adicional.
+
+Una credencial/proveedor configurado debe poder expresar, de forma explícita y server-side, para qué capacidades está autorizado. Conceptualmente:
+
+```text
+provider credential
+  ├── capability: agent
+  └── capability: evidence_inference
+```
+
+La representación exacta puede resolverse mediante columnas, tabla de capabilities, policy binding o configuración equivalente, pero debe cumplir estas reglas:
+
+1. Una credencial activa para `agent` **no autoriza automáticamente** `evidence_inference`.
+2. `evidence_inference` requiere autorización explícita de capability para esa credencial/proveedor/deployment.
+3. La capability es evaluada server-side; el navegador no puede añadirla ni ampliarla.
+4. La política de data egress sigue siendo un gate independiente: una credencial autorizada no implica que una evidencia concreta pueda salir del sistema.
+5. Si la credencial está activa pero no autorizada para `evidence_inference`, la corrida falla cerrada antes de cualquier llamada externa.
+6. La selección/rotación de credenciales continúa bajo ADR-011; ADR-017 no duplica almacenamiento de API keys ni introduce secretos en provenance.
+
+La condición mínima para una llamada externa de evidencia es, conceptualmente:
+
+```text
+EVIDENCE_LLM_EXTRACTION_ENABLED = true
+AND provider credential has evidence_inference capability
+AND data-egress policy = allow
+AND explicit authenticated human action
+=> provider call may proceed
+```
+
+Cualquier `false`, `deny`, `indeterminate` o ausencia de capability produce **cero tráfico de red**.
+
+### 1.2 Separación entre adapters de agente y evidencia
+
+La infraestructura de transporte/proveedor puede compartir componentes bajos de ADR-011 (resolución de credencial, cliente autenticado, normalización de errores), pero el contrato de ejecución de Evidence Workspace debe permanecer separado del contrato conversacional del agente.
+
+En particular:
+
+- `LLMProviderAdapter` de evidencia no expone herramientas;
+- no recibe tool definitions;
+- no acepta tool calls como output válido;
+- no comparte el inventario de herramientas de `agent/providers/`;
+- no hereda browsing, retrieval, function calling ni capacidades mutables;
+- sólo ejecuta structured extraction bajo schema cerrado.
+
+Si se reutiliza código bajo `agent/providers/`, deberá extraerse o encapsularse una capa común de transporte que no implique semántica conversacional. La dependencia permitida es **infraestructura compartida**, no **capacidad compartida**.
+
 ## 2. Feature flag y activación explícita
 
 La capacidad deberá estar controlada por:
@@ -52,7 +102,7 @@ por defecto.
 
 Con el flag deshabilitado:
 
-- no se inicializa cliente externo;
+- no se inicializa cliente externo para evidencia;
 - no se produce tráfico de red;
 - no se crean inference runs;
 - la UI no presenta la capacidad como operativa.
@@ -70,9 +120,12 @@ Cada corrida registrará, como mínimo:
 - adapter id/version;
 - provider normalizado;
 - model id reportado;
+- credential/deployment reference no secreta;
+- capability evaluada;
 - prompt/template version;
 - contract version;
 - input manifest exacto y ordenado;
+- egress policy version/decision no sensible;
 - request/config hash;
 - response/output hash;
 - timestamps;
@@ -143,7 +196,8 @@ El backend rechazará candidatos que:
 - excedan límites;
 - no sean parseables;
 - incumplan restricciones estructurales;
-- presenten grounding inconsistente cuando el contrato exija excerpt verificable.
+- presenten grounding inconsistente cuando el contrato exija excerpt verificable;
+- incluyan tool calls, tool requests o estructuras conversacionales no permitidas.
 
 `metadata_field`, labels, evidence state, validation y draftability se derivan server-side.
 
@@ -168,6 +222,7 @@ La política deberá cubrir, como mínimo:
 
 - categorías de evidencia permitidas y prohibidas;
 - proveedores/deployments autorizados;
+- capability `evidence_inference` requerida;
 - propósito permitido;
 - retención;
 - uso/no uso para entrenamiento o mejora del proveedor;
@@ -183,11 +238,11 @@ La evaluación ocurre server-side **antes** de construir/enviar la petición ext
 
 Resultado:
 
-- `allow` -> puede continuar;
+- `allow` -> puede continuar sólo si feature flag, credential capability y acción humana también son válidos;
 - `deny` -> se bloquea;
 - `indeterminate` -> se bloquea.
 
-`deny` e `indeterminate` deben producir **cero tráfico de red**. La UI no puede sobrepasar esta política y el adapter no decide qué datos son elegibles.
+`deny`, `indeterminate`, capability ausente o credencial no autorizada deben producir **cero tráfico de red**. La UI no puede sobrepasar esta política y el adapter no decide qué datos son elegibles.
 
 ## 9. Prompt injection y aislamiento
 
@@ -206,7 +261,7 @@ Mitigaciones mínimas:
 - errores sanitizados;
 - fixtures específicos de prompt injection.
 
-Un documento que contenga instrucciones no puede modificar permisos, bindings, herramientas ni políticas de egress.
+Un documento que contenga instrucciones no puede modificar permisos, bindings, herramientas, capability de credencial ni políticas de egress.
 
 ## 10. Persistencia atómica
 
@@ -257,6 +312,8 @@ El agente conversacional no recibe herramientas para:
 
 La inferencia LLM pertenece al workflow humano del Evidence Workspace. La implementación deberá incluir un test de inventario/capabilities que falle si accidentalmente se añaden herramientas mutables al agente.
 
+Además, una capability `agent` y una capability `evidence_inference` son independientes. Activar/configurar una no habilita la otra.
+
 ## 14. OCR, browsing y tool use
 
 Esta ADR no autoriza:
@@ -293,7 +350,11 @@ La suite funcional principal debe usar un fake adapter determinista y no depende
 Debe cubrir, al menos:
 
 - feature flag OFF sin red;
-- egress deny/indeterminate sin red;
+- credencial activa sólo para `agent` no autoriza evidencia y produce cero red;
+- credencial sin `evidence_inference` produce cero red;
+- `evidence_inference` autorizada pero egress deny/indeterminate produce cero red;
+- acción humana ausente/inválida produce cero red;
+- adapter de evidencia no expone ni acepta tool-calling;
 - input manifest exacto y ordenado;
 - request hash sensible a rangos/orden/config;
 - derivación `INFERRED_VALUE -> INFERIDO`;
@@ -314,6 +375,7 @@ El diseño debe permitir rollback limpio:
 
 - feature flag OFF deja la capacidad completamente inerte;
 - adapters permanecen aislados del dominio;
+- capacidades de credencial pueden revocarse sin borrar secretos ni corridas históricas;
 - extracción determinista sigue operativa;
 - corridas históricas pueden quedar legibles/inertes sin romper sesiones;
 - no hay datos DSpace que revertir.
@@ -340,20 +402,32 @@ Rechazada. La política debe ser allow/deny explícita y fail-closed, especialme
 
 Rechazada. El determinismo actual sigue siendo baseline auditable y debe poder funcionar sin proveedor externo.
 
+### F. Considerar una credencial activa del agente como autorización implícita para evidencia
+
+Rechazada. Mezcla dos superficies de riesgo diferentes. La conversación del agente puede usar el proveedor sin que ello autorice a enviar snapshots de evidencia catalográfica. `agent` y `evidence_inference` deben ser capabilities explícitas e independientes.
+
+### G. Reutilizar directamente el adapter conversacional del agente con tool-calling desactivado por prompt
+
+Rechazada. Un prompt no es una frontera de seguridad suficiente. Evidence Workspace requiere un contrato de adapter distinto, sin tools en su interfaz ni aceptación de tool-call outputs.
+
 ## Consecuencias
 
 ### Positivas
 
 - mantiene provider portability;
+- reutiliza la infraestructura de credenciales de ADR-011 sin duplicar secretos;
+- separa autorización de proveedor de autorización de data egress;
 - protege la autoridad del contrato catalográfico;
 - mejora auditabilidad y reproducibilidad;
 - reduce riesgo de prompt injection y data leakage;
+- impide que Evidence Workspace herede tool-calling del agente;
 - permite rollback limpio;
 - mantiene separación entre agente, evidencia y DSpace;
 - permite comparar determinismo vs inferencia sin sustituir el baseline.
 
 ### Costes
 
+- requiere modelar/enforcear capabilities de credencial;
 - aumenta persistencia/provenance requerida;
 - exige política institucional de data egress;
 - obliga a diseñar manifests y hashes reproducibles;
@@ -365,10 +439,10 @@ Rechazada. El determinismo actual sigue siendo baseline auditable y debe poder f
 La implementación productiva no debe comenzar hasta cerrar explícitamente:
 
 - **Gate A — UX:** `UX-PROMPT-002` + `UX-ALIGNMENT-001` + `ACCEPTED_FOR_FREEZE` + UX Contract Freeze.
-- **Gate B — Data policy:** política de egress aprobada y versionada.
+- **Gate B — Data policy:** política de egress aprobada/versionada y modelo de capability `evidence_inference` definido y enforceable sobre la infraestructura de credenciales de ADR-011.
 - **Gate C — Arquitectura:** esta ADR aceptada.
 - **Gate D — Evaluation:** fixtures/métricas aprobados para calidad semántica.
 
 ## Resultado
 
-ADR-017 fija el límite arquitectónico para cualquier implementación futura de VERTICAL-021. No habilita proveedor, endpoint, migración, UI, OCR, tool use, escritura DSpace ni nuevas capacidades mutables del agente.
+ADR-017 fija el límite arquitectónico para cualquier implementación futura de VERTICAL-021. Reutiliza la infraestructura de proveedores/credenciales de ADR-011, pero no hereda autorización de agente, tool-calling ni permiso de egress. No habilita proveedor, endpoint, migración, UI, OCR, tool use, escritura DSpace ni nuevas capacidades mutables del agente.
