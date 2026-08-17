@@ -1,6 +1,6 @@
 # UX-DECISION-001 — Three-Pane Evidence Workspace Architecture
 
-Status: PROPOSED
+Status: ACCEPTED
 
 Decision scope: Evidence Workspace information architecture
 
@@ -240,7 +240,7 @@ Pure presentation changes inside the established responsibilities do not require
 
 This decision is intentionally narrower than the pending Evidence Navigator v0.2 acceptance gate.
 
-The three-pane architecture may be accepted as a durable product decision independently of whether the first v0.2 implementation requires visual reconciliation. `UX-ALIGNMENT-001` remains authoritative for deciding whether a concrete Lovable v0.2 artifact is safe to freeze as implementation guidance.
+The three-pane architecture is accepted as a durable product decision independently of whether the first v0.2 implementation requires visual reconciliation. `UX-ALIGNMENT-001` remains authoritative for deciding whether a concrete Lovable v0.2 artifact is safe to freeze as implementation guidance.
 
 Therefore:
 
@@ -248,6 +248,6 @@ Therefore:
 - `UX-ALIGNMENT-001` validates the **specific v0.2 representation**;
 - the later UX contract freeze governs the **accepted implementation reference** for the full Evidence Workspace increment.
 
-## 11. Proposed outcome
+## 11. Accepted outcome
 
-If accepted, this document becomes the durable architecture baseline for subsequent Evidence Workspace UX specs, prototypes and production refactors.
+This document is the durable architecture baseline for subsequent Evidence Workspace UX specs, prototypes and production refactors. Any future change to the number of primary regions or their semantic responsibilities must explicitly supersede `UX-DECISION-001`.
