@@ -38,16 +38,36 @@ def test_human_review_templates_validate_and_cannot_claim_final_gold() -> None:
     assert "AUTHORIZED_LOCAL_EVALUATION" not in json.dumps(intake, ensure_ascii=False)
 
 
-def test_stratum_a_intake_requires_two_distinct_reviewers_before_adjudicated_gold() -> None:
+def test_stratum_a_adjudicated_gold_requires_two_reviewers_and_adjudicator() -> None:
+    schema = _load(ROOT / "schemas" / "intake-manifest.schema.json")
     intake = _load(ROOT / "templates" / "intake-manifest.template.json")
     case = intake["cases"][0]
 
     case["authorization_status"] = "AUTHORIZED_LOCAL_EVALUATION"
     case["review_status"] = "ADJUDICATED_GOLD"
     case["reviewer_ids"] = ["cataloger-a"]
+    case["adjudicator_id"] = None
 
-    assert case["risk_stratum"] == "A"
-    assert len(set(case["reviewer_ids"])) < 2
+    errors = list(Draft202012Validator(schema).iter_errors(intake))
+    assert errors
+
+    case["reviewer_ids"] = ["cataloger-a", "cataloger-b"]
+    case["adjudicator_id"] = "adjudicator-c"
+    Draft202012Validator(schema).validate(intake)
+
+
+def test_stratum_a_adjudicated_gold_requires_authorized_local_evidence() -> None:
+    schema = _load(ROOT / "schemas" / "intake-manifest.schema.json")
+    intake = _load(ROOT / "templates" / "intake-manifest.template.json")
+    case = intake["cases"][0]
+
+    case["authorization_status"] = "PENDING"
+    case["review_status"] = "ADJUDICATED_GOLD"
+    case["reviewer_ids"] = ["cataloger-a", "cataloger-b"]
+    case["adjudicator_id"] = "adjudicator-c"
+
+    errors = list(Draft202012Validator(schema).iter_errors(intake))
+    assert errors
 
 
 def test_error_taxonomy_is_closed_in_both_review_schemas() -> None:
