@@ -111,42 +111,65 @@ apps/api/tests/golden/llm-evidence/
 
 La ubicación exacta puede ajustarse en implementación, pero debe quedar separada del Golden Set determinista actual.
 
-### 4.1 Tipos mínimos de casos
+### 4.1 Estratificación de riesgo y cobertura
 
-El primer corte debe cubrir, como mínimo:
+El Golden Set no convierte los 56 bindings del contrato maestro en 56 benchmarks independientes. La cobertura debe organizarse por **estratos de riesgo**, familias de bindings y casos catalográficos representativos.
+
+#### Estrato A — crítico/gobernado
+
+Debe cubrir de forma explícita y repetida los bindings cuyo error puede producir una asignación semántica incorrecta o una falsa autoridad. Como mínimo:
+
+- `dc.subject.linguisticFamily`;
+- `dc.subject.linguisticBranch`;
+- `dc.subject.linguiscgroup`;
+- `dc.subject.linguisticVariant`;
+- `dc.description.registeredLanguage`;
+- bindings de vocabulario controlado;
+- bindings ambiguos que dependen de `binding_id` exacto;
+- cualquier binding que la política institucional marque posteriormente como crítico.
+
+Los cinco campos lingüísticos deben probarse tanto individualmente como en combinaciones que permitan detectar confusiones jerárquicas. `dc.subject.linguiscgroup` se preserva exactamente con su literal histórico.
+
+#### Estrato B — estructurado/repetible
+
+Cubre familias de campos donde importan cardinalidad, repetibilidad, identidad de entidad, normalización y source attribution, por ejemplo autores múltiples, identificadores, relaciones y valores repetidos.
+
+#### Estrato C — descriptivo/abierto
+
+Cubre campos textuales o de generación controlada donde puede existir más de una salida aceptable y donde precision, grounding, intent y carga de revisión son más informativos que una coincidencia literal.
+
+La versión inicial del Golden Set debe declarar en `manifest.json` qué bindings/familias cubre cada fixture y qué huecos permanecen. La cobertura estratificada puede crecer por versiones sin bloquear el MVP por exigir exhaustividad artificial sobre los 56 bindings.
+
+### 4.2 Tipos mínimos de casos semánticos
+
+El primer corte semántico debe cubrir, como mínimo:
 
 1. valor literal presente + inferencia adicional legítima;
 2. dos fuentes que se contradicen;
 3. recurso multilingüe;
 4. recurso multientidad/autores múltiples;
 5. valor fuera de vocabulario controlado;
-6. prompt injection en texto;
-7. prompt injection en HTML;
-8. prompt injection en PDF con capa de texto;
-9. binding ambiguo que exige identidad exacta;
-10. candidato `INFERIDO` correcto pero no draftable;
-11. `GENERADO` claramente distinguible de texto autoral `EXTRAÍDO`;
-12. falta de evidencia suficiente: resultado esperado = abstención/no candidato;
-13. supporting excerpt inválido o no localizable;
-14. source ref fuera del manifest;
-15. sesión stale después de una corrida histórica;
-16. repetición de corrida con mismo input pero run id distinto;
-17. misma evidencia con orden de fragmentos diferente;
-18. misma evidencia con rango diferente;
-19. egress `deny`;
-20. egress `indeterminate`;
-21. credential capability sólo `agent`;
-22. provider timeout/error sin candidatos parciales;
-23. output parcialmente válido + item inválido: transacción completa debe fallar según contrato;
-24. variante lingüística / agrupación / rama donde los campos exactos no se confundan;
-25. literal histórico `dc.subject.linguiscgroup` preservado exactamente.
+6. binding ambiguo que exige identidad exacta;
+7. candidato `INFERIDO` correcto pero no draftable;
+8. `GENERADO` claramente distinguible de texto autoral `EXTRAÍDO`;
+9. falta de evidencia suficiente: resultado esperado = abstención/no candidato;
+10. supporting excerpt inválido o no localizable;
+11. variante lingüística / agrupación / rama donde los campos exactos no se confundan;
+12. literal histórico `dc.subject.linguiscgroup` preservado exactamente;
+13. cardinalidad/repetibilidad: múltiples valores correctos sin pérdida ni fusión;
+14. equivalencias aceptables bajo normalización autorizada;
+15. caso crítico con distractores semánticamente plausibles pero binding incorrecto.
 
-### 4.2 Estructura de referencia por candidato esperado
+Los casos de prompt injection, egress, stale session, capability, atomicidad, tool-calling y provider failure pertenecen a contract/security suites. Pueden reutilizar infraestructura de fixtures, pero **no forman parte de los denominadores semánticos** de precision, recall, hallucination, grounding o exact-match.
 
-Cada `expected.json` debería poder expresar:
+### 4.3 Contrato de anotación de referencia
+
+Cada `expected.json` debe poder expresar, cuando aplique:
 
 - `binding_id` esperado;
-- valor esperado o conjunto aceptable cerrado;
+- valor esperado, lista de valores esperados o conjunto cerrado de equivalencias aceptables;
+- reglas de normalización permitidas antes del scoring;
+- cardinalidad y repetibilidad esperadas;
 - `candidate_intent` esperado;
 - evidence state derivado esperado;
 - source refs permitidas;
@@ -154,11 +177,26 @@ Cada `expected.json` debería poder expresar:
 - expected validation outcome;
 - expected draftability/copy eligibility;
 - si la respuesta correcta es abstenerse;
-- severity si falla el caso (`critical`, `major`, `minor`).
+- severity si falla el caso (`critical`, `major`, `minor`);
+- taxonomía de error esperada/aplicable para adjudicación.
 
 No se debe usar una respuesta textual libre del anotador como único gold estándar.
 
+La taxonomía mínima de error semántico debe distinguir:
+
+- `UNSUPPORTED_VALUE`;
+- `WRONG_BINDING`;
+- `WRONG_INTENT`;
+- `GROUNDING_ERROR`;
+- `CARDINALITY_ERROR`;
+- `NORMALIZATION_ERROR`;
+- `CONTROLLED_VOCABULARY_ERROR`;
+- `MISSED_EXPECTED_CANDIDATE`;
+- `FALSE_PROPOSAL_WHEN_ABSTENTION_EXPECTED`.
+
 ## 5. Métricas semánticas
+
+Las métricas se calculan únicamente sobre fixtures etiquetados como **semantic-quality eligible**. Casos contract/security se reportan por separado y nunca inflan ni deprimen estas tasas.
 
 ### 5.1 Candidate precision
 
@@ -166,17 +204,26 @@ No se debe usar una respuesta textual libre del anotador como único gold están
 
 Mide cuánto de lo propuesto por el modelo es correcto y sustentado.
 
+Debe reportarse como:
+
+- **micro precision**: agregando candidatos de todos los fixtures elegibles;
+- **macro precision**: promedio de precision por binding/familia o estrato, según corresponda.
+
 ### 5.2 Candidate recall
 
 `recall = true_supported_candidates / all_expected_candidates`
 
 Se usa sólo en fixtures donde exista un conjunto esperado razonablemente exhaustivo. No debe forzarse recall en tareas abiertas de generación.
 
+También debe reportarse micro/macro cuando el tamaño de muestra lo permita.
+
 ### 5.3 Binding accuracy
 
 Porcentaje de candidatos correctos asignados al `binding_id` exacto esperado.
 
 Un valor semánticamente plausible en un binding incorrecto cuenta como error.
+
+Debe reportarse globalmente y por estrato, con desglose obligatorio del Estrato A.
 
 ### 5.4 Grounding/source attribution accuracy
 
@@ -227,9 +274,21 @@ Proporción de candidatos que un evaluador humano clasifica como:
 
 Esta métrica informa productividad, pero no sustituye precision/hallucination/grounding.
 
+### 5.10 Suficiencia de muestra
+
+Ningún threshold semántico se considera interpretable sin tamaño de muestra suficiente en el estrato correspondiente.
+
+Regla inicial propuesta:
+
+- para **Estrato A**, una métrica crítica con menos de **20 oportunidades evaluables** se reporta `INSUFFICIENT_SAMPLE`, no PASS/FAIL;
+- para Estratos B/C, el reporte debe mostrar `n` y evitar inferir estabilidad cuando el conjunto sea pequeño;
+- Gate D final puede sustituir este mínimo por intervalos de confianza u otra regla estadística aprobada, pero debe existir una regla explícita antes del cierre.
+
+`INSUFFICIENT_SAMPLE` no equivale a fallo del modelo, pero tampoco autoriza pilotaje sobre ese estrato.
+
 ## 6. Thresholds propuestos para pilotaje
 
-Los siguientes thresholds son **propuestos para revisión**, no resultados actuales:
+Los siguientes valores se mantienen como **PROVISIONAL_TARGETS** para diseñar el Golden Set y el scorer. No son todavía gates finales, resultados medidos ni SLA.
 
 ### Safety/contract — obligatorios
 
@@ -240,11 +299,12 @@ Los siguientes thresholds son **propuestos para revisión**, no resultados actua
 - DSpace writes: **0**;
 - partial candidate persistence after failed run: **0**.
 
-### Semantic — mínimo para piloto humano limitado
+### Semantic — targets provisionales para piloto humano limitado
 
-Sobre el Golden Set aprobado:
+Sobre fixtures semantic-quality eligible y con muestra suficiente:
 
-- candidate precision global: **>= 0.95**;
+- candidate precision micro global: **>= 0.95**;
+- candidate precision macro por estrato: se reporta obligatoriamente y no puede quedar materialmente degradada respecto al micro score;
 - binding accuracy: **>= 0.98**;
 - grounding/source attribution accuracy: **>= 0.98**;
 - hallucination rate: **<= 0.02**;
@@ -252,13 +312,13 @@ Sobre el Golden Set aprobado:
 - controlled-vocabulary exact-match rate: **>= 0.98** cuando existe gold autorizado;
 - intent classification accuracy: **>= 0.98**.
 
-Además, ningún binding crítico puede quedar oculto por un promedio global. Para campos críticos/gobernados, cualquier tasa de error material exige revisión específica aunque el score agregado pase.
+Para Estrato A no basta el promedio global: cada familia crítica debe mostrar `n`, errores observados y adjudicación. Cualquier error material de `WRONG_BINDING`, `GROUNDING_ERROR` o falsa autoridad en un binding crítico exige revisión específica aunque los targets agregados se cumplan.
 
-Estos thresholds deben validarse con catalogadores antes de Gate D final. No constituyen SLA de producción.
+Los targets sólo pueden convertirse en thresholds aprobados durante el cierre de Gate D, con participación catalográfica explícita y evidencia empírica del Golden Set.
 
-## 7. Evaluación humana
+## 7. Evaluación humana y adjudicación
 
-Antes de catalogación real, un subconjunto estratificado debe ser evaluado por al menos dos revisores humanos cuando sea viable.
+Antes de catalogación real, el **Estrato A debe ser revisado por al menos dos catalogadores humanos independientes**. Para Estratos B/C, el muestreo doble puede ser estratificado según riesgo y volumen, pero debe quedar documentado.
 
 Cada propuesta se etiqueta:
 
@@ -267,7 +327,17 @@ Cada propuesta se etiqueta:
 - `RESEARCH_REQUIRED`;
 - `REJECT`.
 
-Para desacuerdos relevantes se conserva adjudicación y comentario breve. El objetivo no es medir sólo agreement entre humanos, sino distinguir errores claros del modelo de casos genuinamente ambiguos.
+Cada revisor registra su juicio de forma independiente antes de ver la adjudicación del otro cuando sea viable.
+
+Todo desacuerdo del Estrato A debe adjudicarse y conservar:
+
+- decisión final;
+- taxonomía de error cuando aplique;
+- comentario breve;
+- identificador de revisores/adjudicador;
+- timestamp/version del gold actualizado.
+
+Para B/C, los desacuerdos que cambien el resultado de una métrica o revelen ambigüedad del gold también deben adjudicarse.
 
 La evaluación humana nunca convierte automáticamente un candidato runtime en `VERIFICADO`; el harness es un artefacto de evaluación separado del workflow productivo.
 
@@ -291,6 +361,8 @@ El ranking no se decide por una única métrica. Prioridad:
 5. carga de revisión humana;
 6. latencia/coste como criterio operativo secundario.
 
+Un modelo no puede declararse superior si mejora micro-promedios pero degrada materialmente el Estrato A.
+
 ## 9. Reproducibilidad de evaluation runs
 
 Cada run de evaluación debe registrar:
@@ -305,6 +377,7 @@ Cada run de evaluación debe registrar:
 - output hashes;
 - timestamp;
 - métricas por caso y agregadas;
+- métricas micro/macro y `n` por estrato;
 - versión del scorer;
 - environment/runtime version suficiente para reproducibilidad práctica.
 
@@ -322,20 +395,24 @@ Las evaluaciones con proveedor real:
 - preferiblemente usan fixtures sintéticos/de prueba aprobados;
 - generan un reporte auditable, no cambios de runtime.
 
+La ejecución del semantic quality harness no mezcla sus casos con contract/security para calcular métricas semánticas.
+
 ## 11. Gate D — criterios de cierre
 
 Gate D puede declararse **CLOSED** sólo cuando:
 
 1. el Golden Set LLM y su manifiesto estén versionados y revisados;
-2. exista gold annotation estructurada para los casos obligatorios;
-3. las métricas y fórmulas estén implementadas en un scorer reproducible;
-4. los thresholds hayan sido aprobados explícitamente;
-5. exista política de adjudicación humana;
-6. los casos adversariales críticos estén incluidos;
-7. exista procedimiento para comparar providers/models sin cambiar el contrato de dominio;
-8. el reporte de evaluación sea reproducible y preserve provenance;
-9. la suite determinista previa continúe intacta;
-10. Gate B (data policy/capability) permanezca independiente y no sea inferido de un buen score de calidad.
+2. exista gold annotation estructurada con cardinalidad, equivalencias/normalización permitida, abstención y taxonomía de errores;
+3. la cobertura por estratos y familias esté documentada, incluido el Estrato A;
+4. las métricas y fórmulas micro/macro estén implementadas en un scorer reproducible;
+5. exista una regla aprobada de suficiencia de muestra;
+6. los `PROVISIONAL_TARGETS` hayan sido sustituidos o ratificados como thresholds aprobados explícitamente;
+7. exista política de doble revisión/adjudicación humana para Estrato A;
+8. los casos adversariales críticos estén incluidos en security suite separada;
+9. exista procedimiento para comparar providers/models sin cambiar el contrato de dominio;
+10. el reporte de evaluación sea reproducible y preserve provenance;
+11. la suite determinista previa continúe intacta;
+12. Gate B (data policy/capability) permanezca independiente y no sea inferido de un buen score de calidad.
 
 ## 12. Qué no autoriza este plan
 
