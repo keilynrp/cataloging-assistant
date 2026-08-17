@@ -1,9 +1,21 @@
 {
-  "candidate_set_version": "0.2.0",
-  "status": "AUTHORIZED_CANDIDATES_AWAITING_SNAPSHOTS_AND_REVIEWERS",
+  "candidate_set_version": "0.3.0",
+  "status": "AUTHORIZED_CANDIDATES_AWAITING_SNAPSHOTS_AND_HUMAN_CONFIRMATION",
   "baseline_main_sha": "909aac81f4d97106231d77c014f19ab0d38c07b1",
   "catalog_contract_version": "dspace-cataloger-v3.6",
   "authorization_basis": "Explicit user authorization in conversation on 2026-08-17; applies to the three listed candidate sources for local evaluation only.",
+  "reviewer_slots": [
+    {
+      "reviewer_id": "cataloger-a",
+      "role": "independent_reviewer_1",
+      "status": "PSEUDONYMOUS_SLOT_RESERVED_PENDING_REAL_HUMAN_CONFIRMATION"
+    },
+    {
+      "reviewer_id": "cataloger-b",
+      "role": "independent_reviewer_2",
+      "status": "PSEUDONYMOUS_SLOT_RESERVED_PENDING_REAL_HUMAN_CONFIRMATION"
+    }
+  ],
   "critical_bindings_target_scope": [
     "linguistic-family",
     "linguistic-branch",
@@ -22,8 +34,9 @@
       "authorization_status": "AUTHORIZED_LOCAL_EVALUATION",
       "license_status": "NOT_YET_VERIFIED",
       "local_snapshot_status": "NOT_MATERIALIZED",
-      "reviewer_assignment_status": "UNASSIGNED",
-      "notes": "Canonical publication metadata verified against the author’s Florida Atlantic University publication list. Source retrieval currently requires a later snapshot step; no field value is asserted here."
+      "reviewer_assignment_status": "PSEUDONYMOUS_SLOTS_RESERVED_PENDING_REAL_HUMAN_CONFIRMATION",
+      "reviewer_ids": ["cataloger-a", "cataloger-b"],
+      "notes": "Canonical publication metadata verified against the author’s Florida Atlantic University publication list. Reviewer IDs are reserved pseudonymous slots only and do not assert that two real catalogers have accepted or completed review."
     },
     {
       "candidate_id": "real-evidence-candidate-002",
@@ -36,8 +49,9 @@
       "authorization_status": "AUTHORIZED_LOCAL_EVALUATION",
       "license_status": "CC_BY_NC_4_0_VERIFIED_ON_PUBLISHER_PAGE",
       "local_snapshot_status": "NOT_MATERIALIZED",
-      "reviewer_assignment_status": "UNASSIGNED",
-      "notes": "Publisher page and PDF are publicly accessible. Scope includes Mexican Indigenous languages, but binding-level gold remains unset until snapshot inspection and human review."
+      "reviewer_assignment_status": "PSEUDONYMOUS_SLOTS_RESERVED_PENDING_REAL_HUMAN_CONFIRMATION",
+      "reviewer_ids": ["cataloger-a", "cataloger-b"],
+      "notes": "Publisher page and PDF are publicly accessible. Reviewer IDs are reserved pseudonymous slots only; no human judgment exists yet."
     },
     {
       "candidate_id": "real-evidence-candidate-003",
@@ -50,15 +64,16 @@
       "authorization_status": "AUTHORIZED_LOCAL_EVALUATION",
       "license_status": "CC_BY_VERIFIED_ON_PUBLISHER_PAGE",
       "local_snapshot_status": "NOT_MATERIALIZED",
-      "reviewer_assignment_status": "UNASSIGNED",
-      "notes": "The previously staged DOI 10.30972/riie.15207253 resolved to a different 2023 article and was rejected. This record now points to the verified 2018 Trabalhos em Linguística Aplicada article."
+      "reviewer_assignment_status": "PSEUDONYMOUS_SLOTS_RESERVED_PENDING_REAL_HUMAN_CONFIRMATION",
+      "reviewer_ids": ["cataloger-a", "cataloger-b"],
+      "notes": "The previously staged DOI 10.30972/riie.15207253 resolved to a different 2023 article and was rejected. Reviewer IDs are reserved pseudonymous slots only; no human review is claimed."
     }
   ],
   "gate": {
     "can_enter_human_review": false,
     "blocking_requirements": [
       "immutable/local snapshot with real SHA-256 for each admitted candidate",
-      "two distinct cataloger reviewer IDs",
+      "real human confirmation for both reserved reviewer slots",
       "binding-level intake scope confirmed after snapshot inspection",
       "candidate-001 license/reuse status verified before repository persistence of source content"
     ]
