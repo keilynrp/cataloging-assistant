@@ -15,6 +15,16 @@ CRITICAL = {
     "linguistic-variant",
     "registered-language",
 }
+REQUIRED_DIMENSIONS = {
+    "compositional_inference",
+    "contradiction",
+    "binding_distractor",
+    "grounding_positive",
+    "grounding_negative",
+    "multilingual_code_switching",
+    "controlled_vocabulary_out_of_vocab",
+    "abstention",
+}
 
 
 def _load(path: Path) -> dict:
@@ -31,10 +41,12 @@ def test_stratum_a_manifest_meets_declared_sample_floor_and_fixtures_validate() 
 
     totals = defaultdict(int)
     overall = 0
+    dimensions: set[str] = set()
     for case in manifest["cases"]:
         if case["risk_stratum"] != "A":
             continue
         overall += case["opportunity_count"]
+        dimensions.update(case.get("methodological_dimensions", []))
         for binding in case["bindings_under_test"]:
             if binding in CRITICAL:
                 totals[binding] += case["opportunity_count"]
@@ -50,4 +62,13 @@ def test_stratum_a_manifest_meets_declared_sample_floor_and_fixtures_validate() 
     assert overall >= 20
     assert set(totals) == CRITICAL
     assert all(totals[binding] >= 3 for binding in CRITICAL)
+    assert REQUIRED_DIMENSIONS.issubset(dimensions)
+    assert any("en" in case.get("languages", []) for case in manifest["cases"])
+    group_fields = {
+        field
+        for case in manifest["cases"]
+        if "linguistic-group" in case.get("bindings_under_test", [])
+        for field in case.get("metadata_fields_under_test", [])
+    }
+    assert group_fields == {"dc.subject.linguiscgroup"}
     assert manifest["status"] == "STRATUM_A_SAMPLE_FLOOR_MET_SYNTHETIC_ONLY"
