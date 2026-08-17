@@ -3,6 +3,7 @@
   "catalog_contract_version": "dspace-cataloger-v3.6",
   "catalog_contract_sha256": "UNMATERIALIZED_CONTRACT_HASH",
   "status": "STRATUM_A_SAMPLE_FLOOR_MET_SYNTHETIC_ONLY",
+  "methodology_status": "DIVERSITY_RECONCILED_SYNTHETIC_ONLY",
   "cases": [
     {"id":"seed-linguistic-family","evaluation_surface":"semantic","risk_stratum":"A","languages":["es"],"document_type":"article","bindings_under_test":["linguistic-family"],"metadata_fields_under_test":["dc.subject.linguisticFamily"],"intent_classes":["INFERRED_VALUE"],"recall_applicable":true,"opportunity_count":1,"human_review":"double_plus_adjudication","severity":"critical","methodological_dimensions":["literal_positive"]},
     {"id":"stratum-a-family-expanded","evaluation_surface":"semantic","risk_stratum":"A","languages":["es"],"document_type":"synthetic_evaluation","bindings_under_test":["linguistic-family"],"metadata_fields_under_test":["dc.subject.linguisticFamily"],"intent_classes":["INFERRED_VALUE"],"recall_applicable":true,"opportunity_count":3,"human_review":"double_plus_adjudication","severity":"critical","methodological_dimensions":["compositional_inference","contradiction","distractor","grounding_positive"]},
