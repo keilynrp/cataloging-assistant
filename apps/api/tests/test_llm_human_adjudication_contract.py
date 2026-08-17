@@ -32,6 +32,7 @@ def _make_final_case(intake: dict) -> dict:
     binding_id = case["bindings_under_review"][0]
     case["authorization_status"] = "AUTHORIZED_LOCAL_EVALUATION"
     case["evidence_snapshot_sha256"] = REAL_HASH
+    case["reviewer_ids"] = ["cataloger-a", "cataloger-b"]
     case["completed_reviews"] = [
         _completed_review("review-1", "cataloger-a", case_id, binding_id),
         _completed_review("review-2", "cataloger-b", case_id, binding_id),
@@ -59,6 +60,7 @@ def test_human_review_templates_validate_and_cannot_claim_final_gold() -> None:
     assert adjudication["adjudication_status"] == "TEMPLATE"
     assert all(case["authorization_status"] == "PENDING" for case in intake["cases"])
     assert all(case["review_status"] != "ADJUDICATED_GOLD" for case in intake["cases"])
+    assert all(case["reviewer_ids"] == [] for case in intake["cases"])
     assert all(case["completed_reviews"] == [] for case in intake["cases"])
 
     serialized = json.dumps(
@@ -69,11 +71,12 @@ def test_human_review_templates_validate_and_cannot_claim_final_gold() -> None:
     assert "AUTHORIZED_LOCAL_EVALUATION" not in json.dumps(intake, ensure_ascii=False)
 
 
-def test_stratum_a_adjudicated_gold_requires_two_completed_reviews_and_adjudicator() -> None:
+def test_stratum_a_adjudicated_gold_requires_two_distinct_completed_reviews_and_adjudicator() -> None:
     schema = _load(ROOT / "schemas" / "intake-manifest.schema.json")
     intake = _load(ROOT / "templates" / "intake-manifest.template.json")
     case = _make_final_case(intake)
 
+    case["reviewer_ids"] = ["cataloger-a"]
     case["completed_reviews"] = case["completed_reviews"][:1]
     case["adjudicator_id"] = None
     assert list(Draft202012Validator(schema).iter_errors(intake))
@@ -115,7 +118,7 @@ def test_global_adjudicated_gold_requires_every_case_final_and_real_contract_has
     Draft202012Validator(schema).validate(intake)
 
 
-def test_completed_review_links_must_match_case_binding_and_snapshot_before_finalization() -> None:
+def test_completed_review_links_match_case_binding_snapshot_and_reviewer_summary() -> None:
     intake = _load(ROOT / "templates" / "intake-manifest.template.json")
     case = _make_final_case(intake)
 
@@ -127,10 +130,11 @@ def test_completed_review_links_must_match_case_binding_and_snapshot_before_fina
     assert review_case_ids == {case["case_id"]}
     assert review_binding_ids == set(case["bindings_under_review"])
     assert review_hashes == {case["evidence_snapshot_sha256"]}
+    assert reviewer_ids == set(case["reviewer_ids"])
     assert len(reviewer_ids) == 2
 
 
-def test_final_adjudication_requires_real_hashes_and_frozen_versions() -> None:
+def test_final_adjudication_requires_real_hashes_frozen_versions_and_distinct_reviews() -> None:
     schema = _load(ROOT / "schemas" / "adjudication.schema.json")
     adjudication = _load(ROOT / "templates" / "adjudication.template.json")
     adjudication["adjudication_status"] = "FINAL"
@@ -145,8 +149,12 @@ def test_final_adjudication_requires_real_hashes_and_frozen_versions() -> None:
         review["evidence_snapshot_sha256"] = REAL_HASH
     Draft202012Validator(schema).validate(adjudication)
 
-    assert len({review["review_id"] for review in adjudication["input_reviews"]}) == 2
-    assert len({review["reviewer_id"] for review in adjudication["input_reviews"]}) == 2
+    review_ids = {review["review_id"] for review in adjudication["input_reviews"]}
+    reviewer_ids = {review["reviewer_id"] for review in adjudication["input_reviews"]}
+    assert review_ids == set(adjudication["input_review_ids"])
+    assert reviewer_ids == set(adjudication["input_reviewer_ids"])
+    assert len(review_ids) == 2
+    assert len(reviewer_ids) == 2
     assert {review["case_id"] for review in adjudication["input_reviews"]} == {adjudication["case_id"]}
     assert {review["binding_id"] for review in adjudication["input_reviews"]} == {adjudication["binding_id"]}
     assert {review["evidence_snapshot_sha256"] for review in adjudication["input_reviews"]} == {
