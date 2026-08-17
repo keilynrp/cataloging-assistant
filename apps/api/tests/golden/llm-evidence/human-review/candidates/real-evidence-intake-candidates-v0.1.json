@@ -1,8 +1,9 @@
 {
-  "candidate_set_version": "0.1.0",
-  "status": "CANDIDATES_PENDING_EXPLICIT_AUTHORIZATION",
+  "candidate_set_version": "0.2.0",
+  "status": "AUTHORIZED_CANDIDATES_AWAITING_SNAPSHOTS_AND_REVIEWERS",
   "baseline_main_sha": "909aac81f4d97106231d77c014f19ab0d38c07b1",
   "catalog_contract_version": "dspace-cataloger-v3.6",
+  "authorization_basis": "Explicit user authorization in conversation on 2026-08-17; applies to the three listed candidate sources for local evaluation only.",
   "critical_bindings_target_scope": [
     "linguistic-family",
     "linguistic-branch",
@@ -15,43 +16,51 @@
       "candidate_id": "real-evidence-candidate-001",
       "title": "Spatial Language and the Use of Body-Part Terms in Nahuatl and P’urhepecha",
       "creator_display": "Martha Mendoza",
-      "source_locator": "http://journals.linguisticsociety.org/proceedings/index.php/BLS/article/view/1174",
+      "source_locator": "https://journals.flvc.org/floridalinguisticspapers/article/view/116771",
       "source_origin": "prior cataloging queue",
-      "authorization_status": "PENDING_EXPLICIT_USER_AUTHORIZATION",
+      "source_reconciliation_status": "CANONICAL_LOCATOR_CORRECTED",
+      "authorization_status": "AUTHORIZED_LOCAL_EVALUATION",
+      "license_status": "NOT_YET_VERIFIED",
       "local_snapshot_status": "NOT_MATERIALIZED",
       "reviewer_assignment_status": "UNASSIGNED",
-      "notes": "Candidate only. No claim that the source is authorized, locally snapshotted, complete, or sufficient for any critical binding."
+      "notes": "Canonical publication metadata verified against the author’s Florida Atlantic University publication list. Source retrieval currently requires a later snapshot step; no field value is asserted here."
     },
     {
       "candidate_id": "real-evidence-candidate-002",
       "title": "Lenguas europeas y lenguas mexicanas: actitudes lingüísticas de universitarios en Guadalajara (México)",
       "creator_display": "Martha Islas; Alfredo Leonardo Romero Sánchez; Nicolás Lozano Mercado",
-      "source_locator": "http://www.cunorte.udg.mx/puntocunorte/sites/default/files/Revista%209.%20Arti%CC%81culo%208.pdf",
+      "source_locator": "https://revistas.cunorte.udg.mx/punto/article/view/75",
+      "canonical_doi": "10.32870/punto.v1i9.75",
       "source_origin": "prior cataloging queue",
-      "authorization_status": "PENDING_EXPLICIT_USER_AUTHORIZATION",
+      "source_reconciliation_status": "CANONICAL_LOCATOR_AND_DOI_VERIFIED",
+      "authorization_status": "AUTHORIZED_LOCAL_EVALUATION",
+      "license_status": "CC_BY_NC_4_0_VERIFIED_ON_PUBLISHER_PAGE",
       "local_snapshot_status": "NOT_MATERIALIZED",
       "reviewer_assignment_status": "UNASSIGNED",
-      "notes": "Candidate only. Scope is known to include Purépecha/Tarasco, but no adjudicated field value is asserted here."
+      "notes": "Publisher page and PDF are publicly accessible. Scope includes Mexican Indigenous languages, but binding-level gold remains unset until snapshot inspection and human review."
     },
     {
       "candidate_id": "real-evidence-candidate-003",
-      "title": "La construcción de la identidad p’urhepecha a partir de la educación intercultural iling e propia",
-      "creator_display": "R. E. Hamel; A. E. E. Baltazar; B. M. Escamilla",
-      "source_locator": "https://doi.org/10.30972/riie.15207253",
+      "title": "La construcción de la identidad p’urhepechas a partir de la educación intercultural bilingüe propia",
+      "creator_display": "Rainer Enrique Hamel; Ana Elena Erape Baltazar; Betzabé Márquez Escamilla",
+      "source_locator": "https://periodicos.sbu.unicamp.br/ojs/index.php/tla/article/view/8653739",
+      "canonical_doi": "10.1590/010318138653739444541",
       "source_origin": "prior cataloging material",
-      "authorization_status": "PENDING_EXPLICIT_USER_AUTHORIZATION",
+      "source_reconciliation_status": "PREVIOUS_LOCATOR_REJECTED_AND_CANONICAL_SOURCE_RESTORED",
+      "authorization_status": "AUTHORIZED_LOCAL_EVALUATION",
+      "license_status": "CC_BY_VERIFIED_ON_PUBLISHER_PAGE",
       "local_snapshot_status": "NOT_MATERIALIZED",
       "reviewer_assignment_status": "UNASSIGNED",
-      "notes": "Candidate only. No real evidence is persisted in this file and no human judgment is represented."
+      "notes": "The previously staged DOI 10.30972/riie.15207253 resolved to a different 2023 article and was rejected. This record now points to the verified 2018 Trabalhos em Linguística Aplicada article."
     }
   ],
   "gate": {
     "can_enter_human_review": false,
     "blocking_requirements": [
-      "explicit authorization for one or more candidate sources",
-      "immutable/local snapshot with real SHA-256",
+      "immutable/local snapshot with real SHA-256 for each admitted candidate",
       "two distinct cataloger reviewer IDs",
-      "binding-level intake scope confirmed after source inspection"
+      "binding-level intake scope confirmed after snapshot inspection",
+      "candidate-001 license/reuse status verified before repository persistence of source content"
     ]
   }
 }
