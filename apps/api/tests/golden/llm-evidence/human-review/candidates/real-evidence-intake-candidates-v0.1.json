@@ -1,0 +1,57 @@
+{
+  "candidate_set_version": "0.1.0",
+  "status": "CANDIDATES_PENDING_EXPLICIT_AUTHORIZATION",
+  "baseline_main_sha": "909aac81f4d97106231d77c014f19ab0d38c07b1",
+  "catalog_contract_version": "dspace-cataloger-v3.6",
+  "critical_bindings_target_scope": [
+    "linguistic-family",
+    "linguistic-branch",
+    "linguistic-group",
+    "linguistic-variant",
+    "registered-language"
+  ],
+  "candidates": [
+    {
+      "candidate_id": "real-evidence-candidate-001",
+      "title": "Spatial Language and the Use of Body-Part Terms in Nahuatl and P’urhepecha",
+      "creator_display": "Martha Mendoza",
+      "source_locator": "http://journals.linguisticsociety.org/proceedings/index.php/BLS/article/view/1174",
+      "source_origin": "prior cataloging queue",
+      "authorization_status": "PENDING_EXPLICIT_USER_AUTHORIZATION",
+      "local_snapshot_status": "NOT_MATERIALIZED",
+      "reviewer_assignment_status": "UNASSIGNED",
+      "notes": "Candidate only. No claim that the source is authorized, locally snapshotted, complete, or sufficient for any critical binding."
+    },
+    {
+      "candidate_id": "real-evidence-candidate-002",
+      "title": "Lenguas europeas y lenguas mexicanas: actitudes lingüísticas de universitarios en Guadalajara (México)",
+      "creator_display": "Martha Islas; Alfredo Leonardo Romero Sánchez; Nicolás Lozano Mercado",
+      "source_locator": "http://www.cunorte.udg.mx/puntocunorte/sites/default/files/Revista%209.%20Arti%CC%81culo%208.pdf",
+      "source_origin": "prior cataloging queue",
+      "authorization_status": "PENDING_EXPLICIT_USER_AUTHORIZATION",
+      "local_snapshot_status": "NOT_MATERIALIZED",
+      "reviewer_assignment_status": "UNASSIGNED",
+      "notes": "Candidate only. Scope is known to include Purépecha/Tarasco, but no adjudicated field value is asserted here."
+    },
+    {
+      "candidate_id": "real-evidence-candidate-003",
+      "title": "La construcción de la identidad p’urhepecha a partir de la educación intercultural iling e propia",
+      "creator_display": "R. E. Hamel; A. E. E. Baltazar; B. M. Escamilla",
+      "source_locator": "https://doi.org/10.30972/riie.15207253",
+      "source_origin": "prior cataloging material",
+      "authorization_status": "PENDING_EXPLICIT_USER_AUTHORIZATION",
+      "local_snapshot_status": "NOT_MATERIALIZED",
+      "reviewer_assignment_status": "UNASSIGNED",
+      "notes": "Candidate only. No real evidence is persisted in this file and no human judgment is represented."
+    }
+  ],
+  "gate": {
+    "can_enter_human_review": false,
+    "blocking_requirements": [
+      "explicit authorization for one or more candidate sources",
+      "immutable/local snapshot with real SHA-256",
+      "two distinct cataloger reviewer IDs",
+      "binding-level intake scope confirmed after source inspection"
+    ]
+  }
+}
