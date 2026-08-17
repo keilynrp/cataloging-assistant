@@ -33,7 +33,7 @@ Execution evidence should record the target tool/project, prototype route or art
 1. `UX-PROMPT-001` — original Evidence Workspace exploration in Lovable. Status: `EXECUTED`.
 2. Evidence Navigator v0.1 — exploratory three-pane prototype.
 3. `UX-GOVERNANCE-CONTRACT.md` — normative UX/UI governance established after the exploration.
-4. `UX-DECISION-001` — durable three-pane Evidence Workspace architecture. Status: `PROPOSED`.
+4. `UX-DECISION-001` — durable three-pane Evidence Workspace architecture. Status: `ACCEPTED`.
 5. `UX-SPEC-001` — Evidence Workspace Contract Reconciliation.
 6. `UX-PROMPT-002` — Lovable v0.2 reconciliation prompt. Status: `PROPOSED`.
 7. `UX-RUNTIME-GAP-001` — pre-Lovable runtime-to-target gap analysis.
