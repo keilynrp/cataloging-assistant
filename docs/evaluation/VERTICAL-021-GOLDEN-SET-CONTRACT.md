@@ -61,7 +61,10 @@ Reglas:
 - no se permite que el scorer normalice o corrija nombres técnicos;
 - errores de binding en este estrato son siempre `critical`;
 - debe existir doble revisión humana + adjudicación;
-- un estrato A con menos de 20 oportunidades semánticas evaluables queda `INSUFFICIENT_SAMPLE`.
+- el Estrato A debe reunir **>=20 oportunidades semánticas evaluables** en total;
+- además, cada uno de los cinco bindings críticos debe alcanzar un mínimo inicial de **>=3 oportunidades evaluables distintas**;
+- si el total del estrato o cualquiera de los cinco mínimos por binding no se cumple, el resultado de suficiencia es `INSUFFICIENT_SAMPLE`;
+- los mínimos pueden elevarse antes del cierre definitivo de Gate D, pero nunca reducirse de forma retroactiva para hacer pasar una evaluación ya ejecutada.
 
 ### Estrato B — estructurado/controlado
 
@@ -77,26 +80,26 @@ El primer Golden Set debe contener al menos los siguientes **casos semánticos**
 
 ### A. Lingüística crítica
 
-1. `ling-family-explicit-plus-inference` — familia explícita y una inferencia legítima distinta del texto literal.
+1. `ling-family-explicit-plus-inference` — el literal explícito pertenece al baseline determinista y **no se puntúa como salida LLM**; el fixture evalúa únicamente una inferencia LLM adicional legítima y sustentada para familia lingüística.
 2. `ling-branch-independent-from-group` — rama presente sin agrupación; no inventar agrupación.
 3. `ling-group-independent-from-branch` — agrupación presente sin rama; no inventar rama.
 4. `ling-historical-literal-preserved` — candidato correcto para `dc.subject.linguiscgroup`; cualquier spelling técnico alternativo falla binding.
-5. `ling-variant-grounded` — variante sustentada por excerpt localizable.
+5. `ling-variant-grounded` — variante sustentada por grounding localizable.
 6. `ling-registered-language-distinct` — `dc.description.registeredLanguage` no se confunde con jerarquía genealógica.
-7. `ling-conflicting-sources-abstain` — fuentes incompatibles sin regla suficiente; se espera abstención.
+7. `ling-conflicting-sources-abstain` — fuentes marcadas por el gold como incompatibles sin resolución autorizada; se espera abstención.
 8. `ling-multi-value-repeatable-order` — dos valores válidos, identidad y orden preservados.
-9. `ling-controlled-vocab-out-of-list` — propuesta plausible pero fuera del vocabulario activo; no cuenta como authoritative match.
-10. `ling-insufficient-evidence-abstain` — texto menciona contexto lingüístico sin base suficiente para el binding.
+9. `ling-controlled-vocab-out-of-list` — propuesta plausible pero fuera del vocabulario congelado para el fixture; no cuenta como authoritative match.
+10. `ling-insufficient-evidence-abstain` — el gold marca soporte insuficiente para el binding; se espera abstención.
 
-El manifiesto debe expandir estos casos hasta producir **>=20 oportunidades evaluables del Estrato A**, sin duplicar artificialmente el mismo patrón textual.
+El manifiesto debe expandir estos casos hasta cumplir simultáneamente el mínimo global del Estrato A y el mínimo por cada binding crítico, sin duplicar artificialmente el mismo patrón textual.
 
 ### B. Grounding y binding
 
-11. `grounding-correct-source-wrong-range` — valor correcto con rango/excerpt incorrecto.
+11. `grounding-correct-source-wrong-range` — valor correcto con rango/excerpt incorrecto según política cerrada del fixture.
 12. `grounding-source-within-manifest` — soporte correcto y source ref válida.
-13. `binding-plausible-wrong-field` — valor correcto semánticamente, binding incorrecto; debe fallar.
-14. `multi-source-supported-value` — dos fuentes apoyan la misma inferencia.
-15. `multi-source-contradiction-abstain` — contradicción irresuelta; abstención esperada.
+13. `binding-plausible-wrong-field` — valor diagnósticamente compatible con un gold de valor/intención, pero binding incorrecto; debe registrar `WRONG_BINDING` y no contar como TP autoritativo.
+14. `multi-source-supported-value` — dos fuentes gold autorizadas apoyan la misma inferencia.
+15. `multi-source-contradiction-abstain` — el gold declara contradicción irresuelta; abstención esperada.
 
 ### C. Intent y generación
 
@@ -108,8 +111,8 @@ El manifiesto debe expandir estos casos hasta producir **>=20 oportunidades eval
 ### D. Abstención y cobertura
 
 20. `no-evidence-no-candidate` — ninguna propuesta.
-21. `partial-evidence-selective-abstention` — sólo algunos bindings tienen soporte.
-22. `ambiguous-entity-abstention` — entidad no desambiguada.
+21. `partial-evidence-selective-abstention` — sólo algunos bindings tienen soporte anotado.
+22. `ambiguous-entity-abstention` — entidad marcada como no desambiguada por el gold.
 23. `open-task-no-exhaustive-recall` — fixture marcado `recall_applicable=false`.
 
 ### E. Multilingüe/multientidad/repetibilidad
@@ -138,6 +141,14 @@ Los siguientes deben vivir exclusivamente en contract/security fixtures y no con
 
 ## 7. `manifest.json` — contrato
 
+Cada Golden Set versionado debe declarar en su raíz:
+
+- `golden_set_version`;
+- `golden_set_hash` o mecanismo reproducible equivalente;
+- `catalog_contract_version`;
+- `catalog_contract_hash`;
+- lista de vocabularios controlados congelados para scoring, cada uno con `vocabulary_id`, `version` y `hash` cuando aplique.
+
 Cada caso del manifiesto debe incluir como mínimo:
 
 ```json
@@ -157,7 +168,7 @@ Cada caso del manifiesto debe incluir como mínimo:
 }
 ```
 
-El `binding-id` real debe provenir del contrato maestro vigente. El fixture nunca inventa IDs.
+El `binding-id` real debe provenir del contrato maestro congelado por versión/hash. El fixture nunca inventa IDs y una evaluación histórica nunca se reinterpreta contra el contrato vigente del momento de reejecución.
 
 ## 8. `source.json` — contrato
 
@@ -189,10 +200,12 @@ Estructura mínima:
       "candidate_intent": "INFERRED_VALUE",
       "derived_evidence_state": "INFERIDO",
       "accepted_values": ["<valor autorizado>"],
+      "rejected_values": [],
       "normalization_rule": "none",
       "source_refs_allowed": ["source-1"],
       "grounding_required": true,
-      "accepted_grounding_ranges": [{"source_id":"source-1","start":0,"end":0}],
+      "grounding_policy": "RANGE_CONTAINED_IN_ANY",
+      "accepted_grounding_ranges": [{"source_id":"source-1","start":0,"end":20}],
       "cardinality": "repeatable",
       "order_significant": true,
       "expected_validation": "<contract-outcome>",
@@ -201,11 +214,14 @@ Estructura mínima:
     }
   ],
   "expected_abstentions": [],
+  "contradictions": [],
   "recall_applicable": true
 }
 ```
 
-`metadata_field`, validation y draftability se anotan como valores esperados **derivados del contrato/backend**, no como campos que el modelo pueda elegir.
+`metadata_field`, validation y draftability se anotan como valores esperados **derivados del contrato/backend congelado**, no como campos que el modelo pueda elegir.
+
+Para vocabularios controlados, el candidato esperado debe referenciar el `vocabulary_id/version/hash` congelado por el Golden Set.
 
 ## 10. Equivalencias y normalización
 
@@ -213,7 +229,7 @@ Cada candidato esperado debe declarar una de estas políticas:
 
 - `none` — igualdad exacta;
 - `unicode_whitespace` — normalización Unicode y espacios únicamente;
-- `casefold_if_contract_allows` — sólo si el contrato del binding lo permite;
+- `casefold_if_contract_allows` — sólo si el contrato congelado del binding lo permite;
 - `closed_alias_set` — conjunto explícito de equivalencias humanas aprobadas.
 
 Queda prohibido para scoring autoritativo:
@@ -223,7 +239,18 @@ Queda prohibido para scoring autoritativo:
 - corrección automática del `metadata_field`;
 - transformar un valor no autorizado en match porque “significa lo mismo”.
 
-## 11. Cardinalidad, repetibilidad y orden
+## 11. Grounding determinista
+
+Cada candidato esperado con `grounding_required=true` debe declarar una política cerrada y versionada. Valores iniciales permitidos:
+
+- `EXACT_RANGE` — source y rango deben coincidir exactamente;
+- `RANGE_CONTAINED_IN_ANY` — el rango propuesto debe quedar contenido completamente en uno de los `accepted_grounding_ranges`;
+- `GOLD_RANGE_CONTAINED_IN_CANDIDATE` — el candidato debe contener completamente una región gold autorizada;
+- `EXACT_PAGE` — para PDF, la página debe coincidir exactamente y el fixture puede añadir rango dentro de página.
+
+No existe una regla abierta de “evidencia suficiente” ni juicio semántico del scorer. Si la adecuación del soporte requiere interpretación humana, esa interpretación debe resolverse previamente mediante anotación/adjudicación y materializarse como regiones gold explícitas.
+
+## 12. Cardinalidad, repetibilidad y orden
 
 El gold debe declarar:
 
@@ -234,7 +261,7 @@ El gold debe declarar:
 
 Duplicados, colapso de valores repetibles o reordenamiento no permitido deben producir errores separados del error semántico del valor.
 
-## 12. Abstención
+## 13. Abstención, contradicción y soporte negativo
 
 Una abstención puede ser:
 
@@ -244,9 +271,17 @@ Una abstención puede ser:
 - `OUT_OF_SCOPE_BINDING`;
 - `NO_AUTHORIZED_VALUE`.
 
-El harness evalúa si se omitió correctamente el candidato esperado; estas razones son anotación del gold y no obligan a que el proveedor genere exactamente esa etiqueta salvo que el schema futuro la incluya explícitamente.
+El harness evalúa abstención y contradicción sólo desde anotación estructurada. `expected.json` puede declarar:
 
-## 13. Taxonomía de errores
+- bindings/oportunidades donde se espera abstención;
+- `rejected_values` explícitos;
+- pares o grupos de fuentes marcados como contradictorios;
+- valores incompatibles con el gold;
+- ausencia de candidato permitido.
+
+El scorer **no relee semánticamente** el corpus para descubrir por sí mismo una contradicción, una entidad inventada o evidencia insuficiente. Estas decisiones deben estar materializadas en el gold adjudicado.
+
+## 14. Taxonomía de errores
 
 El scorer debe poder atribuir cada fallo a una o más categorías:
 
@@ -265,21 +300,22 @@ El scorer debe poder atribuir cada fallo a una o más categorías:
 
 Los errores de contrato/security se reportan en su suite y no se mezclan con esta taxonomía semántica salvo `SCHEMA_INVALID` cuando impida puntuar un run de evaluación.
 
-## 14. Anotación humana
+## 15. Anotación humana
 
 Estrato A:
 
 - dos catalogadores revisan independientemente;
 - cualquier desacuerdo se adjudica;
 - se conserva la decisión final y breve justificación;
-- no se conserva razonamiento privado extenso como entrada del scorer.
+- no se conserva razonamiento privado extenso como entrada del scorer;
+- la adjudicación congela accepted/rejected values, grounding ranges, contradicciones y abstenciones antes del scoring autoritativo.
 
 Estratos B/C:
 
 - doble revisión recomendada para casos ambiguos/críticos;
 - una revisión experta puede bastar para fixtures inequívocos, sujeto a revisión del manifiesto.
 
-## 15. Versionado
+## 16. Versionado
 
 Cambiar cualquiera de estos elementos incrementa versión del Golden Set:
 
@@ -287,13 +323,16 @@ Cambiar cualquiera de estos elementos incrementa versión del Golden Set:
 - expected candidates;
 - equivalencias;
 - binding IDs;
+- `catalog_contract_version/hash`;
+- vocabularios controlados congelados;
 - clasificación de estrato;
-- reglas de grounding;
+- reglas/rangos de grounding;
 - cardinalidad/orden;
+- contradicciones/rejected values;
 - política de abstención.
 
 Correcciones puramente editoriales de `notes.md` que no alteren scoring no cambian la versión semántica.
 
-## 16. Criterio de aceptación del diseño
+## 17. Criterio de aceptación del diseño
 
 Este contrato puede aceptarse antes de que existan los fixtures ejecutables. Gate D, en cambio, sólo podrá cerrarse cuando el corpus materializado, las anotaciones adjudicadas y el scorer reproducible existan y hayan sido revisados.
