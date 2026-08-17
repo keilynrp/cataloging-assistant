@@ -1,6 +1,6 @@
 # VERTICAL-021 Real Evidence Intake Candidates
 
-**Estado:** AUTHORIZED CANDIDATE SET — autorización concedida para evaluación local; snapshots pendientes y slots seudónimos de revisión reservados sin afirmar revisión humana real.
+**Estado:** AUTHORIZED CANDIDATE SET — candidatos 002 y 003 ya cuentan con representaciones locales inmutables; revisión humana real todavía pendiente.
 
 Baseline: `main` @ `909aac81f4d97106231d77c014f19ab0d38c07b1`.
 
@@ -10,7 +10,7 @@ Registrar un conjunto inicial de fuentes reales para su incorporación controlad
 
 ## 2. Decisión de autorización
 
-El usuario autorizó explícitamente avanzar con las tres fuentes candidatas el 2026-08-17. A partir de esta transición, las tres pueden prepararse para evaluación local, sujetas todavía a snapshot inmutable, SHA-256 real, verificación de reutilización cuando corresponda, inspección de binding y confirmación de dos revisores humanos independientes.
+El usuario autorizó explícitamente avanzar con las tres fuentes candidatas el 2026-08-17. A partir de esta transición, las tres pueden prepararse para evaluación local, sujetas a evidencia reproducible, inspección de binding y confirmación de dos revisores humanos independientes.
 
 ## 3. Slots de revisión reservados
 
@@ -19,9 +19,9 @@ Se reservan los identificadores operativos:
 - `cataloger-a` — `independent_reviewer_1`;
 - `cataloger-b` — `independent_reviewer_2`.
 
-Estos IDs son **slots seudónimos**, no identidades ni revisiones humanas ya realizadas. Ningún caso puede considerarse `READY_FOR_INDEPENDENT_REVIEW`, y mucho menos `ADJUDICATED_GOLD`, hasta que dos personas reales sean confirmadas para ocupar esos slots y ejecuten las revisiones independientes previstas por el protocolo.
+Estos IDs son **slots seudónimos**, no identidades ni revisiones humanas ya realizadas. Ningún caso puede considerarse `ADJUDICATED_GOLD` hasta que dos personas reales sean confirmadas para ocupar esos slots y ejecuten las revisiones independientes previstas por el protocolo.
 
-## 4. Reconciliación de fuentes
+## 4. Reconciliación y materialización de fuentes
 
 ### Candidato 001
 
@@ -41,8 +41,10 @@ Estos IDs son **slots seudónimos**, no identidades ni revisiones humanas ya rea
 - DOI: `10.32870/punto.v1i9.75`.
 - Estado: `AUTHORIZED_LOCAL_EVALUATION`.
 - Licencia verificada en la página editorial: `CC BY-NC 4.0`.
-- Snapshot local: no materializado.
-- Revisores: slots `cataloger-a` y `cataloger-b` reservados, pendientes de confirmación humana real.
+- Representación local inmutable: `apps/api/tests/golden/llm-evidence/human-review/snapshots/real-evidence-candidate-002.txt`.
+- SHA-256: `b7c6fbc726441695d47aba958700c69527877585f6d4e32d2d0a2cd2cad9f01a`.
+- Completitud: metadatos editoriales + resumen + declaración de licencia; **no** copia completa del artículo.
+- Scope crítico: ningún binding confirmado con seguridad a partir de esta representación parcial.
 
 ### Candidato 003
 
@@ -52,35 +54,25 @@ Estos IDs son **slots seudónimos**, no identidades ni revisiones humanas ya rea
 - DOI: `10.1590/010318138653739444541`.
 - Estado: `AUTHORIZED_LOCAL_EVALUATION`.
 - Licencia verificada en la página editorial: `CC BY`.
-- Snapshot local: no materializado.
-- Revisores: slots `cataloger-a` y `cataloger-b` reservados, pendientes de confirmación humana real.
+- Representación local inmutable: `apps/api/tests/golden/llm-evidence/human-review/snapshots/real-evidence-candidate-003.txt`.
+- SHA-256: `f4baeb9fea9e552969532cd5de9f7eaee072590c6505203f66087dfa5b22f3c5`.
+- Completitud: fragmentos exactos seleccionados de la representación textual del PDF editorial.
+- Scope confirmado para revisión humana: `registered-language` → `dc.description.registeredLanguage`.
+- Scope no confirmado: `linguistic-family`, `linguistic-branch`, `linguistic-group`, `linguistic-variant`.
 
-El DOI previamente registrado (`10.30972/riie.15207253`) fue descartado porque resuelve a un artículo diferente de 2023, con título y autores distintos. El registro queda reconciliado con la publicación de 2018 en *Trabalhos em Linguística Aplicada*.
+La mención `Meseta Tarasca` se trata como referencia geográfica/cultural en este artefacto y **no** como evidencia automática de `dc.subject.linguisticFamily`.
 
-## 5. Scope de evaluación previsto
+## 5. Gate de entrada a revisión humana
 
-El conjunto se propone para evaluar, únicamente cuando cada snapshot lo soporte, los cinco bindings lingüísticos críticos:
+El conjunto completo todavía no puede pasar a `READY_FOR_INDEPENDENT_REVIEW`. Permanecen abiertos:
 
-- `linguistic-family` → `dc.subject.linguisticFamily`;
-- `linguistic-branch` → `dc.subject.linguisticBranch`;
-- `linguistic-group` → `dc.subject.linguiscgroup`;
-- `linguistic-variant` → `dc.subject.linguisticVariant`;
-- `registered-language` → `dc.description.registeredLanguage`.
+1. confirmación real de dos catalogadores humanos distintos para ocupar `cataloger-a` y `cataloger-b`;
+2. para candidato 001, licencia/reutilización y snapshot si finalmente se admite;
+3. para candidato 002, inspección de una representación más completa antes de admitir cualquier binding crítico;
+4. para candidato 003, confirmación humana del scope `registered-language` antes de generar decisiones de revisión.
 
-La inclusión de un binding en el scope no presupone que una fuente contenga evidencia suficiente para ese campo. La inspección del snapshot determina el scope efectivo.
+Los hashes registrados identifican exactamente las representaciones locales persistidas y no se presentan como hashes de los PDFs completos.
 
-## 6. Gate de entrada a revisión humana
-
-La autorización ya está cerrada. Ningún candidato puede pasar todavía a `READY_FOR_INDEPENDENT_REVIEW` hasta que se cumplan simultáneamente:
-
-1. snapshot o representación local inmutable con SHA-256 real;
-2. inspección de la fuente para fijar bindings bajo revisión y selectores reproducibles;
-3. confirmación de dos catalogadores humanos distintos para ocupar `cataloger-a` y `cataloger-b`;
-4. ausencia de secretos o datos no autorizados en los artefactos persistidos;
-5. para el candidato 001, verificación de condiciones de reutilización antes de persistir contenido fuente en el repositorio.
-
-Hasta entonces, el conjunto permanece fuera de los denominadores semánticos empíricos y no puede contribuir a un cierre de Gate D.
-
-## 7. Qué no hace este artefacto
+## 6. Qué no hace este artefacto
 
 No crea adjudicaciones, no inventa hashes ni revisiones humanas, no autoriza data egress, no activa proveedores LLM, no crea candidatos runtime, no convierte ninguna evidencia en `VERIFICADO` y no escribe en DSpace.
