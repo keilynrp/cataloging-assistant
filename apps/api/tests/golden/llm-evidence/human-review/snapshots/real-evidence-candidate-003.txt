@@ -1,0 +1,33 @@
+VERTICAL-021 evidence representation snapshot
+candidate_id: real-evidence-candidate-003
+title: La construcción de la identidad p’urhepechas a partir de la educación intercultural bilingüe propia
+canonical_url: https://periodicos.sbu.unicamp.br/ojs/index.php/tla/article/view/8653739
+canonical_pdf_url: https://periodicos.sbu.unicamp.br/ojs/index.php/tla/article/download/8653739/18759/44679
+canonical_doi: 10.1590/010318138653739444541
+retrieved_from: publisher PDF parsed representation
+retrieval_date_utc: 2026-08-17
+representation_scope: selected exact publisher-PDF text fragments relevant to linguistic review
+content_type: text/plain; charset=utf-8
+
+PAGE 1 / PDF PAGE INDEX 0
+El proyecto “T’arhexperakua – Creciendo juntos” surge en dos escuelas p’urhepechas de la Meseta Tarasca en el centro-oeste mexicano como iniciativa de un equipo de maestras y maestros indígenas en 1995. Dada la alta vitalidad etnolingüística en la zona, los niños llegan prácticamente monolingües a la escuela.
+
+PAGE 4 / PDF PAGE INDEX 3
+Tomaron la decisión audaz y a la vez correcta de enseñar todas las asignaturas en p’urhepecha para que los alumnos entendieran bien lo que aprendían, para que lo aprendieran mejor y con mayor participación.
+Así, el p’urhepecha llegó a ser la lengua legítima y normal de prácticamente todas las interacciones escolares entre alumnos, maestros y padres de familia.
+En la concepción de los maestros, la lengua p’urhepecha ocupa el lugar central en su currículo y determina todas las demás materias.
+
+PAGE 6 / PDF PAGE INDEX 5
+A pesar de la asimetría diglósica que opera entre las dos lenguas, no sólo los que aprendieron el español, sino también los que adquirieron el p’urhepecha como segunda lengua (L2), sintieron la necesidad de aprender la otra lengua para poder comunicarse y construir su identidad plena.
+La lengua propia constituye el núcleo de la cultura p’urhe.
+
+PAGE 11 / PDF PAGE INDEX 10
+Plan y Programa de Estudios Þ Plan y Programa Nacional, P’urhepecha L1 y Español L2
+Esta área contiene los dos Programas de lengua, del p’urhepecha como primera lengua (L1) y del español como segunda lengua (L2).
+
+LICENSE
+CC-BY as stated on the publisher page.
+
+NOTES
+This is an immutable local evaluation representation made from publisher-PDF text captured during source inspection, not a complete PDF copy.
+It is sufficient to preserve the cited evidence fragments for human review, but it does not itself adjudicate any metadata value.
