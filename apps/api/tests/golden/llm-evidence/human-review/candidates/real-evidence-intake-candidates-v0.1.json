@@ -1,6 +1,6 @@
 {
-  "candidate_set_version": "0.3.0",
-  "status": "AUTHORIZED_CANDIDATES_AWAITING_SNAPSHOTS_AND_HUMAN_CONFIRMATION",
+  "candidate_set_version": "0.4.0",
+  "status": "AUTHORIZED_CANDIDATES_PARTIALLY_MATERIALIZED_AWAITING_HUMAN_CONFIRMATION",
   "baseline_main_sha": "909aac81f4d97106231d77c014f19ab0d38c07b1",
   "catalog_contract_version": "dspace-cataloger-v3.6",
   "authorization_basis": "Explicit user authorization in conversation on 2026-08-17; applies to the three listed candidate sources for local evaluation only.",
@@ -36,6 +36,7 @@
       "local_snapshot_status": "NOT_MATERIALIZED",
       "reviewer_assignment_status": "PSEUDONYMOUS_SLOTS_RESERVED_PENDING_REAL_HUMAN_CONFIRMATION",
       "reviewer_ids": ["cataloger-a", "cataloger-b"],
+      "binding_scope_status": "UNINSPECTED",
       "notes": "Canonical publication metadata verified against the author’s Florida Atlantic University publication list. Reviewer IDs are reserved pseudonymous slots only and do not assert that two real catalogers have accepted or completed review."
     },
     {
@@ -48,10 +49,15 @@
       "source_reconciliation_status": "CANONICAL_LOCATOR_AND_DOI_VERIFIED",
       "authorization_status": "AUTHORIZED_LOCAL_EVALUATION",
       "license_status": "CC_BY_NC_4_0_VERIFIED_ON_PUBLISHER_PAGE",
-      "local_snapshot_status": "NOT_MATERIALIZED",
+      "local_snapshot_status": "MATERIALIZED_TEXT_REPRESENTATION",
+      "snapshot_path": "apps/api/tests/golden/llm-evidence/human-review/snapshots/real-evidence-candidate-002.txt",
+      "evidence_snapshot_sha256": "b7c6fbc726441695d47aba958700c69527877585f6d4e32d2d0a2cd2cad9f01a",
+      "representation_completeness": "PUBLISHER_METADATA_ABSTRACT_AND_LICENSE_ONLY",
       "reviewer_assignment_status": "PSEUDONYMOUS_SLOTS_RESERVED_PENDING_REAL_HUMAN_CONFIRMATION",
       "reviewer_ids": ["cataloger-a", "cataloger-b"],
-      "notes": "Publisher page and PDF are publicly accessible. Reviewer IDs are reserved pseudonymous slots only; no human judgment exists yet."
+      "binding_scope_status": "NO_CRITICAL_BINDING_CONFIRMED_FROM_CURRENT_REPRESENTATION",
+      "confirmed_bindings": [],
+      "notes": "The current immutable representation preserves publisher metadata, abstract and license. It is insufficient to assert a critical linguistic binding and therefore remains outside binding-level empirical denominators until fuller authorized source inspection."
     },
     {
       "candidate_id": "real-evidence-candidate-003",
@@ -63,19 +69,26 @@
       "source_reconciliation_status": "PREVIOUS_LOCATOR_REJECTED_AND_CANONICAL_SOURCE_RESTORED",
       "authorization_status": "AUTHORIZED_LOCAL_EVALUATION",
       "license_status": "CC_BY_VERIFIED_ON_PUBLISHER_PAGE",
-      "local_snapshot_status": "NOT_MATERIALIZED",
+      "local_snapshot_status": "MATERIALIZED_TEXT_REPRESENTATION",
+      "snapshot_path": "apps/api/tests/golden/llm-evidence/human-review/snapshots/real-evidence-candidate-003.txt",
+      "evidence_snapshot_sha256": "f4baeb9fea9e552969532cd5de9f7eaee072590c6505203f66087dfa5b22f3c5",
+      "representation_completeness": "SELECTED_PUBLISHER_PDF_TEXT_FRAGMENTS",
       "reviewer_assignment_status": "PSEUDONYMOUS_SLOTS_RESERVED_PENDING_REAL_HUMAN_CONFIRMATION",
       "reviewer_ids": ["cataloger-a", "cataloger-b"],
-      "notes": "The previously staged DOI 10.30972/riie.15207253 resolved to a different 2023 article and was rejected. Reviewer IDs are reserved pseudonymous slots only; no human review is claimed."
+      "binding_scope_status": "PARTIALLY_CONFIRMED_FROM_SNAPSHOT",
+      "confirmed_bindings": ["registered-language"],
+      "confirmed_metadata_fields": ["dc.description.registeredLanguage"],
+      "unsupported_or_unconfirmed_bindings": ["linguistic-family", "linguistic-branch", "linguistic-group", "linguistic-variant"],
+      "notes": "The immutable representation preserves exact publisher-PDF fragments showing P’urhepecha as the first/native language and Spanish as L2. This supports human review of registered-language only; Meseta Tarasca is not treated as evidence of linguistic family. No human judgment is claimed."
     }
   ],
   "gate": {
     "can_enter_human_review": false,
     "blocking_requirements": [
-      "immutable/local snapshot with real SHA-256 for each admitted candidate",
       "real human confirmation for both reserved reviewer slots",
-      "binding-level intake scope confirmed after snapshot inspection",
-      "candidate-001 license/reuse status verified before repository persistence of source content"
+      "candidate-001 immutable snapshot and license/reuse status if candidate 001 is admitted",
+      "candidate-002 fuller authorized source inspection before any critical binding is admitted",
+      "binding-level human intake confirmation for candidate 003 registered-language"
     ]
   }
 }
