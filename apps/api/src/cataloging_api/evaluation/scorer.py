@@ -130,10 +130,14 @@ def score_case(expected_doc: dict[str, Any], proposed_doc: dict[str, Any]) -> di
             grounding_correct += 1
     grounding_accuracy = grounding_correct / grounding_evaluable if grounding_evaluable else None
 
-    abstentions = expected_doc.get("expected_abstentions", [])
-    false_on_abstention = 0
-    if abstentions and proposed:
-        false_on_abstention = 1
+    abstention_bindings = {
+        item.get("binding_id")
+        for item in expected_doc.get("expected_abstentions", [])
+        if item.get("binding_id")
+    }
+    false_on_abstention = sum(
+        1 for candidate in proposed if candidate.get("binding_id") in abstention_bindings
+    )
 
     hallucination_annotations = expected_doc.get("hallucination_annotations", {})
     prohibited = set(hallucination_annotations.get("prohibited_values", []))
