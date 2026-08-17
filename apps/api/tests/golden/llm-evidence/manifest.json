@@ -1,0 +1,13 @@
+{
+  "golden_set_version": "0.1.0-seed",
+  "catalog_contract_version": "dspace-cataloger-v3.6",
+  "catalog_contract_sha256": "UNMATERIALIZED_SEED",
+  "status": "INSUFFICIENT_SAMPLE_BY_DESIGN",
+  "cases": [
+    {"id":"seed-linguistic-family","evaluation_surface":"semantic","risk_stratum":"A","languages":["es"],"document_type":"article","bindings_under_test":["linguistic-family"],"metadata_fields_under_test":["dc.subject.linguisticFamily"],"intent_classes":["INFERRED_VALUE"],"recall_applicable":true,"opportunity_count":1,"human_review":"double_plus_adjudication","severity":"critical"},
+    {"id":"seed-linguistic-branch","evaluation_surface":"semantic","risk_stratum":"A","languages":["es"],"document_type":"article","bindings_under_test":["linguistic-branch"],"metadata_fields_under_test":["dc.subject.linguisticBranch"],"intent_classes":["INFERRED_VALUE"],"recall_applicable":true,"opportunity_count":1,"human_review":"double_plus_adjudication","severity":"critical"},
+    {"id":"seed-linguistic-group","evaluation_surface":"semantic","risk_stratum":"A","languages":["es"],"document_type":"article","bindings_under_test":["linguistic-group"],"metadata_fields_under_test":["dc.subject.linguiscgroup"],"intent_classes":["INFERRED_VALUE"],"recall_applicable":true,"opportunity_count":1,"human_review":"double_plus_adjudication","severity":"critical"},
+    {"id":"seed-linguistic-variant","evaluation_surface":"semantic","risk_stratum":"A","languages":["es"],"document_type":"article","bindings_under_test":["linguistic-variant"],"metadata_fields_under_test":["dc.subject.linguisticVariant"],"intent_classes":["INFERRED_VALUE"],"recall_applicable":true,"opportunity_count":1,"human_review":"double_plus_adjudication","severity":"critical"},
+    {"id":"seed-registered-language","evaluation_surface":"semantic","risk_stratum":"A","languages":["es"],"document_type":"article","bindings_under_test":["registered-language"],"metadata_fields_under_test":["dc.description.registeredLanguage"],"intent_classes":["INFERRED_VALUE"],"recall_applicable":true,"opportunity_count":1,"human_review":"double_plus_adjudication","severity":"critical"}
+  ]
+}
