@@ -1,0 +1,41 @@
+{
+  "adjudication_status": "TEMPLATE",
+  "adjudication_id": "adjudication-real-evidence-candidate-003-registered-language-rereview-v2-v1",
+  "case_id": "real-evidence-candidate-003-registered-language-rereview-v2",
+  "binding_id": "registered-language",
+  "metadata_field": "dc.description.registeredLanguage",
+  "input_review_ids": [
+    "review-real-evidence-candidate-003-registered-language-cataloger-a-rereview-v2",
+    "review-real-evidence-candidate-003-registered-language-cataloger-b-rereview-v2"
+  ],
+  "input_reviewer_ids": ["cataloger-a", "cataloger-b"],
+  "input_reviews": [
+    {
+      "review_id": "review-real-evidence-candidate-003-registered-language-cataloger-a-rereview-v2",
+      "reviewer_id": "cataloger-a",
+      "case_id": "real-evidence-candidate-003-registered-language-rereview-v2",
+      "binding_id": "registered-language",
+      "evidence_snapshot_sha256": "2a1ceef24ef537796ed5ec44dc7682a8b900964fd9ea70b9647404ad54817f81"
+    },
+    {
+      "review_id": "review-real-evidence-candidate-003-registered-language-cataloger-b-rereview-v2",
+      "reviewer_id": "cataloger-b",
+      "case_id": "real-evidence-candidate-003-registered-language-rereview-v2",
+      "binding_id": "registered-language",
+      "evidence_snapshot_sha256": "2a1ceef24ef537796ed5ec44dc7682a8b900964fd9ea70b9647404ad54817f81"
+    }
+  ],
+  "adjudicator_id": "adjudicator-1",
+  "final_decision": "ACCEPT_WITH_MINOR_EDIT",
+  "final_value": "Purépecha",
+  "final_abstention": false,
+  "error_codes": [],
+  "comment": "Aunque ambas revisiones de catalogadores humanos aceptaron el término Purépecha como autoridad verificada, es necesario reconsiderar la revisión final con mayor profundidad. Si es preciso, debe documentarse en una nota interna de catalogación para que quede como evidencia trazable, tanto para catalogadores humanos como para LLM, redes neuronales futuras y otros algoritmos especializados.",
+  "timestamp_utc": "2026-08-18T05:51:00Z",
+  "evidence_snapshot_sha256": "2a1ceef24ef537796ed5ec44dc7682a8b900964fd9ea70b9647404ad54817f81",
+  "input_golden_set_version": "0.2.0-stratum-a",
+  "catalog_contract_version": "dspace-cataloger-v3.6",
+  "catalog_contract_sha256": "REPLACE_CATALOG_CONTRACT_SHA256",
+  "resulting_gold_version": "0.2.0-stratum-a-rereview-v2-pending-contract-hash",
+  "supersedes_adjudication_id": null
+}
