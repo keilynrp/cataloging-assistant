@@ -50,6 +50,14 @@ def _make_final_case(intake: dict) -> dict:
     return case
 
 
+def _make_awaiting_adjudication_case(intake: dict) -> dict:
+    case = _make_final_case(intake)
+    case["review_status"] = "AWAITING_ADJUDICATION"
+    case["adjudicator_id"] = None
+    case["resulting_gold_version"] = None
+    return case
+
+
 def test_human_review_templates_validate_and_cannot_claim_final_gold() -> None:
     intake_schema = _load(ROOT / "schemas" / "intake-manifest.schema.json")
     reviewer_schema = _load(ROOT / "schemas" / "reviewer-decision.schema.json")
@@ -104,6 +112,53 @@ def test_stratum_a_adjudicated_gold_rejects_pending_authorization_and_placeholde
     case["authorization_status"] = "AUTHORIZED_LOCAL_EVALUATION"
     case["evidence_snapshot_sha256"] = "REPLACE_EVIDENCE_SHA256"
     assert list(Draft202012Validator(schema).iter_errors(intake))
+
+
+def test_awaiting_adjudication_requires_two_distinct_reviewers_and_reviews() -> None:
+    schema = _load(ROOT / "schemas" / "intake-manifest.schema.json")
+    intake = _load(ROOT / "templates" / "intake-manifest.template.json")
+    case = _make_awaiting_adjudication_case(intake)
+
+    Draft202012Validator(schema).validate(intake)
+    assert validate_intake_manifest_semantics(intake) == []
+
+    case["reviewer_ids"] = []
+    case["completed_reviews"] = []
+    assert list(Draft202012Validator(schema).iter_errors(intake))
+    assert any("exactly two distinct reviewers" in error for error in validate_intake_manifest_semantics(intake))
+    assert any("exactly two reviews" in error for error in validate_intake_manifest_semantics(intake))
+
+
+def test_awaiting_adjudication_rejects_single_review() -> None:
+    schema = _load(ROOT / "schemas" / "intake-manifest.schema.json")
+    intake = _load(ROOT / "templates" / "intake-manifest.template.json")
+    case = _make_awaiting_adjudication_case(intake)
+    case["reviewer_ids"] = ["cataloger-a"]
+    case["completed_reviews"] = case["completed_reviews"][:1]
+
+    assert list(Draft202012Validator(schema).iter_errors(intake))
+    assert any("exactly two distinct reviewers" in error for error in validate_intake_manifest_semantics(intake))
+    assert any("exactly two reviews" in error for error in validate_intake_manifest_semantics(intake))
+
+
+def test_awaiting_adjudication_rejects_duplicate_reviewer_links() -> None:
+    intake = _load(ROOT / "templates" / "intake-manifest.template.json")
+    case = _make_awaiting_adjudication_case(intake)
+    case["completed_reviews"][1]["reviewer_id"] = "cataloger-a"
+
+    errors = validate_intake_manifest_semantics(intake)
+    assert any("distinct reviewer_id values" in error for error in errors)
+    assert any("exactly match parent reviewer_ids" in error for error in errors)
+
+
+def test_awaiting_adjudication_rejects_duplicate_review_ids() -> None:
+    intake = _load(ROOT / "templates" / "intake-manifest.template.json")
+    case = _make_awaiting_adjudication_case(intake)
+    case["completed_reviews"][1]["review_id"] = "review-1"
+
+    errors = validate_intake_manifest_semantics(intake)
+    assert any("distinct review_id values" in error for error in errors)
+    assert any("two distinct review_id values" in error for error in errors)
 
 
 def test_global_adjudicated_gold_requires_every_case_final_and_real_contract_hash() -> None:
