@@ -1,5 +1,5 @@
 {
-  "intake_version": "0.9.0-candidate-003",
+  "intake_version": "0.10.0-candidate-003",
   "status": "BLOCKED_FOR_INTAKE",
   "golden_set_version": "0.2.0-stratum-a",
   "catalog_contract_version": "dspace-cataloger-v3.6",
@@ -59,8 +59,8 @@
         }
       ],
       "adjudicator_id": "adjudicator-1",
-      "review_status": "BLOCKED_FOR_INTAKE"
+      "review_status": "ADJUDICATED_GOLD"
     }
   ],
-  "notes": "The catalog contract dspace-cataloger-v3.6 is frozen for evaluation with SHA-256 a68fbf9664b7165ea240508da85167058cd57796fbda9c1a9869986afb0178bb. The original narrow review cycle remains immutable and blocked. The v2 re-review has two independent human reviews and a canonical FINAL adjudication by adjudicator-1: ACCEPT_WITH_MINOR_EDIT, final value Purépecha, no abstention, no error codes. FINAL adjudication does not itself create ADJUDICATED_GOLD. The intake remains BLOCKED_FOR_INTAKE pending a separate explicit governance decision on gold promotion; the global intake cannot be ADJUDICATED_GOLD while the original case remains blocked."
+  "notes": "The catalog contract dspace-cataloger-v3.6 is frozen for evaluation with SHA-256 a68fbf9664b7165ea240508da85167058cd57796fbda9c1a9869986afb0178bb. Under explicit governance authorization, the v2 re-review case is promoted to ADJUDICATED_GOLD after two independent human reviews and a canonical FINAL adjudication by adjudicator-1: ACCEPT_WITH_MINOR_EDIT, final value Purépecha, no abstention, no error codes. The original narrow review cycle remains immutable and BLOCKED_FOR_INTAKE, so the aggregate intake status remains BLOCKED_FOR_INTAKE. This case-level gold promotion does not close Gate D, does not convert runtime evidence to VERIFICADO, and does not authorize runtime LLM behavior, provider egress, or DSpace write."
 }
