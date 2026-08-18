@@ -1,6 +1,6 @@
 # VERTICAL-021 Real Evidence Intake Candidates
 
-**Estado:** CORRECTIVE REREVIEW ACTIVE — el `ADJUDICATED_GOLD` de `rereview-v2` para candidate 003 fue retirado de uso evaluativo actual por una discrepancia semántica con ADR-012; `rereview-v3` está preparado para revisión humana independiente sobre la lengua de redacción del recurso; candidato 002 pasa a estado de evidencia pendiente/remediable; Gate D continúa abierto.
+**Estado:** CORRECTIVE REREVIEW COMPLETE AT CASE LEVEL — el `ADJUDICATED_GOLD` de `rereview-v2` para candidate 003 fue retirado de uso evaluativo actual por una discrepancia semántica con ADR-012; `rereview-v3` quedó revisado por dos catalogadores, cerrado formalmente por consenso y promovido a `ADJUDICATED_GOLD` a nivel de caso; candidato 002 permanece en evidencia pendiente/remediable; Gate D continúa abierto.
 
 Baseline: `main` @ `909aac81f4d97106231d77c014f19ab0d38c07b1`.
 
@@ -34,7 +34,7 @@ Candidate 001 permanece bloqueado hasta que exista una representación inmutable
 - SHA-256: `b7c6fbc726441695d47aba958700c69527877585f6d4e32d2d0a2cd2cad9f01a`.
 - Estado: `AWAITING_AUTHORIZED_EVIDENCE`.
 
-La representación actual conserva metadatos editoriales, resumen y licencia, pero no evidencia suficiente para admitir un binding lingüístico crítico. Esta carencia es remediable mediante inspección autorizada más completa, por lo que ya no se modela como bloqueo permanente.
+La representación actual conserva metadatos editoriales, resumen y licencia, pero no evidencia suficiente para admitir un binding lingüístico crítico. Esta carencia es remediable mediante inspección autorizada más completa, por lo que no se modela como bloqueo permanente.
 
 ### Candidato 003 — historia y corrección
 
@@ -45,7 +45,7 @@ La representación actual conserva metadatos editoriales, resumen y licencia, pe
 
 #### Ciclo original
 
-La primera ronda, basada en evidencia más estrecha, permanece preservada e inmutable con dos decisiones `RESEARCH_REQUIRED`.
+La primera ronda, basada en evidencia más estrecha, permanece preservada e inmutable con dos decisiones `RESEARCH_REQUIRED` y estado histórico `BLOCKED_FOR_INTAKE`.
 
 #### `rereview-v2` — registro histórico preservado
 
@@ -61,7 +61,7 @@ Durante la revisión pre-merge se identificó que el paquete v2 sustentaba P’u
 
 `apps/api/tests/golden/llm-evidence/human-review/corrections/real-evidence-candidate-003.registered-language.rereview-v2.gold-withdrawal.md`
 
-#### `rereview-v3` — proposición corregida
+#### `rereview-v3` — gold corregido
 
 - Case: `real-evidence-candidate-003-registered-language-rereview-v3`.
 - Metadata field: `dc.description.registeredLanguage`.
@@ -70,9 +70,16 @@ Durante la revisión pre-merge se identificó que el paquete v2 sustentaba P’u
 - Expected abstention: `false`.
 - Evidence packet: `apps/api/tests/golden/llm-evidence/human-review/snapshots/real-evidence-candidate-003.rereview-v3.registered-language.packet.txt`.
 - Evidence SHA-256: `58ec2dd6ae0c55a2118ae4c8c27fc21497ab3fc96a73acc2175f4af861c7a7b1`.
-- Estado: `READY_FOR_INDEPENDENT_REVIEW`.
+- `cataloger-a`: `ACCEPT_AS_IS`, sin abstención, sin errores, sin valor corregido.
+- `cataloger-b`: `ACCEPT_AS_IS`, sin abstención, sin errores, sin valor corregido.
+- Adjudicador: `adjudicator-1`.
+- Adjudicación: `FINAL` por cierre formal de consenso.
+- Valor final: `Español`.
+- `supersedes_adjudication_id`: `adjudication-real-evidence-candidate-003-registered-language-rereview-v2-v1`.
+- Estado del caso: `ADJUDICATED_GOLD`.
+- Gold version: `0.2.0-stratum-a-rereview-v3-adjudicated-gold`.
 
-El paquete v3 materializa evidencia explícita sobre la lengua de redacción del recurso: título, resumen e inicio del cuerpo principal en español, distinguiendo esa evidencia de las menciones o fragmentos en P’urhepecha. No hay todavía decisiones humanas v3 registradas.
+El paquete v3 materializa evidencia explícita sobre la lengua de redacción del recurso y separa esa dimensión de las menciones o fragmentos en P’urhepecha. Las dos revisiones humanas están ligadas al mismo caso, binding, metadata field, candidate value, intent, snapshot y contrato congelado. La adjudicación v3 conserva trazabilidad completa hacia v2 y constituye el gold empírico vigente para este caso.
 
 ## 4. Contrato catalográfico congelado
 
@@ -86,21 +93,22 @@ El contrato continúa siendo el mismo; la corrección afecta la semántica aplic
 
 ## 5. Intake y schema
 
-El schema de intake ahora permite materializar para casos `READY_FOR_INDEPENDENT_REVIEW` / `UNDER_INDEPENDENT_REVIEW` los elementos que exige el protocolo: `metadata_field`, `candidate_value` o abstención esperada, `candidate_intent` y `expected_abstention`. Esto impide abrir nuevos casos de revisión humana sin una proposición concreta.
+El schema de intake materializa para casos en revisión los elementos que exige el protocolo: `metadata_field`, `candidate_value` o abstención esperada, `candidate_intent` y `expected_abstention`. El caso v3 conserva además dos `completed_reviews`, `adjudicator_id` y un snapshot real, por lo que su anotación estructurada queda disponible para consumo del scorer sin requerir reinterpretar la decisión humana.
 
-El intake de candidate 003 conserva los ciclos históricos y añade v3. El estado global permanece no final porque contiene ciclos históricos bloqueados; v3 puede estar `READY_FOR_INDEPENDENT_REVIEW` a nivel de caso sin declarar gold global.
+El intake de candidate 003 conserva los ciclos históricos y añade v3. El estado global permanece `BLOCKED_FOR_INTAKE` porque contiene ciclos históricos bloqueados; un caso puede estar `ADJUDICATED_GOLD` sin declarar gold global.
 
 ## 6. Gate D
 
 Gate D permanece abierto. Aún faltan, entre otros elementos:
 
-1. dos decisiones humanas independientes para `rereview-v3` y adjudicación si existe desacuerdo;
-2. cobertura empírica de los cinco bindings críticos;
-3. tamaños de muestra suficientes por binding;
-4. adjudicación de las oportunidades restantes;
-5. identidades/hashes congelados de vocabularios controlados;
-6. comparación/provenance de proveedores y demás evidencia del plan de evaluación.
+1. cobertura empírica de los cinco bindings críticos;
+2. tamaños de muestra suficientes por binding;
+3. adjudicación de las oportunidades restantes;
+4. identidades/hashes congelados de vocabularios controlados;
+5. comparación/provenance de proveedores y demás evidencia del plan de evaluación.
+
+La promoción de `rereview-v3` a `ADJUDICATED_GOLD` resuelve únicamente una oportunidad empírica de `registered-language`; no cierra la fase humana de Estrato A ni ratifica por sí sola thresholds de Gate D.
 
 ## 7. Frontera arquitectónica
 
-Esta corrección no convierte evidencia runtime en `VERIFICADO`, no activa proveedor LLM, no autoriza data egress, no crea candidatos runtime y no escribe en DSpace. La adjudicación v2 permanece como registro histórico; cualquier nueva adjudicación v3 que la sustituya deberá enlazarla explícitamente mediante `supersedes_adjudication_id`.
+Este gold es un estado del artefacto de evaluación. No convierte evidencia runtime en `VERIFICADO`, no activa proveedor LLM, no autoriza data egress, no crea candidatos runtime, no habilita OCR y no escribe en DSpace. El PR #17 permanece separado de cualquier implementación productiva.
