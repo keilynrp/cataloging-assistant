@@ -1,6 +1,6 @@
 # Independent review worksheet — cataloger-a
 
-**Case:** `real-evidence-candidate-003`
+**Case:** `real-evidence-candidate-003-registered-language`
 
 **Binding under review:** `registered-language`
 
@@ -31,14 +31,18 @@ If applicable, record one or more closed error codes from the VERTICAL-021 taxon
 
 ## Reviewer response
 
-- Decision: **PENDING HUMAN REVIEW**
-- Proposed corrected value: **PENDING HUMAN REVIEW**
-- Final abstention recommended: **PENDING HUMAN REVIEW**
-- Error codes: **PENDING HUMAN REVIEW**
-- Source refs / exact supporting excerpt: **PENDING HUMAN REVIEW**
-- Comment: **PENDING HUMAN REVIEW**
-- Timestamp UTC: **PENDING HUMAN REVIEW**
+- Decision: **RESEARCH_REQUIRED**
+- Proposed corrected value: **null**
+- Final abstention recommended: **No**
+- Error codes: **NINGUNO**
+- Source refs: `apps/api/tests/golden/llm-evidence/human-review/snapshots/real-evidence-candidate-003.txt`
+- Comment: **Se necesita tener más evidencia descriptiva, contrastando otras fuentes como el PDF del texto completo y otras autoridades oficiales que permitan emitir un juicio más certero.**
+- Timestamp UTC: **2026-08-18T03:43:00Z**
+
+## Canonical record
+
+`apps/api/tests/golden/llm-evidence/human-review/reviews/real-evidence-candidate-003.registered-language.cataloger-a.json`
 
 ## Boundary
 
-This worksheet contains no review outcome and is not an adjudication artifact. It must not be used as a completed reviewer decision until a real human reviewer fills it independently and the result is materialized into the canonical reviewer-decision JSON contract.
+This is one completed independent human review. It is not an adjudication artifact and does not reveal or imply the decision of `cataloger-b`. No `ADJUDICATED_GOLD` state may be claimed from this single review.
