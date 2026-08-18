@@ -1,5 +1,5 @@
 {
-  "intake_version": "0.10.0-candidate-003",
+  "intake_version": "0.11.0-candidate-003",
   "status": "BLOCKED_FOR_INTAKE",
   "golden_set_version": "0.2.0-stratum-a",
   "catalog_contract_version": "dspace-cataloger-v3.6",
@@ -59,8 +59,25 @@
         }
       ],
       "adjudicator_id": "adjudicator-1",
-      "review_status": "ADJUDICATED_GOLD"
+      "review_status": "BLOCKED_FOR_INTAKE"
+    },
+    {
+      "case_id": "real-evidence-candidate-003-registered-language-rereview-v3",
+      "risk_stratum": "A",
+      "bindings_under_review": ["registered-language"],
+      "metadata_field": "dc.description.registeredLanguage",
+      "candidate_value": "Español",
+      "candidate_intent": "RESOURCE_WRITING_LANGUAGE",
+      "expected_abstention": false,
+      "authorization_status": "AUTHORIZED_LOCAL_EVALUATION",
+      "evidence_location_mode": "REPOSITORY_FIXTURE",
+      "evidence_locator": "apps/api/tests/golden/llm-evidence/human-review/snapshots/real-evidence-candidate-003.rereview-v3.registered-language.packet.txt",
+      "evidence_snapshot_sha256": "58ec2dd6ae0c55a2118ae4c8c27fc21497ab3fc96a73acc2175f4af861c7a7b1",
+      "reviewer_ids": ["cataloger-a", "cataloger-b"],
+      "completed_reviews": [],
+      "adjudicator_id": null,
+      "review_status": "READY_FOR_INDEPENDENT_REVIEW"
     }
   ],
-  "notes": "The catalog contract dspace-cataloger-v3.6 is frozen for evaluation with SHA-256 a68fbf9664b7165ea240508da85167058cd57796fbda9c1a9869986afb0178bb. Under explicit governance authorization, the v2 re-review case is promoted to ADJUDICATED_GOLD after two independent human reviews and a canonical FINAL adjudication by adjudicator-1: ACCEPT_WITH_MINOR_EDIT, final value Purépecha, no abstention, no error codes. The original narrow review cycle remains immutable and BLOCKED_FOR_INTAKE, so the aggregate intake status remains BLOCKED_FOR_INTAKE. This case-level gold promotion does not close Gate D, does not convert runtime evidence to VERIFICADO, and does not authorize runtime LLM behavior, provider egress, or DSpace write."
+  "notes": "The original narrow cycle remains immutable and blocked. The v2 human reviews and FINAL adjudication remain preserved as historical records, but their case-level ADJUDICATED_GOLD status has been withdrawn after a pre-merge semantic review identified that P'urhepecha evidence concerned the language studied/used rather than the article's writing language. The corrective v3 case materializes the concrete proposition dc.description.registeredLanguage = Español, with candidate intent RESOURCE_WRITING_LANGUAGE and explicit public-source evidence. Candidate 002 is tracked separately as a remediable awaiting-evidence case. Gate D remains open; no runtime VERIFICADO, provider egress, productive LLM behavior, or DSpace write is authorized."
 }
