@@ -1,0 +1,20 @@
+{
+  "review_id": "review-real-evidence-candidate-003-registered-language-cataloger-b-rereview-v3",
+  "case_id": "real-evidence-candidate-003-registered-language-rereview-v3",
+  "binding_id": "registered-language",
+  "metadata_field": "dc.description.registeredLanguage",
+  "reviewer_id": "cataloger-b",
+  "decision": "ACCEPT_AS_IS",
+  "timestamp_utc": "2026-08-18T06:48:00Z",
+  "comment": "El artículo está redactado en español y la presencia de P’urhepecha corresponde al objeto de estudio. Por tanto, prevalece el idioma en que está escrito originalmente el texto.",
+  "error_codes": [],
+  "proposed_corrected_value": null,
+  "final_abstention_recommended": false,
+  "source_refs": [
+    "apps/api/tests/golden/llm-evidence/human-review/snapshots/real-evidence-candidate-003.rereview-v3.registered-language.packet.txt"
+  ],
+  "evidence_snapshot_sha256": "58ec2dd6ae0c55a2118ae4c8c27fc21497ab3fc96a73acc2175f4af861c7a7b1",
+  "golden_set_version": "0.2.0-stratum-a",
+  "catalog_contract_version": "dspace-cataloger-v3.6",
+  "catalog_contract_sha256": "a68fbf9664b7165ea240508da85167058cd57796fbda9c1a9869986afb0178bb"
+}
