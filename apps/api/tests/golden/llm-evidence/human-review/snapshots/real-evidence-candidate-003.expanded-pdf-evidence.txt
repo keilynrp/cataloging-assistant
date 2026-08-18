@@ -1,0 +1,32 @@
+VERTICAL-021 expanded evidence representation
+candidate_id: real-evidence-candidate-003
+source_type: publisher_pdf
+canonical_pdf_url: https://periodicos.sbu.unicamp.br/ojs/index.php/tla/article/download/8653739/18759/44679
+canonical_doi: 10.1590/010318138653739444541
+retrieval_date_utc: 2026-08-18
+representation_scope: targeted evidence locations from the complete 36-page publisher PDF parsed during authorized inspection
+content_type: text/plain; charset=utf-8
+
+EVIDENCE LOCATOR A
+PDF page index 3 / printed page 1380
+Claim supported: pupils enter school practically monolingual in the Indigenous language; instruction is shifted to p’urhepecha.
+Exact excerpt: "sus alumnos llegaban prácticamente monolingües en lengua indígena a la escuela."
+
+EVIDENCE LOCATOR B
+PDF page index 8 / printed page 1385
+Claim supported: curricular language roles distinguish P’urhepecha as L1 and Spanish as L2.
+Exact excerpt: "L1 P’urhe ... L2 Español"
+
+EVIDENCE LOCATOR C
+PDF page index 3 / printed page 1380
+Claim supported: p’urhepecha is used as the normal language of school interaction and described as the pupils' mother tongue.
+Exact excerpt: "utilizaban con mucha naturalidad su lengua materna durante las clases y el recreo."
+
+ASSESSMENT NOTE
+The complete publisher PDF was accessible and parsed. This representation intentionally stores only short, review-relevant excerpts and reproducible page locators, not a full-text copy.
+
+LICENSE
+Publisher page states CC BY.
+
+BOUNDARY
+This evidence package does not itself determine the cataloging value or convert any evidence state to VERIFICADO.
