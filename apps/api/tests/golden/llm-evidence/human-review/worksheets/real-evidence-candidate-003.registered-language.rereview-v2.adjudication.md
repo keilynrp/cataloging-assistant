@@ -38,9 +38,9 @@ Resolve the formal disagreement between the two completed independent v2 reviews
 - Error codes: none
 - Comment: `Acepto Purépecha como clasificación adoptada por el INALI.`
 
-## Disagreement to resolve
+## Disagreement resolved
 
-Both reviewers converge on `Purépecha` as the accepted catalog value and neither recommends abstention or assigns an error code. The formal disagreement is whether the result should be classified as `ACCEPT_AS_IS` or `ACCEPT_WITH_MINOR_EDIT`.
+Both reviewers converged on `Purépecha` as the accepted catalog value and neither recommended abstention or assigned an error code. The formal disagreement was whether the result should be classified as `ACCEPT_AS_IS` or `ACCEPT_WITH_MINOR_EDIT`.
 
 ## Adjudicator response
 
@@ -52,6 +52,6 @@ Both reviewers converge on `Purépecha` as the accepted catalog value and neithe
 - Comment: `Aunque ambas revisiones de catalogadores humanos aceptaron el término Purépecha como autoridad verificada, es necesario reconsiderar la revisión final con mayor profundidad. Si es preciso, debe documentarse en una nota interna de catalogación para que quede como evidencia trazable, tanto para catalogadores humanos como para LLM, redes neuronales futuras y otros algoritmos especializados.`
 - Timestamp UTC: `2026-08-18T05:51:00Z`
 
-## Boundary
+## Governance status
 
-A real human adjudication decision has been recorded and the catalog contract is now frozen with a real SHA-256. The canonical adjudication JSON intentionally remains `TEMPLATE` rather than `FINAL` because hash materialization does not itself authorize the state transition. This does not create `ADJUDICATED_GOLD`, does not convert runtime evidence to `VERIFICADO`, and does not authorize LLM provider egress or DSpace write. An explicit governance decision is still required before `TEMPLATE` → `FINAL`, and `ADJUDICATED_GOLD` remains a separate later transition.
+The canonical adjudication JSON is now `FINAL` under explicit governance authorization and references the frozen real catalog-contract SHA-256. This does **not** create `ADJUDICATED_GOLD`, does not convert runtime evidence to `VERIFICADO`, and does not authorize LLM provider egress or DSpace write. Gold promotion remains a separate later governance decision.
