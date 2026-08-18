@@ -1,6 +1,6 @@
 {
-  "intake_version": "0.2.0-candidate-003",
-  "status": "UNDER_INDEPENDENT_REVIEW",
+  "intake_version": "0.3.0-candidate-003",
+  "status": "BLOCKED_FOR_INTAKE",
   "golden_set_version": "0.2.0-stratum-a",
   "catalog_contract_version": "dspace-cataloger-v3.6",
   "catalog_contract_sha256": "REPLACE_CATALOG_CONTRACT_SHA256",
@@ -21,11 +21,18 @@
           "case_id": "real-evidence-candidate-003-registered-language",
           "binding_id": "registered-language",
           "evidence_snapshot_sha256": "f4baeb9fea9e552969532cd5de9f7eaee072590c6505203f66087dfa5b22f3c5"
+        },
+        {
+          "review_id": "review-real-evidence-candidate-003-registered-language-cataloger-b-v1",
+          "reviewer_id": "cataloger-b",
+          "case_id": "real-evidence-candidate-003-registered-language",
+          "binding_id": "registered-language",
+          "evidence_snapshot_sha256": "f4baeb9fea9e552969532cd5de9f7eaee072590c6505203f66087dfa5b22f3c5"
         }
       ],
       "adjudicator_id": null,
-      "review_status": "UNDER_INDEPENDENT_REVIEW"
+      "review_status": "BLOCKED_FOR_INTAKE"
     }
   ],
-  "notes": "cataloger-a completed an independent review with decision RESEARCH_REQUIRED and no abstention recommendation. cataloger-b remains pending and must not be shown cataloger-a's judgment before submitting an independent decision. No adjudication state is implied."
+  "notes": "Both independent reviewers completed review and independently selected RESEARCH_REQUIRED with no abstention recommendation. There is no reviewer disagreement to adjudicate. The case is blocked from gold promotion pending additional authorized descriptive evidence and/or authoritative sources. No error code was assigned for cataloger-b because the reviewer said 'alguno si aplica' rather than selecting a taxonomy code. catalog_contract_sha256 remains unmaterialized and ADJUDICATED_GOLD is not authorized."
 }
