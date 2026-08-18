@@ -1,0 +1,52 @@
+# VERTICAL-021 candidate 003 rereview-v3 — registered-language evidence packet
+
+Case: real-evidence-candidate-003-registered-language-rereview-v3
+Binding: registered-language
+Metadata field: dc.description.registeredLanguage
+Review target candidate value: Español
+Candidate intent: RESOURCE_WRITING_LANGUAGE
+Expected abstention: false
+Catalog contract: dspace-cataloger-v3.6
+Catalog contract SHA-256: a68fbf9664b7165ea240508da85167058cd57796fbda9c1a9869986afb0178bb
+
+## Semantic boundary
+
+ADR-012 defines dc.description.registeredLanguage as the language in which the resource itself is written/registered, independent of the language studied or discussed by the resource. This v3 packet corrects the prior v2 review target, which used evidence about P’urhepecha as a language of instruction/subject matter rather than evidence of the article's writing language.
+
+## Publisher evidence
+
+Canonical article:
+https://periodicos.sbu.unicamp.br/ojs/index.php/tla/article/view/8653739
+
+DOI:
+10.1590/010318138653739444541
+
+Publisher title:
+La construcción de la identidad p’urhepechas a partir de la educación intercultural bilingüe propia
+
+Publisher section label:
+Resumo
+
+Short publisher excerpt:
+"El proyecto “T’arhexperakua – Creciendo juntos” surge en dos escuelas p’urhepechas..."
+
+## Full-text evidence
+
+The publisher PDF presents the article title and main body in Spanish. It includes an English translated title/abstract for discoverability, but the principal article text continues in Spanish.
+
+Short full-text excerpts:
+"RESUMEN"
+"INTRODUCCIÓN"
+"El proyecto escolar “T’arhexperakua – Creciendo Juntos” se construye frente a una historia de políticas indigenistas..."
+
+## Review proposition
+
+Reviewers must assess this concrete proposition only:
+
+dc.description.registeredLanguage = Español
+
+The proposition concerns the language of writing/registration of the article, not P’urhepecha as the language studied, used in classrooms, quoted, or discussed.
+
+## Provenance boundary
+
+This packet stores only short review-relevant excerpts and reproducible public-source locators. It does not persist the complete publisher PDF. No provider egress, runtime LLM action, DSpace write, or VERIFICADO state is authorized by this packet.
