@@ -39,7 +39,7 @@ def _review_manifest(status: str = "READY_FOR_INDEPENDENT_REVIEW") -> dict:
         "candidate_intent": "INFERRED_VALUE",
         "expected_abstention": False,
     }
-    if status == "ADJUDICATED_GOLD":
+    if status in {"AWAITING_ADJUDICATION", "ADJUDICATED_GOLD"}:
         case["completed_reviews"] = [
             {
                 "review_id": "review-a",
@@ -56,6 +56,7 @@ def _review_manifest(status: str = "READY_FOR_INDEPENDENT_REVIEW") -> dict:
                 "evidence_snapshot_sha256": snapshot_hash,
             },
         ]
+    if status == "ADJUDICATED_GOLD":
         case["adjudicator_id"] = "adjudicator-1"
         case["resulting_gold_version"] = "test-gold-adjudicated"
 
@@ -71,7 +72,12 @@ def _review_manifest(status: str = "READY_FOR_INDEPENDENT_REVIEW") -> dict:
 
 @pytest.mark.parametrize(
     "status",
-    ["READY_FOR_INDEPENDENT_REVIEW", "UNDER_INDEPENDENT_REVIEW", "ADJUDICATED_GOLD"],
+    [
+        "READY_FOR_INDEPENDENT_REVIEW",
+        "UNDER_INDEPENDENT_REVIEW",
+        "AWAITING_ADJUDICATION",
+        "ADJUDICATED_GOLD",
+    ],
 )
 def test_review_target_is_valid_when_fully_materialized(status: str) -> None:
     _validator().validate(_review_manifest(status))
@@ -84,6 +90,7 @@ def test_review_target_is_valid_when_fully_materialized(status: str) -> None:
         for status in [
             "READY_FOR_INDEPENDENT_REVIEW",
             "UNDER_INDEPENDENT_REVIEW",
+            "AWAITING_ADJUDICATION",
             "ADJUDICATED_GOLD",
         ]
         for field in ["metadata_field", "candidate_intent", "expected_abstention"]
@@ -98,7 +105,12 @@ def test_review_target_rejects_null_required_semantics(status: str, field: str) 
 
 @pytest.mark.parametrize(
     "status",
-    ["READY_FOR_INDEPENDENT_REVIEW", "UNDER_INDEPENDENT_REVIEW", "ADJUDICATED_GOLD"],
+    [
+        "READY_FOR_INDEPENDENT_REVIEW",
+        "UNDER_INDEPENDENT_REVIEW",
+        "AWAITING_ADJUDICATION",
+        "ADJUDICATED_GOLD",
+    ],
 )
 def test_review_target_requires_candidate_when_not_abstaining(status: str) -> None:
     manifest = deepcopy(_review_manifest(status))
@@ -117,7 +129,12 @@ def test_active_review_target_allows_explicit_abstention_without_candidate() -> 
 
 @pytest.mark.parametrize(
     "status",
-    ["READY_FOR_INDEPENDENT_REVIEW", "UNDER_INDEPENDENT_REVIEW", "ADJUDICATED_GOLD"],
+    [
+        "READY_FOR_INDEPENDENT_REVIEW",
+        "UNDER_INDEPENDENT_REVIEW",
+        "AWAITING_ADJUDICATION",
+        "ADJUDICATED_GOLD",
+    ],
 )
 def test_review_target_rejects_placeholder_evidence_hash(status: str) -> None:
     manifest = deepcopy(_review_manifest(status))
@@ -128,7 +145,12 @@ def test_review_target_rejects_placeholder_evidence_hash(status: str) -> None:
 
 @pytest.mark.parametrize(
     "status",
-    ["READY_FOR_INDEPENDENT_REVIEW", "UNDER_INDEPENDENT_REVIEW", "ADJUDICATED_GOLD"],
+    [
+        "READY_FOR_INDEPENDENT_REVIEW",
+        "UNDER_INDEPENDENT_REVIEW",
+        "AWAITING_ADJUDICATION",
+        "ADJUDICATED_GOLD",
+    ],
 )
 def test_review_target_rejects_placeholder_catalog_contract_hash(status: str) -> None:
     manifest = deepcopy(_review_manifest(status))
