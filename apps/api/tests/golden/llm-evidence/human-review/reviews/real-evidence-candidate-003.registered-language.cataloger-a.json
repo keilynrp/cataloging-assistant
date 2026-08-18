@@ -16,5 +16,5 @@
   "evidence_snapshot_sha256": "f4baeb9fea9e552969532cd5de9f7eaee072590c6505203f66087dfa5b22f3c5",
   "golden_set_version": "0.2.0-stratum-a",
   "catalog_contract_version": "dspace-cataloger-v3.6",
-  "catalog_contract_sha256": "REPLACE_CATALOG_CONTRACT_SHA256"
+  "catalog_contract_sha256": "a68fbf9664b7165ea240508da85167058cd57796fbda9c1a9869986afb0178bb"
 }
