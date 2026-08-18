@@ -31,14 +31,14 @@ If applicable, record one or more closed error codes from the VERTICAL-021 taxon
 
 ## Reviewer response
 
-- Decision: **PENDING HUMAN REVIEW**
-- Proposed corrected value: **PENDING HUMAN REVIEW**
-- Final abstention recommended: **PENDING HUMAN REVIEW**
-- Error codes: **PENDING HUMAN REVIEW**
-- Source refs / exact supporting excerpt: **PENDING HUMAN REVIEW**
-- Comment: **PENDING HUMAN REVIEW**
-- Timestamp UTC: **PENDING HUMAN REVIEW**
+- Decision: `RESEARCH_REQUIRED`
+- Proposed corrected value: `null`
+- Final abstention recommended: `false`
+- Error codes: none assigned; reviewer indicated "alguno si aplica", so no code was invented.
+- Source refs / exact supporting excerpt: `apps/api/tests/golden/llm-evidence/human-review/snapshots/real-evidence-candidate-003.txt`
+- Comment: Es necesario indagar primero antes de emitir un criterio no verificado.
+- Timestamp UTC: `2026-08-18T03:49:00Z`
 
 ## Boundary
 
-This worksheet contains no review outcome and is not an adjudication artifact. It must not be used as a completed reviewer decision until a real human reviewer fills it independently and the result is materialized into the canonical reviewer-decision JSON contract.
+This worksheet records cataloger-b's independent human judgment. It is not an adjudication artifact and does not create `ADJUDICATED_GOLD` or runtime `VERIFICADO` state.
