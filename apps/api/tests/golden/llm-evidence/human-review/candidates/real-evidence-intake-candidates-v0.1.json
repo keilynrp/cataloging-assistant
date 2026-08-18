@@ -1,19 +1,20 @@
 {
-  "candidate_set_version": "0.4.0",
-  "status": "AUTHORIZED_CANDIDATES_PARTIALLY_MATERIALIZED_AWAITING_HUMAN_CONFIRMATION",
+  "candidate_set_version": "0.5.0",
+  "status": "PARTIAL_READY_FOR_INDEPENDENT_REVIEW",
   "baseline_main_sha": "909aac81f4d97106231d77c014f19ab0d38c07b1",
   "catalog_contract_version": "dspace-cataloger-v3.6",
   "authorization_basis": "Explicit user authorization in conversation on 2026-08-17; applies to the three listed candidate sources for local evaluation only.",
+  "human_assignment_confirmation_basis": "User confirmation and green light in conversation on 2026-08-17 that two real people will occupy the reserved independent-review slots.",
   "reviewer_slots": [
     {
       "reviewer_id": "cataloger-a",
       "role": "independent_reviewer_1",
-      "status": "PSEUDONYMOUS_SLOT_RESERVED_PENDING_REAL_HUMAN_CONFIRMATION"
+      "status": "CONFIRMED_REAL_HUMAN_ASSIGNMENT"
     },
     {
       "reviewer_id": "cataloger-b",
       "role": "independent_reviewer_2",
-      "status": "PSEUDONYMOUS_SLOT_RESERVED_PENDING_REAL_HUMAN_CONFIRMATION"
+      "status": "CONFIRMED_REAL_HUMAN_ASSIGNMENT"
     }
   ],
   "critical_bindings_target_scope": [
@@ -34,10 +35,11 @@
       "authorization_status": "AUTHORIZED_LOCAL_EVALUATION",
       "license_status": "NOT_YET_VERIFIED",
       "local_snapshot_status": "NOT_MATERIALIZED",
-      "reviewer_assignment_status": "PSEUDONYMOUS_SLOTS_RESERVED_PENDING_REAL_HUMAN_CONFIRMATION",
+      "reviewer_assignment_status": "CONFIRMED_REAL_HUMAN_ASSIGNMENT",
       "reviewer_ids": ["cataloger-a", "cataloger-b"],
       "binding_scope_status": "UNINSPECTED",
-      "notes": "Canonical publication metadata verified against the author’s Florida Atlantic University publication list. Reviewer IDs are reserved pseudonymous slots only and do not assert that two real catalogers have accepted or completed review."
+      "human_review_entry_status": "BLOCKED_FOR_INTAKE",
+      "notes": "Two real reviewers are confirmed for the reserved pseudonymous slots, but candidate 001 remains blocked until reuse/license conditions and an immutable snapshot are available."
     },
     {
       "candidate_id": "real-evidence-candidate-002",
@@ -53,11 +55,12 @@
       "snapshot_path": "apps/api/tests/golden/llm-evidence/human-review/snapshots/real-evidence-candidate-002.txt",
       "evidence_snapshot_sha256": "b7c6fbc726441695d47aba958700c69527877585f6d4e32d2d0a2cd2cad9f01a",
       "representation_completeness": "PUBLISHER_METADATA_ABSTRACT_AND_LICENSE_ONLY",
-      "reviewer_assignment_status": "PSEUDONYMOUS_SLOTS_RESERVED_PENDING_REAL_HUMAN_CONFIRMATION",
+      "reviewer_assignment_status": "CONFIRMED_REAL_HUMAN_ASSIGNMENT",
       "reviewer_ids": ["cataloger-a", "cataloger-b"],
       "binding_scope_status": "NO_CRITICAL_BINDING_CONFIRMED_FROM_CURRENT_REPRESENTATION",
       "confirmed_bindings": [],
-      "notes": "The current immutable representation preserves publisher metadata, abstract and license. It is insufficient to assert a critical linguistic binding and therefore remains outside binding-level empirical denominators until fuller authorized source inspection."
+      "human_review_entry_status": "BLOCKED_FOR_INTAKE",
+      "notes": "The current immutable representation is insufficient to admit a critical linguistic binding. The source remains blocked from binding-level independent review until fuller authorized inspection is materialized."
     },
     {
       "candidate_id": "real-evidence-candidate-003",
@@ -73,22 +76,24 @@
       "snapshot_path": "apps/api/tests/golden/llm-evidence/human-review/snapshots/real-evidence-candidate-003.txt",
       "evidence_snapshot_sha256": "f4baeb9fea9e552969532cd5de9f7eaee072590c6505203f66087dfa5b22f3c5",
       "representation_completeness": "SELECTED_PUBLISHER_PDF_TEXT_FRAGMENTS",
-      "reviewer_assignment_status": "PSEUDONYMOUS_SLOTS_RESERVED_PENDING_REAL_HUMAN_CONFIRMATION",
+      "reviewer_assignment_status": "CONFIRMED_REAL_HUMAN_ASSIGNMENT",
       "reviewer_ids": ["cataloger-a", "cataloger-b"],
-      "binding_scope_status": "PARTIALLY_CONFIRMED_FROM_SNAPSHOT",
+      "binding_scope_status": "HUMAN_INTAKE_SCOPE_CONFIRMED",
       "confirmed_bindings": ["registered-language"],
       "confirmed_metadata_fields": ["dc.description.registeredLanguage"],
       "unsupported_or_unconfirmed_bindings": ["linguistic-family", "linguistic-branch", "linguistic-group", "linguistic-variant"],
-      "notes": "The immutable representation preserves exact publisher-PDF fragments showing P’urhepecha as the first/native language and Spanish as L2. This supports human review of registered-language only; Meseta Tarasca is not treated as evidence of linguistic family. No human judgment is claimed."
+      "human_review_entry_status": "READY_FOR_INDEPENDENT_REVIEW",
+      "notes": "User green light confirms entry of the supported registered-language scope into independent human review. No review outcome is claimed. Meseta Tarasca remains excluded as evidence of linguistic family."
     }
   ],
   "gate": {
-    "can_enter_human_review": false,
-    "blocking_requirements": [
-      "real human confirmation for both reserved reviewer slots",
-      "candidate-001 immutable snapshot and license/reuse status if candidate 001 is admitted",
+    "can_enter_human_review": true,
+    "ready_candidate_ids": ["real-evidence-candidate-003"],
+    "blocked_candidate_ids": ["real-evidence-candidate-001", "real-evidence-candidate-002"],
+    "remaining_requirements": [
+      "candidate-001 immutable snapshot and license/reuse status before admission",
       "candidate-002 fuller authorized source inspection before any critical binding is admitted",
-      "binding-level human intake confirmation for candidate 003 registered-language"
+      "catalog contract SHA-256 must be materialized before any final ADJUDICATED_GOLD artifact"
     ]
   }
 }
