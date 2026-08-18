@@ -114,7 +114,7 @@ def test_stratum_a_adjudicated_gold_rejects_pending_authorization_and_placeholde
     assert list(Draft202012Validator(schema).iter_errors(intake))
 
 
-def test_awaiting_adjudication_requires_two_distinct_reviewers_and_reviews() -> None:
+def test_awaiting_adjudication_requires_two_distinct_reviewers_and_reviews_for_stratum_a() -> None:
     schema = _load(ROOT / "schemas" / "intake-manifest.schema.json")
     intake = _load(ROOT / "templates" / "intake-manifest.template.json")
     case = _make_awaiting_adjudication_case(intake)
@@ -129,7 +129,7 @@ def test_awaiting_adjudication_requires_two_distinct_reviewers_and_reviews() -> 
     assert any("exactly two reviews" in error for error in validate_intake_manifest_semantics(intake))
 
 
-def test_awaiting_adjudication_rejects_single_review() -> None:
+def test_awaiting_adjudication_rejects_single_review_for_stratum_a() -> None:
     schema = _load(ROOT / "schemas" / "intake-manifest.schema.json")
     intake = _load(ROOT / "templates" / "intake-manifest.template.json")
     case = _make_awaiting_adjudication_case(intake)
@@ -139,6 +139,18 @@ def test_awaiting_adjudication_rejects_single_review() -> None:
     assert list(Draft202012Validator(schema).iter_errors(intake))
     assert any("exactly two distinct reviewers" in error for error in validate_intake_manifest_semantics(intake))
     assert any("exactly two reviews" in error for error in validate_intake_manifest_semantics(intake))
+
+
+def test_stratum_b_awaiting_adjudication_allows_one_matching_review() -> None:
+    schema = _load(ROOT / "schemas" / "intake-manifest.schema.json")
+    intake = _load(ROOT / "templates" / "intake-manifest.template.json")
+    case = _make_awaiting_adjudication_case(intake)
+    case["risk_stratum"] = "B"
+    case["reviewer_ids"] = ["cataloger-a"]
+    case["completed_reviews"] = case["completed_reviews"][:1]
+
+    Draft202012Validator(schema).validate(intake)
+    assert validate_intake_manifest_semantics(intake) == []
 
 
 def test_awaiting_adjudication_rejects_duplicate_reviewer_links() -> None:
