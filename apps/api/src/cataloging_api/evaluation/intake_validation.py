@@ -61,6 +61,14 @@ def validate_intake_manifest_semantics(manifest: Mapping[str, Any]) -> list[str]
             errors.append(f"{prefix}.completed_reviews must use distinct reviewer_id values")
 
         if case.get("review_status") in REVIEW_LINK_STATES:
+            if len(parent_reviewers) != 2:
+                errors.append(f"{prefix}.reviewer_ids must contain exactly two distinct reviewers")
+            if len(completed_reviews) != 2:
+                errors.append(f"{prefix}.completed_reviews must contain exactly two reviews")
+            if len(set(linked_review_ids)) != 2:
+                errors.append(f"{prefix}.completed_reviews must contain two distinct review_id values")
+            if len(set(linked_reviewers)) != 2:
+                errors.append(f"{prefix}.completed_reviews must contain two distinct reviewer_id values")
             if set(linked_reviewers) != parent_reviewers:
                 errors.append(
                     f"{prefix}.completed_reviews reviewer_ids must exactly match parent reviewer_ids"
