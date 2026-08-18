@@ -1,6 +1,6 @@
 {
-  "intake_version": "0.3.0-candidate-003",
-  "status": "BLOCKED_FOR_INTAKE",
+  "intake_version": "0.4.0-candidate-003",
+  "status": "READY_FOR_INDEPENDENT_REVIEW",
   "golden_set_version": "0.2.0-stratum-a",
   "catalog_contract_version": "dspace-cataloger-v3.6",
   "catalog_contract_sha256": "REPLACE_CATALOG_CONTRACT_SHA256",
@@ -32,7 +32,20 @@
       ],
       "adjudicator_id": null,
       "review_status": "BLOCKED_FOR_INTAKE"
+    },
+    {
+      "case_id": "real-evidence-candidate-003-registered-language-rereview-v2",
+      "risk_stratum": "A",
+      "bindings_under_review": ["registered-language"],
+      "authorization_status": "AUTHORIZED_LOCAL_EVALUATION",
+      "evidence_location_mode": "REPOSITORY_FIXTURE",
+      "evidence_locator": "apps/api/tests/golden/llm-evidence/human-review/snapshots/real-evidence-candidate-003.rereview-v2.packet.txt",
+      "evidence_snapshot_sha256": "2a1ceef24ef537796ed5ec44dc7682a8b900964fd9ea70b9647404ad54817f81",
+      "reviewer_ids": ["cataloger-a", "cataloger-b"],
+      "completed_reviews": [],
+      "adjudicator_id": null,
+      "review_status": "READY_FOR_INDEPENDENT_REVIEW"
     }
   ],
-  "notes": "Both independent reviewers completed review and independently selected RESEARCH_REQUIRED with no abstention recommendation. There is no reviewer disagreement to adjudicate. The case is blocked from gold promotion pending additional authorized descriptive evidence and/or authoritative sources. No error code was assigned for cataloger-b because the reviewer said 'alguno si aplica' rather than selecting a taxonomy code. catalog_contract_sha256 remains unmaterialized and ADJUDICATED_GOLD is not authorized."
+  "notes": "The original independent-review cycle remains immutable and blocked after both reviewers selected RESEARCH_REQUIRED. A new v2 re-review case is opened using expanded publisher-PDF evidence plus official INALI/INPI authority context. Prior reviewer decisions are not overwritten. catalog_contract_sha256 remains unmaterialized and ADJUDICATED_GOLD is not authorized."
 }
