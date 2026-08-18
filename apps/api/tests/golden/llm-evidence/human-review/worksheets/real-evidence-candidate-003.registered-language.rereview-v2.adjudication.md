@@ -54,4 +54,4 @@ Both reviewers converged on `Purépecha` as the accepted catalog value and neith
 
 ## Governance status
 
-The canonical adjudication JSON is now `FINAL` under explicit governance authorization and references the frozen real catalog-contract SHA-256. This does **not** create `ADJUDICATED_GOLD`, does not convert runtime evidence to `VERIFICADO`, and does not authorize LLM provider egress or DSpace write. Gold promotion remains a separate later governance decision.
+The canonical adjudication JSON is `FINAL` under explicit governance authorization and references the frozen real catalog-contract SHA-256. Under a subsequent explicit governance decision, this v2 case is also `ADJUDICATED_GOLD` at case level. The aggregate intake remains `BLOCKED_FOR_INTAKE` because the original narrow review cycle is still blocked. This case-level gold state does not close Gate D, does not convert runtime evidence to `VERIFICADO`, and does not authorize LLM provider egress or DSpace write.
