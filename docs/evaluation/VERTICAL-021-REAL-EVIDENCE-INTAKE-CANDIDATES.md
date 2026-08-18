@@ -1,6 +1,6 @@
 # VERTICAL-021 Real Evidence Intake Candidates
 
-**Estado:** PARTIAL HUMAN REVIEW COMPLETE — candidato 003 con doble revisión humana v2 y adjudicación humana registrada; contrato catalográfico congelado por SHA-256; candidatos 001 y 002 permanecen bloqueados para intake.
+**Estado:** PARTIAL HUMAN REVIEW COMPLETE — candidato 003 con ciclo `rereview-v2` adjudicado y promovido a `ADJUDICATED_GOLD` a nivel de caso; contrato catalográfico congelado por SHA-256; candidatos 001 y 002 permanecen bloqueados para intake; Gate D continúa abierto.
 
 Baseline: `main` @ `909aac81f4d97106231d77c014f19ab0d38c07b1`.
 
@@ -58,9 +58,11 @@ La representación actual conserva metadatos editoriales, resumen y licencia, pe
 - Valor final humano: `Purépecha`.
 - Abstención: `false`.
 - Error codes: ninguno.
-- Intake actual: `BLOCKED_FOR_INTAKE` por frontera de gobernanza; la adjudicación canónica permanece `TEMPLATE` hasta una transición explícitamente autorizada a `FINAL`.
+- Adjudicación canónica: `FINAL`.
+- Estado del caso `rereview-v2`: `ADJUDICATED_GOLD`.
+- Estado agregado del intake: `BLOCKED_FOR_INTAKE` porque la primera ronda histórica del candidato 003 continúa bloqueada.
 
-La primera ronda, basada en evidencia más estrecha, permanece preservada e inmutable con dos decisiones `RESEARCH_REQUIRED`. El ciclo v2 no reescribe esa historia.
+La primera ronda, basada en evidencia más estrecha, permanece preservada e inmutable con dos decisiones `RESEARCH_REQUIRED`. El ciclo v2 no reescribe esa historia. La promoción a gold es exclusivamente de nivel de caso y no convierte el intake global en gold.
 
 ## 4. Contrato catalográfico congelado
 
@@ -84,9 +86,9 @@ Persisten como bloqueos o decisiones pendientes:
 
 1. candidato 001: snapshot inmutable y verificación de reutilización/licencia;
 2. candidato 002: inspección autorizada más completa antes de admitir cualquier binding crítico;
-3. candidato 003: la decisión humana ya está registrada y el contrato ya está congelado, pero `TEMPLATE` → `FINAL` requiere una autorización explícita separada;
-4. `ADJUDICATED_GOLD` sigue siendo una transición posterior y separada; no se deriva automáticamente de la materialización del hash ni de la existencia de una decisión humana.
+3. el intake global permanece `BLOCKED_FOR_INTAKE` porque contiene la ronda histórica bloqueada del candidato 003;
+4. Gate D no está cerrado: todavía faltan cobertura empírica de los cinco bindings críticos, tamaños de muestra suficientes por binding, las adjudicaciones restantes, identidades/hashes congelados de vocabularios controlados, comparación/provenance de proveedores y demás evidencia exigida por el plan de evaluación.
 
 ## 6. Frontera arquitectónica
 
-Este estado no activa proveedor LLM, no autoriza data egress, no crea candidatos runtime, no convierte evidencia en `VERIFICADO` y no escribe en DSpace. La materialización del SHA-256 resuelve la identidad del contrato, pero no altera por sí sola estados de gobernanza.
+La adjudicación `FINAL` y la promoción de `rereview-v2` a `ADJUDICATED_GOLD` son estados del artefacto de evaluación. No convierten evidencia runtime en `VERIFICADO`, no activan proveedor LLM, no autorizan data egress, no crean candidatos runtime y no escriben en DSpace.
