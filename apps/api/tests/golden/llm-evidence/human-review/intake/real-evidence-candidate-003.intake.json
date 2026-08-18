@@ -1,5 +1,5 @@
 {
-  "intake_version": "0.14.0-candidate-003",
+  "intake_version": "0.15.0-candidate-003",
   "status": "BLOCKED_FOR_INTAKE",
   "golden_set_version": "0.2.0-stratum-a",
   "catalog_contract_version": "dspace-cataloger-v3.6",
@@ -91,8 +91,8 @@
         }
       ],
       "adjudicator_id": "adjudicator-1",
-      "review_status": "AWAITING_ADJUDICATION"
+      "review_status": "ADJUDICATED_GOLD"
     }
   ],
-  "notes": "The original narrow cycle remains immutable and blocked. The v2 human reviews and FINAL adjudication remain preserved as historical records, but their case-level ADJUDICATED_GOLD status remains withdrawn after semantic review. The corrective v3 case evaluates dc.description.registeredLanguage = Español under RESOURCE_WRITING_LANGUAGE semantics. Both independent catalogers completed ACCEPT_AS_IS on the same proposition and snapshot, with no abstention, no error codes, and no corrected value. Under explicit governance authorization, adjudicator-1 has now recorded a canonical FINAL consensus closure for v3 with final value Español, superseding the v2 adjudication for current gold construction. The v3 case is intentionally not promoted to ADJUDICATED_GOLD in this step; that state transition remains separate. Candidate 002 is tracked separately as a remediable awaiting-evidence case. Gate D remains open; no runtime VERIFICADO, provider egress, productive LLM behavior, or DSpace write is authorized."
+  "notes": "The original narrow cycle remains immutable and BLOCKED_FOR_INTAKE. The v2 human reviews and FINAL adjudication remain preserved as historical records, but their case-level gold was withdrawn after semantic review. Under explicit governance authorization, the corrective v3 case is now ADJUDICATED_GOLD for dc.description.registeredLanguage = Español under RESOURCE_WRITING_LANGUAGE semantics, based on two independent ACCEPT_AS_IS reviews on the same immutable snapshot and a canonical FINAL consensus closure by adjudicator-1. The aggregate intake remains BLOCKED_FOR_INTAKE because historical blocked cases remain included. Gate D remains open; this case-level gold does not convert runtime evidence to VERIFICADO and does not authorize provider egress, productive LLM behavior, OCR, or DSpace write."
 }
