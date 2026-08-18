@@ -36,6 +36,6 @@
   "input_golden_set_version": "0.2.0-stratum-a",
   "catalog_contract_version": "dspace-cataloger-v3.6",
   "catalog_contract_sha256": "a68fbf9664b7165ea240508da85167058cd57796fbda9c1a9869986afb0178bb",
-  "resulting_gold_version": "0.2.0-stratum-a-rereview-v2-pending-gold-promotion",
+  "resulting_gold_version": "0.2.0-stratum-a-rereview-v2-adjudicated-gold",
   "supersedes_adjudication_id": null
 }
