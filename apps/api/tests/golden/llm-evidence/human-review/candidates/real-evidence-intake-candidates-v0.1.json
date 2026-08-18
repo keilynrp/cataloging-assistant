@@ -1,5 +1,5 @@
 {
-  "candidate_set_version": "0.9.0",
+  "candidate_set_version": "0.10.0",
   "status": "PARTIAL_READY_WITH_CANDIDATE_003_REREVIEW_V3_ADJUDICATED_GOLD",
   "baseline_main_sha": "909aac81f4d97106231d77c014f19ab0d38c07b1",
   "catalog_contract_version": "dspace-cataloger-v3.6",
@@ -7,24 +7,10 @@
   "authorization_basis": "Explicit user authorization in conversation on 2026-08-17; applies to the three listed candidate sources for local evaluation only.",
   "human_assignment_confirmation_basis": "User confirmation and green light in conversation on 2026-08-17 that two real people will occupy the reserved independent-review slots.",
   "reviewer_slots": [
-    {
-      "reviewer_id": "cataloger-a",
-      "role": "independent_reviewer_1",
-      "status": "CONFIRMED_REAL_HUMAN_ASSIGNMENT"
-    },
-    {
-      "reviewer_id": "cataloger-b",
-      "role": "independent_reviewer_2",
-      "status": "CONFIRMED_REAL_HUMAN_ASSIGNMENT"
-    }
+    {"reviewer_id": "cataloger-a", "role": "independent_reviewer_1", "status": "CONFIRMED_REAL_HUMAN_ASSIGNMENT"},
+    {"reviewer_id": "cataloger-b", "role": "independent_reviewer_2", "status": "CONFIRMED_REAL_HUMAN_ASSIGNMENT"}
   ],
-  "critical_bindings_target_scope": [
-    "linguistic-family",
-    "linguistic-branch",
-    "linguistic-group",
-    "linguistic-variant",
-    "registered-language"
-  ],
+  "critical_bindings_target_scope": ["linguistic-family", "linguistic-branch", "linguistic-group", "linguistic-variant", "registered-language"],
   "candidates": [
     {
       "candidate_id": "real-evidence-candidate-001",
@@ -84,12 +70,13 @@
       "confirmed_metadata_fields": ["dc.description.registeredLanguage"],
       "review_target": {
         "candidate_value": "Español",
-        "candidate_intent": "RESOURCE_WRITING_LANGUAGE",
-        "expected_abstention": false
+        "candidate_intent": "INFERRED_VALUE",
+        "expected_abstention": false,
+        "resulting_gold_version": "0.2.0-stratum-a-rereview-v3-adjudicated-gold"
       },
       "unsupported_or_unconfirmed_bindings": ["linguistic-family", "linguistic-branch", "linguistic-group", "linguistic-variant"],
       "human_review_entry_status": "ADJUDICATED_GOLD",
-      "notes": "The prior v2 reviews and FINAL adjudication with value Purépecha remain preserved as historical records, but v2 case-level gold was withdrawn after identifying a semantic mismatch with ADR-012. Rereview-v3 evaluates dc.description.registeredLanguage = Español under RESOURCE_WRITING_LANGUAGE semantics. Both independent reviewers returned ACCEPT_AS_IS on the same immutable snapshot, and adjudicator-1 recorded a FINAL consensus closure that explicitly supersedes the v2 adjudication for current gold construction. Under explicit governance authorization, v3 is ADJUDICATED_GOLD at case level."
+      "notes": "The prior v2 reviews and FINAL adjudication with value Purépecha remain preserved as historical records, but v2 case-level gold was withdrawn after identifying a semantic mismatch with ADR-012. Rereview-v3 evaluates dc.description.registeredLanguage = Español with scorer-supported intent INFERRED_VALUE; the resource-writing-language distinction remains the binding semantics. Both independent reviewers returned ACCEPT_AS_IS on the same immutable snapshot, and adjudicator-1 recorded a FINAL consensus closure that explicitly supersedes the v2 adjudication for current gold construction. Under explicit governance authorization, v3 is ADJUDICATED_GOLD at case level."
     }
   ],
   "gate": {
