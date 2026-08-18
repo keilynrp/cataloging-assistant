@@ -40,16 +40,14 @@ Both reviewers converge on `Purépecha` as the accepted catalog value and neithe
 
 ## Adjudicator response
 
-Complete only after a real human adjudicator has reviewed both inputs and the evidence packet.
-
-- Adjudicator ID: **PENDING HUMAN ADJUDICATOR**
-- Final decision: **PENDING HUMAN ADJUDICATION**
-- Final value: **PENDING HUMAN ADJUDICATION**
-- Final abstention: **PENDING HUMAN ADJUDICATION**
-- Error codes: **PENDING HUMAN ADJUDICATION**
-- Comment: **PENDING HUMAN ADJUDICATION**
-- Timestamp UTC: **PENDING HUMAN ADJUDICATION**
+- Adjudicator ID: `adjudicator-1`
+- Final decision: `ACCEPT_WITH_MINOR_EDIT`
+- Final value: `Purépecha`
+- Final abstention: `false`
+- Error codes: none
+- Comment: `Aunque ambas revisiones de catalogadores humanos aceptaron el término Purépecha como autoridad verificada, es necesario reconsiderar la revisión final con mayor profundidad. Si es preciso, debe documentarse en una nota interna de catalogación para que quede como evidencia trazable, tanto para catalogadores humanos como para LLM, redes neuronales futuras y otros algoritmos especializados.`
+- Timestamp UTC: `2026-08-18T05:51:00Z`
 
 ## Boundary
 
-This worksheet is preparatory only. It is not a FINAL adjudication record, does not create `ADJUDICATED_GOLD`, does not convert runtime evidence to `VERIFICADO`, and does not authorize LLM provider egress or DSpace write. A FINAL adjudication JSON also requires a real catalog-contract SHA-256 under the current schema.
+A real human adjudication decision has been recorded, but the canonical adjudication JSON remains `TEMPLATE` rather than `FINAL` because `catalog_contract_sha256` is still unmaterialized. This does not create `ADJUDICATED_GOLD`, does not convert runtime evidence to `VERIFICADO`, and does not authorize LLM provider egress or DSpace write. Finalization requires freezing the real catalog-contract SHA-256 under the current schema.
