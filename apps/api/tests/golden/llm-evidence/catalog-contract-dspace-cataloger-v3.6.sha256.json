@@ -1,0 +1,19 @@
+{
+  "artifact_version": "1.0.0",
+  "contract_version": "dspace-cataloger-v3.6",
+  "dspace_version": "7.6.6",
+  "source_path": "apps/api/src/cataloging_api/cataloging_contract.py",
+  "source_git_blob_sha1": "bdab45fd46b020f76df01ee2fa513aa7f094aeb5",
+  "source_sha256": "05380a8e49e41ff70749c2bde09b3c4059f87e50707144ae2cad228d4e74391f",
+  "hash_target": "contract_payload() canonical JSON",
+  "canonicalization": {
+    "encoding": "UTF-8",
+    "json_ensure_ascii": false,
+    "json_sort_keys": true,
+    "json_separators": [",", ":"]
+  },
+  "catalog_contract_sha256": "a68fbf9664b7165ea240508da85167058cd57796fbda9c1a9869986afb0178bb",
+  "field_count": 56,
+  "frozen_date_utc": "2026-08-18",
+  "notes": "The catalog-contract hash is SHA-256 over the canonical JSON serialization of contract_payload(), not over Python source bytes. source_sha256 and the Git blob SHA-1 are retained as reproducibility anchors. This artifact freezes the contract identity for VERTICAL-021 evaluation and does not authorize runtime LLM behavior, provider egress, DSpace write, or ADJUDICATED_GOLD promotion."
+}

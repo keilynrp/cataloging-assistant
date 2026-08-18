@@ -1,0 +1,28 @@
+VERTICAL-021 evidence representation snapshot
+candidate_id: real-evidence-candidate-002
+title: Lenguas europeas y lenguas mexicanas: actitudes lingüísticas de universitarios en Guadalajara (México)
+canonical_url: https://revistas.cunorte.udg.mx/punto/article/view/75
+canonical_doi: 10.32870/punto.v1i9.75
+retrieved_from: publisher HTML page
+retrieval_date_utc: 2026-08-17
+representation_scope: publisher metadata + abstract + license statement
+content_type: text/plain; charset=utf-8
+
+AUTHORS
+Martha Islas
+Alfredo Leonardo Romero Sánchez
+Nicolás Lozano Mercado
+
+KEYWORDS
+Actitudes lingüísticas, Multilingüismo, Lenguas indígenas mexicanas
+
+ABSTRACT
+Se reportan los resultados de un estudio sociolingüístico que documenta y analiza las opiniones vertidas por un grupo de cien estudiantes de nivel licenciatura de la Universidad de Guadalajara (México) sobre la habilidad de hablar varias lenguas indígenas o varias lenguas de origen europeo. Las respuestas reunidas aludieron a estos temas: enriquecimiento profesional o personal, capacidades comunicativas, valores de las culturas, utilidad y carácter global.
+Entre otros resultados, se encontró que los idiomas europeos fueron asociados a ámbitos globales y a la superación laboral o académica, pero no así los mexicanos. La contribución más importante de este estudio es proveer de datos duros que den sustento a apreciaciones que sin ellos quedarían solamente en el plano anecdótico.
+
+LICENSE
+Esta obra está bajo una Licencia Creative Commons Atribución-NoComercial 4.0 Internacional.
+
+NOTES
+This is an immutable local evaluation representation, not a complete article copy.
+Binding-level scope remains unconfirmed until a complete authorized source snapshot or fuller source inspection is available.

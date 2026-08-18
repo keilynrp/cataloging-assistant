@@ -1,0 +1,23 @@
+VERTICAL-021 re-review evidence packet
+case_id: real-evidence-candidate-003-registered-language-rereview-v2
+candidate_id: real-evidence-candidate-003
+binding_id: registered-language
+metadata_field: dc.description.registeredLanguage
+prepared_date_utc: 2026-08-18
+
+SOURCE EVIDENCE
+path: apps/api/tests/golden/llm-evidence/human-review/snapshots/real-evidence-candidate-003.expanded-pdf-evidence.txt
+sha256: 17affb82e0cd6dbd8c83652abdd1f7a1792fef4c718434289277e6e32de65061
+
+AUTHORITY EVIDENCE
+path: apps/api/tests/golden/llm-evidence/human-review/snapshots/real-evidence-candidate-003.official-authorities.txt
+sha256: da5cdedb6b919b56b3d7fc8236c7f5d97966dbfb9bcc0d6b9606687dccf04f7f
+
+PRIOR REVIEW OUTCOME
+Both independent reviewers selected RESEARCH_REQUIRED on the earlier, narrower snapshot. Those decisions remain immutable historical review records and are not overwritten by this re-review packet.
+
+REVIEW SCOPE
+Reassess only registered-language -> dc.description.registeredLanguage using the expanded source evidence plus official authority context. Do not infer or adjudicate linguistic family, branch, grouping, or variant in this re-review.
+
+BOUNDARY
+This packet opens a new independent re-review cycle. It does not prescribe the reviewer decision and does not create ADJUDICATED_GOLD.

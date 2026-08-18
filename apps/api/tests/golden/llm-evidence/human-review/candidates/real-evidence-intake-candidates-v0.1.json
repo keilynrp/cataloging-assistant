@@ -1,0 +1,94 @@
+{
+  "candidate_set_version": "0.10.0",
+  "status": "PARTIAL_READY_WITH_CANDIDATE_003_REREVIEW_V3_ADJUDICATED_GOLD",
+  "baseline_main_sha": "909aac81f4d97106231d77c014f19ab0d38c07b1",
+  "catalog_contract_version": "dspace-cataloger-v3.6",
+  "catalog_contract_sha256": "a68fbf9664b7165ea240508da85167058cd57796fbda9c1a9869986afb0178bb",
+  "authorization_basis": "Explicit user authorization in conversation on 2026-08-17; applies to the three listed candidate sources for local evaluation only.",
+  "human_assignment_confirmation_basis": "User confirmation and green light in conversation on 2026-08-17 that two real people will occupy the reserved independent-review slots.",
+  "reviewer_slots": [
+    {"reviewer_id": "cataloger-a", "role": "independent_reviewer_1", "status": "CONFIRMED_REAL_HUMAN_ASSIGNMENT"},
+    {"reviewer_id": "cataloger-b", "role": "independent_reviewer_2", "status": "CONFIRMED_REAL_HUMAN_ASSIGNMENT"}
+  ],
+  "critical_bindings_target_scope": ["linguistic-family", "linguistic-branch", "linguistic-group", "linguistic-variant", "registered-language"],
+  "candidates": [
+    {
+      "candidate_id": "real-evidence-candidate-001",
+      "title": "Spatial Language and the Use of Body-Part Terms in Nahuatl and P’urhepecha",
+      "creator_display": "Martha Mendoza",
+      "source_locator": "https://journals.flvc.org/floridalinguisticspapers/article/view/116771",
+      "source_origin": "prior cataloging queue",
+      "source_reconciliation_status": "CANONICAL_LOCATOR_CORRECTED",
+      "authorization_status": "AUTHORIZED_LOCAL_EVALUATION",
+      "license_status": "NOT_YET_VERIFIED",
+      "local_snapshot_status": "NOT_MATERIALIZED",
+      "reviewer_assignment_status": "CONFIRMED_REAL_HUMAN_ASSIGNMENT",
+      "reviewer_ids": ["cataloger-a", "cataloger-b"],
+      "binding_scope_status": "UNINSPECTED",
+      "human_review_entry_status": "BLOCKED_FOR_INTAKE",
+      "notes": "Candidate 001 remains blocked until reuse/license conditions and an immutable snapshot are available."
+    },
+    {
+      "candidate_id": "real-evidence-candidate-002",
+      "title": "Lenguas europeas y lenguas mexicanas: actitudes lingüísticas de universitarios en Guadalajara (México)",
+      "creator_display": "Martha Islas; Alfredo Leonardo Romero Sánchez; Nicolás Lozano Mercado",
+      "source_locator": "https://revistas.cunorte.udg.mx/punto/article/view/75",
+      "canonical_doi": "10.32870/punto.v1i9.75",
+      "source_origin": "prior cataloging queue",
+      "source_reconciliation_status": "CANONICAL_LOCATOR_AND_DOI_VERIFIED",
+      "authorization_status": "AUTHORIZED_LOCAL_EVALUATION",
+      "license_status": "CC_BY_NC_4_0_VERIFIED_ON_PUBLISHER_PAGE",
+      "local_snapshot_status": "MATERIALIZED_TEXT_REPRESENTATION",
+      "snapshot_path": "apps/api/tests/golden/llm-evidence/human-review/snapshots/real-evidence-candidate-002.txt",
+      "evidence_snapshot_sha256": "b7c6fbc726441695d47aba958700c69527877585f6d4e32d2d0a2cd2cad9f01a",
+      "representation_completeness": "PUBLISHER_METADATA_ABSTRACT_AND_LICENSE_ONLY",
+      "reviewer_assignment_status": "CONFIRMED_REAL_HUMAN_ASSIGNMENT",
+      "reviewer_ids": ["cataloger-a", "cataloger-b"],
+      "binding_scope_status": "NO_CRITICAL_BINDING_CONFIRMED_FROM_CURRENT_REPRESENTATION",
+      "confirmed_bindings": [],
+      "human_review_entry_status": "AWAITING_AUTHORIZED_EVIDENCE",
+      "notes": "The current representation is insufficient for a critical linguistic binding, but the gap is remediable through fuller authorized source inspection; this is awaiting evidence rather than a permanent intake block."
+    },
+    {
+      "candidate_id": "real-evidence-candidate-003",
+      "title": "La construcción de la identidad p’urhepechas a partir de la educación intercultural bilingüe propia",
+      "creator_display": "Rainer Enrique Hamel; Ana Elena Erape Baltazar; Betzabé Márquez Escamilla",
+      "source_locator": "https://periodicos.sbu.unicamp.br/ojs/index.php/tla/article/view/8653739",
+      "canonical_doi": "10.1590/010318138653739444541",
+      "source_origin": "prior cataloging material",
+      "source_reconciliation_status": "PREVIOUS_LOCATOR_REJECTED_AND_CANONICAL_SOURCE_RESTORED",
+      "authorization_status": "AUTHORIZED_LOCAL_EVALUATION",
+      "license_status": "CC_BY_VERIFIED_ON_PUBLISHER_PAGE",
+      "local_snapshot_status": "MATERIALIZED_TEXT_REPRESENTATION",
+      "snapshot_path": "apps/api/tests/golden/llm-evidence/human-review/snapshots/real-evidence-candidate-003.rereview-v3.registered-language.packet.txt",
+      "evidence_snapshot_sha256": "58ec2dd6ae0c55a2118ae4c8c27fc21497ab3fc96a73acc2175f4af861c7a7b1",
+      "representation_completeness": "WRITING_LANGUAGE_EVIDENCE_PACKET",
+      "reviewer_assignment_status": "CONFIRMED_REAL_HUMAN_ASSIGNMENT",
+      "reviewer_ids": ["cataloger-a", "cataloger-b"],
+      "binding_scope_status": "REREVIEW_V3_ADJUDICATED_GOLD",
+      "confirmed_bindings": ["registered-language"],
+      "confirmed_metadata_fields": ["dc.description.registeredLanguage"],
+      "review_target": {
+        "candidate_value": "Español",
+        "candidate_intent": "INFERRED_VALUE",
+        "expected_abstention": false,
+        "resulting_gold_version": "0.2.0-stratum-a-rereview-v3-adjudicated-gold"
+      },
+      "unsupported_or_unconfirmed_bindings": ["linguistic-family", "linguistic-branch", "linguistic-group", "linguistic-variant"],
+      "human_review_entry_status": "ADJUDICATED_GOLD",
+      "notes": "The prior v2 reviews and FINAL adjudication with value Purépecha remain preserved as historical records, but v2 case-level gold was withdrawn after identifying a semantic mismatch with ADR-012. Rereview-v3 evaluates dc.description.registeredLanguage = Español with scorer-supported intent INFERRED_VALUE; the resource-writing-language distinction remains the binding semantics. Both independent reviewers returned ACCEPT_AS_IS on the same immutable snapshot, and adjudicator-1 recorded a FINAL consensus closure that explicitly supersedes the v2 adjudication for current gold construction. Under explicit governance authorization, v3 is ADJUDICATED_GOLD at case level."
+    }
+  ],
+  "gate": {
+    "can_enter_human_review": true,
+    "ready_candidate_ids": [],
+    "awaiting_candidate_ids": ["real-evidence-candidate-002"],
+    "blocked_candidate_ids": ["real-evidence-candidate-001"],
+    "adjudicated_gold_candidate_ids": ["real-evidence-candidate-003"],
+    "remaining_requirements": [
+      "candidate-001 immutable snapshot and license/reuse status before admission",
+      "candidate-002 fuller authorized source inspection before any critical binding is admitted",
+      "Gate D remains open pending empirical coverage across all five critical bindings, sufficient per-binding sample sizes, remaining adjudications, frozen controlled-vocabulary identities/hashes, provider comparison/provenance, and other required evaluation evidence"
+    ]
+  }
+}

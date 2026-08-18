@@ -1,0 +1,41 @@
+{
+  "adjudication_status": "FINAL",
+  "adjudication_id": "adjudication-real-evidence-candidate-003-registered-language-rereview-v3-v1",
+  "case_id": "real-evidence-candidate-003-registered-language-rereview-v3",
+  "binding_id": "registered-language",
+  "metadata_field": "dc.description.registeredLanguage",
+  "input_review_ids": [
+    "review-real-evidence-candidate-003-registered-language-cataloger-a-rereview-v3",
+    "review-real-evidence-candidate-003-registered-language-cataloger-b-rereview-v3"
+  ],
+  "input_reviewer_ids": ["cataloger-a", "cataloger-b"],
+  "input_reviews": [
+    {
+      "review_id": "review-real-evidence-candidate-003-registered-language-cataloger-a-rereview-v3",
+      "reviewer_id": "cataloger-a",
+      "case_id": "real-evidence-candidate-003-registered-language-rereview-v3",
+      "binding_id": "registered-language",
+      "evidence_snapshot_sha256": "58ec2dd6ae0c55a2118ae4c8c27fc21497ab3fc96a73acc2175f4af861c7a7b1"
+    },
+    {
+      "review_id": "review-real-evidence-candidate-003-registered-language-cataloger-b-rereview-v3",
+      "reviewer_id": "cataloger-b",
+      "case_id": "real-evidence-candidate-003-registered-language-rereview-v3",
+      "binding_id": "registered-language",
+      "evidence_snapshot_sha256": "58ec2dd6ae0c55a2118ae4c8c27fc21497ab3fc96a73acc2175f4af861c7a7b1"
+    }
+  ],
+  "adjudicator_id": "adjudicator-1",
+  "final_decision": "ACCEPT_AS_IS",
+  "final_value": "Español",
+  "final_abstention": false,
+  "error_codes": [],
+  "comment": "Cierre formal por consenso: ambos catalogadores independientes aceptan Español como lengua de redacción/registro del recurso y distinguen correctamente la presencia de P’urhepecha como objeto de estudio. No existe desacuerdo sustantivo entre las revisiones v3.",
+  "timestamp_utc": "2026-08-18T06:52:00Z",
+  "evidence_snapshot_sha256": "58ec2dd6ae0c55a2118ae4c8c27fc21497ab3fc96a73acc2175f4af861c7a7b1",
+  "input_golden_set_version": "0.2.0-stratum-a",
+  "catalog_contract_version": "dspace-cataloger-v3.6",
+  "catalog_contract_sha256": "a68fbf9664b7165ea240508da85167058cd57796fbda9c1a9869986afb0178bb",
+  "resulting_gold_version": "0.2.0-stratum-a-rereview-v3-adjudicated-gold",
+  "supersedes_adjudication_id": "adjudication-real-evidence-candidate-003-registered-language-rereview-v2-v1"
+}

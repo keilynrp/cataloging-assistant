@@ -1,0 +1,99 @@
+{
+  "intake_version": "0.16.0-candidate-003",
+  "status": "BLOCKED_FOR_INTAKE",
+  "golden_set_version": "0.2.0-stratum-a",
+  "catalog_contract_version": "dspace-cataloger-v3.6",
+  "catalog_contract_sha256": "a68fbf9664b7165ea240508da85167058cd57796fbda9c1a9869986afb0178bb",
+  "cases": [
+    {
+      "case_id": "real-evidence-candidate-003-registered-language",
+      "risk_stratum": "A",
+      "bindings_under_review": ["registered-language"],
+      "authorization_status": "AUTHORIZED_LOCAL_EVALUATION",
+      "evidence_location_mode": "REPOSITORY_FIXTURE",
+      "evidence_locator": "apps/api/tests/golden/llm-evidence/human-review/snapshots/real-evidence-candidate-003.txt",
+      "evidence_snapshot_sha256": "f4baeb9fea9e552969532cd5de9f7eaee072590c6505203f66087dfa5b22f3c5",
+      "reviewer_ids": ["cataloger-a", "cataloger-b"],
+      "completed_reviews": [
+        {
+          "review_id": "review-real-evidence-candidate-003-registered-language-cataloger-a-v1",
+          "reviewer_id": "cataloger-a",
+          "case_id": "real-evidence-candidate-003-registered-language",
+          "binding_id": "registered-language",
+          "evidence_snapshot_sha256": "f4baeb9fea9e552969532cd5de9f7eaee072590c6505203f66087dfa5b22f3c5"
+        },
+        {
+          "review_id": "review-real-evidence-candidate-003-registered-language-cataloger-b-v1",
+          "reviewer_id": "cataloger-b",
+          "case_id": "real-evidence-candidate-003-registered-language",
+          "binding_id": "registered-language",
+          "evidence_snapshot_sha256": "f4baeb9fea9e552969532cd5de9f7eaee072590c6505203f66087dfa5b22f3c5"
+        }
+      ],
+      "adjudicator_id": null,
+      "review_status": "BLOCKED_FOR_INTAKE"
+    },
+    {
+      "case_id": "real-evidence-candidate-003-registered-language-rereview-v2",
+      "risk_stratum": "A",
+      "bindings_under_review": ["registered-language"],
+      "authorization_status": "AUTHORIZED_LOCAL_EVALUATION",
+      "evidence_location_mode": "REPOSITORY_FIXTURE",
+      "evidence_locator": "apps/api/tests/golden/llm-evidence/human-review/snapshots/real-evidence-candidate-003.rereview-v2.packet.txt",
+      "evidence_snapshot_sha256": "2a1ceef24ef537796ed5ec44dc7682a8b900964fd9ea70b9647404ad54817f81",
+      "reviewer_ids": ["cataloger-a", "cataloger-b"],
+      "completed_reviews": [
+        {
+          "review_id": "review-real-evidence-candidate-003-registered-language-cataloger-a-rereview-v2",
+          "reviewer_id": "cataloger-a",
+          "case_id": "real-evidence-candidate-003-registered-language-rereview-v2",
+          "binding_id": "registered-language",
+          "evidence_snapshot_sha256": "2a1ceef24ef537796ed5ec44dc7682a8b900964fd9ea70b9647404ad54817f81"
+        },
+        {
+          "review_id": "review-real-evidence-candidate-003-registered-language-cataloger-b-rereview-v2",
+          "reviewer_id": "cataloger-b",
+          "case_id": "real-evidence-candidate-003-registered-language-rereview-v2",
+          "binding_id": "registered-language",
+          "evidence_snapshot_sha256": "2a1ceef24ef537796ed5ec44dc7682a8b900964fd9ea70b9647404ad54817f81"
+        }
+      ],
+      "adjudicator_id": "adjudicator-1",
+      "review_status": "BLOCKED_FOR_INTAKE"
+    },
+    {
+      "case_id": "real-evidence-candidate-003-registered-language-rereview-v3",
+      "risk_stratum": "A",
+      "bindings_under_review": ["registered-language"],
+      "metadata_field": "dc.description.registeredLanguage",
+      "candidate_value": "Español",
+      "candidate_intent": "INFERRED_VALUE",
+      "expected_abstention": false,
+      "resulting_gold_version": "0.2.0-stratum-a-rereview-v3-adjudicated-gold",
+      "authorization_status": "AUTHORIZED_LOCAL_EVALUATION",
+      "evidence_location_mode": "REPOSITORY_FIXTURE",
+      "evidence_locator": "apps/api/tests/golden/llm-evidence/human-review/snapshots/real-evidence-candidate-003.rereview-v3.registered-language.packet.txt",
+      "evidence_snapshot_sha256": "58ec2dd6ae0c55a2118ae4c8c27fc21497ab3fc96a73acc2175f4af861c7a7b1",
+      "reviewer_ids": ["cataloger-a", "cataloger-b"],
+      "completed_reviews": [
+        {
+          "review_id": "review-real-evidence-candidate-003-registered-language-cataloger-a-rereview-v3",
+          "reviewer_id": "cataloger-a",
+          "case_id": "real-evidence-candidate-003-registered-language-rereview-v3",
+          "binding_id": "registered-language",
+          "evidence_snapshot_sha256": "58ec2dd6ae0c55a2118ae4c8c27fc21497ab3fc96a73acc2175f4af861c7a7b1"
+        },
+        {
+          "review_id": "review-real-evidence-candidate-003-registered-language-cataloger-b-rereview-v3",
+          "reviewer_id": "cataloger-b",
+          "case_id": "real-evidence-candidate-003-registered-language-rereview-v3",
+          "binding_id": "registered-language",
+          "evidence_snapshot_sha256": "58ec2dd6ae0c55a2118ae4c8c27fc21497ab3fc96a73acc2175f4af861c7a7b1"
+        }
+      ],
+      "adjudicator_id": "adjudicator-1",
+      "review_status": "ADJUDICATED_GOLD"
+    }
+  ],
+  "notes": "The original narrow cycle remains immutable and BLOCKED_FOR_INTAKE. The v2 human reviews and FINAL adjudication remain preserved as historical records, but their case-level gold was withdrawn after semantic review. Under explicit governance authorization, the corrective v3 case is ADJUDICATED_GOLD for dc.description.registeredLanguage = Español. For scorer compatibility, the model intent is INFERRED_VALUE; the resource-writing-language distinction remains the binding semantics under ADR-012. The immutable v3 evidence packet retains the earlier RESOURCE_WRITING_LANGUAGE label as historical review-context text and is not rewritten because its SHA-256 anchors the completed human reviews. The per-case resulting_gold_version publishes the corrected gold identity. The aggregate intake remains BLOCKED_FOR_INTAKE because historical blocked cases remain included. Gate D remains open; this case-level gold does not convert runtime evidence to VERIFICADO and does not authorize provider egress, productive LLM behavior, OCR, or DSpace write."
+}

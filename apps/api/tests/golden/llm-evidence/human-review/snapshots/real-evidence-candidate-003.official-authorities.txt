@@ -1,0 +1,33 @@
+VERTICAL-021 official authority evidence representation
+candidate_id: real-evidence-candidate-003
+retrieval_date_utc: 2026-08-18
+content_type: text/plain; charset=utf-8
+purpose: authoritative cross-check for p’urhepecha / purépecha classification and naming
+
+AUTHORITY 1 — INALI, Catálogo de las Lenguas Indígenas Nacionales
+url: https://www.inali.gob.mx/clin-inali/html/l_tarasco.html
+authority_type: official Mexican linguistic catalog
+supported facts:
+- agrupación lingüística: tarasco
+- familia lingüística: Tarasca
+- variante: purépecha
+- autodenominación: p'urhepecha / p'orhepecha
+
+AUTHORITY 2 — INALI, CLIN variant page
+url: https://www.inali.gob.mx/sitios/clin-inali/html/v_tarasco.html
+authority_type: official Mexican linguistic catalog
+supported fact:
+- the variant is listed as p’urhepecha / p’orhepecha with Spanish name purépecha and geo-statistical references in Michoacán.
+
+AUTHORITY 3 — INPI, Atlas de los Pueblos Indígenas de México
+url: https://atlas.inpi.gob.mx/purhepechas-lengua/
+authority_type: official Mexican Indigenous peoples atlas
+supported facts:
+- purépecha is treated as an isolated language for genealogical purposes;
+- classification is presented as Tarasca/Purépecha family and Purépecha/P’urhepecha/P’orhepecha grouping.
+
+ASSESSMENT NOTE
+These authorities establish normalized naming/classification context. They do not, by themselves, prove the article's catalog-specific registered-language value; that remains a human cataloging judgment over the source plus authority context.
+
+BOUNDARY
+No automatic adjudication, no runtime mutation, no DSpace write.
