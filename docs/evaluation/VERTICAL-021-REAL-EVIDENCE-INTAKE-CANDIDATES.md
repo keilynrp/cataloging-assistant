@@ -66,7 +66,8 @@ Durante la revisión pre-merge se identificó que el paquete v2 sustentaba P’u
 - Case: `real-evidence-candidate-003-registered-language-rereview-v3`.
 - Metadata field: `dc.description.registeredLanguage`.
 - Candidate value: `Español`.
-- Candidate intent: `RESOURCE_WRITING_LANGUAGE`.
+- Candidate intent: `INFERRED_VALUE`.
+- Semantic boundary: `registered-language` representa la lengua de redacción/registro del recurso bajo ADR-012.
 - Expected abstention: `false`.
 - Evidence packet: `apps/api/tests/golden/llm-evidence/human-review/snapshots/real-evidence-candidate-003.rereview-v3.registered-language.packet.txt`.
 - Evidence SHA-256: `58ec2dd6ae0c55a2118ae4c8c27fc21497ab3fc96a73acc2175f4af861c7a7b1`.
@@ -77,9 +78,9 @@ Durante la revisión pre-merge se identificó que el paquete v2 sustentaba P’u
 - Valor final: `Español`.
 - `supersedes_adjudication_id`: `adjudication-real-evidence-candidate-003-registered-language-rereview-v2-v1`.
 - Estado del caso: `ADJUDICATED_GOLD`.
-- Gold version: `0.2.0-stratum-a-rereview-v3-adjudicated-gold`.
+- Resulting gold version: `0.2.0-stratum-a-rereview-v3-adjudicated-gold`.
 
-El paquete v3 materializa evidencia explícita sobre la lengua de redacción del recurso y separa esa dimensión de las menciones o fragmentos en P’urhepecha. Las dos revisiones humanas están ligadas al mismo caso, binding, metadata field, candidate value, intent, snapshot y contrato congelado. La adjudicación v3 conserva trazabilidad completa hacia v2 y constituye el gold empírico vigente para este caso.
+El paquete v3 materializa evidencia explícita sobre la lengua de redacción del recurso y separa esa dimensión de las menciones o fragmentos en P’urhepecha. El label histórico `RESOURCE_WRITING_LANGUAGE` permanece únicamente dentro del snapshot inmutable revisado; no se reescribe porque su SHA-256 ancla las dos revisiones humanas. Para consumo del scorer, el intent canónico es `INFERRED_VALUE`, mientras que la distinción de lengua de redacción permanece en la semántica del binding. Las worksheets documentan esta normalización sin modificar el juicio humano. La adjudicación v3 conserva trazabilidad completa hacia v2 y constituye el gold empírico vigente para este caso.
 
 ## 4. Contrato catalográfico congelado
 
@@ -93,7 +94,9 @@ El contrato continúa siendo el mismo; la corrección afecta la semántica aplic
 
 ## 5. Intake y schema
 
-El schema de intake materializa para casos en revisión los elementos que exige el protocolo: `metadata_field`, `candidate_value` o abstención esperada, `candidate_intent` y `expected_abstention`. El caso v3 conserva además dos `completed_reviews`, `adjudicator_id` y un snapshot real, por lo que su anotación estructurada queda disponible para consumo del scorer sin requerir reinterpretar la decisión humana.
+El schema de intake exige para `READY_FOR_INDEPENDENT_REVIEW`, `UNDER_INDEPENDENT_REVIEW` y `ADJUDICATED_GOLD` una proposición estructurada con `metadata_field`, `candidate_value` o abstención explícita, un `candidate_intent` soportado por el scorer (`INFERRED_VALUE` o `GENERATED_CONTENT`) y `expected_abstention`. En esos estados también exige hashes SHA-256 reales para evidencia y contrato; los placeholders `REPLACE_*` quedan restringidos a estados preparatorios anteriores al review activo.
+
+Para un caso `ADJUDICATED_GOLD`, el schema exige además dos revisiones, adjudicador, evidencia congelada y `resulting_gold_version`. El caso v3 publica `0.2.0-stratum-a-rereview-v3-adjudicated-gold` a nivel de caso, de modo que el scorer puede distinguir el gold corregido de los ciclos históricos retirados.
 
 El intake de candidate 003 conserva los ciclos históricos y añade v3. El estado global permanece `BLOCKED_FOR_INTAKE` porque contiene ciclos históricos bloqueados; un caso puede estar `ADJUDICATED_GOLD` sin declarar gold global.
 
