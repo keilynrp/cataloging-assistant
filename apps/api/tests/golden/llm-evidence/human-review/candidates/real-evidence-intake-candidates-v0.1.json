@@ -1,6 +1,6 @@
 {
-  "candidate_set_version": "0.7.0",
-  "status": "PARTIAL_READY_WITH_CANDIDATE_003_ADJUDICATED_GOLD",
+  "candidate_set_version": "0.8.0",
+  "status": "PARTIAL_READY_WITH_CANDIDATE_003_REREVIEW_V3",
   "baseline_main_sha": "909aac81f4d97106231d77c014f19ab0d38c07b1",
   "catalog_contract_version": "dspace-cataloger-v3.6",
   "catalog_contract_sha256": "a68fbf9664b7165ea240508da85167058cd57796fbda9c1a9869986afb0178bb",
@@ -40,7 +40,7 @@
       "reviewer_ids": ["cataloger-a", "cataloger-b"],
       "binding_scope_status": "UNINSPECTED",
       "human_review_entry_status": "BLOCKED_FOR_INTAKE",
-      "notes": "Two real reviewers are confirmed for the reserved pseudonymous slots, but candidate 001 remains blocked until reuse/license conditions and an immutable snapshot are available."
+      "notes": "Candidate 001 remains blocked until reuse/license conditions and an immutable snapshot are available."
     },
     {
       "candidate_id": "real-evidence-candidate-002",
@@ -60,8 +60,8 @@
       "reviewer_ids": ["cataloger-a", "cataloger-b"],
       "binding_scope_status": "NO_CRITICAL_BINDING_CONFIRMED_FROM_CURRENT_REPRESENTATION",
       "confirmed_bindings": [],
-      "human_review_entry_status": "BLOCKED_FOR_INTAKE",
-      "notes": "The current immutable representation is insufficient to admit a critical linguistic binding. The source remains blocked from binding-level independent review until fuller authorized inspection is materialized."
+      "human_review_entry_status": "AWAITING_AUTHORIZED_EVIDENCE",
+      "notes": "The current representation is insufficient for a critical linguistic binding, but the gap is remediable through fuller authorized source inspection; this is awaiting evidence rather than a permanent intake block."
     },
     {
       "candidate_id": "real-evidence-candidate-003",
@@ -74,27 +74,34 @@
       "authorization_status": "AUTHORIZED_LOCAL_EVALUATION",
       "license_status": "CC_BY_VERIFIED_ON_PUBLISHER_PAGE",
       "local_snapshot_status": "MATERIALIZED_TEXT_REPRESENTATION",
-      "snapshot_path": "apps/api/tests/golden/llm-evidence/human-review/snapshots/real-evidence-candidate-003.rereview-v2.packet.txt",
-      "evidence_snapshot_sha256": "2a1ceef24ef537796ed5ec44dc7682a8b900964fd9ea70b9647404ad54817f81",
-      "representation_completeness": "EXPANDED_PUBLISHER_PDF_EVIDENCE_PLUS_OFFICIAL_AUTHORITIES",
+      "snapshot_path": "apps/api/tests/golden/llm-evidence/human-review/snapshots/real-evidence-candidate-003.rereview-v3.registered-language.packet.txt",
+      "evidence_snapshot_sha256": "58ec2dd6ae0c55a2118ae4c8c27fc21497ab3fc96a73acc2175f4af861c7a7b1",
+      "representation_completeness": "WRITING_LANGUAGE_EVIDENCE_PACKET",
       "reviewer_assignment_status": "CONFIRMED_REAL_HUMAN_ASSIGNMENT",
       "reviewer_ids": ["cataloger-a", "cataloger-b"],
-      "binding_scope_status": "HUMAN_ADJUDICATION_FINAL_ADJUDICATED_GOLD",
+      "binding_scope_status": "REREVIEW_V3_READY_FOR_INDEPENDENT_REVIEW",
       "confirmed_bindings": ["registered-language"],
       "confirmed_metadata_fields": ["dc.description.registeredLanguage"],
+      "review_target": {
+        "candidate_value": "Español",
+        "candidate_intent": "RESOURCE_WRITING_LANGUAGE",
+        "expected_abstention": false
+      },
       "unsupported_or_unconfirmed_bindings": ["linguistic-family", "linguistic-branch", "linguistic-group", "linguistic-variant"],
-      "human_review_entry_status": "ADJUDICATED_GOLD",
-      "notes": "The v2 re-review completed two independent human reviews and a canonical FINAL human adjudication for registered-language with final value Purépecha. Under explicit governance authorization, this v2 case is ADJUDICATED_GOLD. The original narrow review cycle remains preserved and blocked, and case-level gold does not close Gate D or imply global intake gold. Meseta Tarasca remains excluded as evidence of linguistic family."
+      "human_review_entry_status": "READY_FOR_INDEPENDENT_REVIEW",
+      "notes": "The prior v2 reviews and FINAL adjudication with value Purépecha are preserved as historical records, but v2 case-level gold was withdrawn after identifying a semantic mismatch with ADR-012. Rereview-v3 asks the concrete proposition dc.description.registeredLanguage = Español based on evidence about the article's writing language. No v3 human judgment is recorded yet."
     }
   ],
   "gate": {
     "can_enter_human_review": true,
-    "ready_candidate_ids": [],
-    "blocked_candidate_ids": ["real-evidence-candidate-001", "real-evidence-candidate-002"],
-    "adjudicated_gold_candidate_ids": ["real-evidence-candidate-003"],
+    "ready_candidate_ids": ["real-evidence-candidate-003"],
+    "awaiting_candidate_ids": ["real-evidence-candidate-002"],
+    "blocked_candidate_ids": ["real-evidence-candidate-001"],
+    "adjudicated_gold_candidate_ids": [],
     "remaining_requirements": [
       "candidate-001 immutable snapshot and license/reuse status before admission",
       "candidate-002 fuller authorized source inspection before any critical binding is admitted",
+      "candidate-003 rereview-v3 requires two new independent human decisions on the corrected registered-language proposition and adjudication if those decisions disagree",
       "Gate D remains open pending empirical coverage across all five critical bindings, sufficient per-binding sample sizes, remaining adjudications, frozen controlled-vocabulary identities/hashes, provider comparison/provenance, and other required evaluation evidence"
     ]
   }
