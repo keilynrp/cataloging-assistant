@@ -1,5 +1,5 @@
 {
-  "intake_version": "0.12.0-candidate-003",
+  "intake_version": "0.13.0-candidate-003",
   "status": "BLOCKED_FOR_INTAKE",
   "golden_set_version": "0.2.0-stratum-a",
   "catalog_contract_version": "dspace-cataloger-v3.6",
@@ -81,11 +81,18 @@
           "case_id": "real-evidence-candidate-003-registered-language-rereview-v3",
           "binding_id": "registered-language",
           "evidence_snapshot_sha256": "58ec2dd6ae0c55a2118ae4c8c27fc21497ab3fc96a73acc2175f4af861c7a7b1"
+        },
+        {
+          "review_id": "review-real-evidence-candidate-003-registered-language-cataloger-b-rereview-v3",
+          "reviewer_id": "cataloger-b",
+          "case_id": "real-evidence-candidate-003-registered-language-rereview-v3",
+          "binding_id": "registered-language",
+          "evidence_snapshot_sha256": "58ec2dd6ae0c55a2118ae4c8c27fc21497ab3fc96a73acc2175f4af861c7a7b1"
         }
       ],
       "adjudicator_id": null,
-      "review_status": "UNDER_INDEPENDENT_REVIEW"
+      "review_status": "AWAITING_ADJUDICATION"
     }
   ],
-  "notes": "The original narrow cycle remains immutable and blocked. The v2 human reviews and FINAL adjudication remain preserved as historical records, but their case-level ADJUDICATED_GOLD status remains withdrawn after semantic review. The corrective v3 case evaluates dc.description.registeredLanguage = Español under RESOURCE_WRITING_LANGUAGE semantics. cataloger-a has independently completed ACCEPT_AS_IS with no abstention, no error codes, and no corrected value; cataloger-b remains pending and must decide independently. Candidate 002 is tracked separately as a remediable awaiting-evidence case. Gate D remains open; no runtime VERIFICADO, provider egress, productive LLM behavior, or DSpace write is authorized."
+  "notes": "The original narrow cycle remains immutable and blocked. The v2 human reviews and FINAL adjudication remain preserved as historical records, but their case-level ADJUDICATED_GOLD status remains withdrawn after semantic review. The corrective v3 case evaluates dc.description.registeredLanguage = Español under RESOURCE_WRITING_LANGUAGE semantics. cataloger-a and cataloger-b have now independently completed ACCEPT_AS_IS on the same proposition and snapshot, with no abstention, no error codes, and no corrected value. There is no substantive reviewer disagreement. The case is placed in AWAITING_ADJUDICATION because the current intake schema requires an adjudicator identifier before a Stratum A case can be promoted to ADJUDICATED_GOLD; no adjudicator has been invented or assigned automatically. Candidate 002 is tracked separately as a remediable awaiting-evidence case. Gate D remains open; no runtime VERIFICADO, provider egress, productive LLM behavior, or DSpace write is authorized."
 }
