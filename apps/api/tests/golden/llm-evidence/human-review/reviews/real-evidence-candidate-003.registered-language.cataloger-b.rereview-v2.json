@@ -1,0 +1,20 @@
+{
+  "review_id": "review-real-evidence-candidate-003-registered-language-cataloger-b-rereview-v2",
+  "case_id": "real-evidence-candidate-003-registered-language-rereview-v2",
+  "binding_id": "registered-language",
+  "metadata_field": "dc.description.registeredLanguage",
+  "reviewer_id": "cataloger-b",
+  "decision": "ACCEPT_AS_IS",
+  "timestamp_utc": "2026-08-18T05:34:00Z",
+  "comment": "Acepto Purépecha como clasificación adoptada por el INALI.",
+  "error_codes": [],
+  "proposed_corrected_value": null,
+  "final_abstention_recommended": false,
+  "source_refs": [
+    "apps/api/tests/golden/llm-evidence/human-review/snapshots/real-evidence-candidate-003.rereview-v2.packet.txt"
+  ],
+  "evidence_snapshot_sha256": "2a1ceef24ef537796ed5ec44dc7682a8b900964fd9ea70b9647404ad54817f81",
+  "golden_set_version": "0.2.0-stratum-a",
+  "catalog_contract_version": "dspace-cataloger-v3.6",
+  "catalog_contract_sha256": "REPLACE_CATALOG_CONTRACT_SHA256"
+}
