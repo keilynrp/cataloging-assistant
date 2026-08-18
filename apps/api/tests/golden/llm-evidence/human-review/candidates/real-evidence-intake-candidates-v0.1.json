@@ -1,6 +1,6 @@
 {
-  "candidate_set_version": "0.8.0",
-  "status": "PARTIAL_READY_WITH_CANDIDATE_003_REREVIEW_V3",
+  "candidate_set_version": "0.9.0",
+  "status": "PARTIAL_READY_WITH_CANDIDATE_003_REREVIEW_V3_ADJUDICATED_GOLD",
   "baseline_main_sha": "909aac81f4d97106231d77c014f19ab0d38c07b1",
   "catalog_contract_version": "dspace-cataloger-v3.6",
   "catalog_contract_sha256": "a68fbf9664b7165ea240508da85167058cd57796fbda9c1a9869986afb0178bb",
@@ -79,7 +79,7 @@
       "representation_completeness": "WRITING_LANGUAGE_EVIDENCE_PACKET",
       "reviewer_assignment_status": "CONFIRMED_REAL_HUMAN_ASSIGNMENT",
       "reviewer_ids": ["cataloger-a", "cataloger-b"],
-      "binding_scope_status": "REREVIEW_V3_READY_FOR_INDEPENDENT_REVIEW",
+      "binding_scope_status": "REREVIEW_V3_ADJUDICATED_GOLD",
       "confirmed_bindings": ["registered-language"],
       "confirmed_metadata_fields": ["dc.description.registeredLanguage"],
       "review_target": {
@@ -88,20 +88,19 @@
         "expected_abstention": false
       },
       "unsupported_or_unconfirmed_bindings": ["linguistic-family", "linguistic-branch", "linguistic-group", "linguistic-variant"],
-      "human_review_entry_status": "READY_FOR_INDEPENDENT_REVIEW",
-      "notes": "The prior v2 reviews and FINAL adjudication with value Purépecha are preserved as historical records, but v2 case-level gold was withdrawn after identifying a semantic mismatch with ADR-012. Rereview-v3 asks the concrete proposition dc.description.registeredLanguage = Español based on evidence about the article's writing language. No v3 human judgment is recorded yet."
+      "human_review_entry_status": "ADJUDICATED_GOLD",
+      "notes": "The prior v2 reviews and FINAL adjudication with value Purépecha remain preserved as historical records, but v2 case-level gold was withdrawn after identifying a semantic mismatch with ADR-012. Rereview-v3 evaluates dc.description.registeredLanguage = Español under RESOURCE_WRITING_LANGUAGE semantics. Both independent reviewers returned ACCEPT_AS_IS on the same immutable snapshot, and adjudicator-1 recorded a FINAL consensus closure that explicitly supersedes the v2 adjudication for current gold construction. Under explicit governance authorization, v3 is ADJUDICATED_GOLD at case level."
     }
   ],
   "gate": {
     "can_enter_human_review": true,
-    "ready_candidate_ids": ["real-evidence-candidate-003"],
+    "ready_candidate_ids": [],
     "awaiting_candidate_ids": ["real-evidence-candidate-002"],
     "blocked_candidate_ids": ["real-evidence-candidate-001"],
-    "adjudicated_gold_candidate_ids": [],
+    "adjudicated_gold_candidate_ids": ["real-evidence-candidate-003"],
     "remaining_requirements": [
       "candidate-001 immutable snapshot and license/reuse status before admission",
       "candidate-002 fuller authorized source inspection before any critical binding is admitted",
-      "candidate-003 rereview-v3 requires two new independent human decisions on the corrected registered-language proposition and adjudication if those decisions disagree",
       "Gate D remains open pending empirical coverage across all five critical bindings, sufficient per-binding sample sizes, remaining adjudications, frozen controlled-vocabulary identities/hashes, provider comparison/provenance, and other required evaluation evidence"
     ]
   }
