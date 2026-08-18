@@ -1,6 +1,6 @@
 {
-  "intake_version": "0.5.0-candidate-003",
-  "status": "UNDER_INDEPENDENT_REVIEW",
+  "intake_version": "0.6.0-candidate-003",
+  "status": "AWAITING_ADJUDICATION",
   "golden_set_version": "0.2.0-stratum-a",
   "catalog_contract_version": "dspace-cataloger-v3.6",
   "catalog_contract_sha256": "REPLACE_CATALOG_CONTRACT_SHA256",
@@ -49,11 +49,18 @@
           "case_id": "real-evidence-candidate-003-registered-language-rereview-v2",
           "binding_id": "registered-language",
           "evidence_snapshot_sha256": "2a1ceef24ef537796ed5ec44dc7682a8b900964fd9ea70b9647404ad54817f81"
+        },
+        {
+          "review_id": "review-real-evidence-candidate-003-registered-language-cataloger-b-rereview-v2",
+          "reviewer_id": "cataloger-b",
+          "case_id": "real-evidence-candidate-003-registered-language-rereview-v2",
+          "binding_id": "registered-language",
+          "evidence_snapshot_sha256": "2a1ceef24ef537796ed5ec44dc7682a8b900964fd9ea70b9647404ad54817f81"
         }
       ],
       "adjudicator_id": null,
-      "review_status": "UNDER_INDEPENDENT_REVIEW"
+      "review_status": "AWAITING_ADJUDICATION"
     }
   ],
-  "notes": "The original independent-review cycle remains immutable and blocked after both reviewers selected RESEARCH_REQUIRED. In the v2 re-review, cataloger-a completed an independent review with decision ACCEPT_WITH_MINOR_EDIT, proposed corrected value Purépecha, no abstention recommendation, and no error code. cataloger-b remains pending and must not be shown cataloger-a's v2 judgment before submitting an independent decision. catalog_contract_sha256 remains unmaterialized and ADJUDICATED_GOLD is not authorized."
+  "notes": "The original independent-review cycle remains immutable and blocked after both reviewers selected RESEARCH_REQUIRED. In the v2 re-review, cataloger-a selected ACCEPT_WITH_MINOR_EDIT with proposed corrected value Purépecha, while cataloger-b selected ACCEPT_AS_IS and explicitly accepted Purépecha. Both reviewers recommend no abstention and assigned no error code. Because the formal decisions differ, the Stratum A case is routed to AWAITING_ADJUDICATION even though both judgments converge on Purépecha as the accepted value. catalog_contract_sha256 remains unmaterialized and ADJUDICATED_GOLD is not authorized."
 }
