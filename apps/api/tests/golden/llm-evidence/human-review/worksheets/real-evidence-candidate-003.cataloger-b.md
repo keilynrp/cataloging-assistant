@@ -1,6 +1,6 @@
 # Independent review worksheet — cataloger-b
 
-**Case:** `real-evidence-candidate-003`
+**Case:** `real-evidence-candidate-003-registered-language`
 
 **Binding under review:** `registered-language`
 
@@ -38,6 +38,10 @@ If applicable, record one or more closed error codes from the VERTICAL-021 taxon
 - Source refs / exact supporting excerpt: `apps/api/tests/golden/llm-evidence/human-review/snapshots/real-evidence-candidate-003.txt`
 - Comment: Es necesario indagar primero antes de emitir un criterio no verificado.
 - Timestamp UTC: `2026-08-18T03:49:00Z`
+
+## Documentary correction
+
+The case identifier above was reconciled pre-merge from the broader candidate label `real-evidence-candidate-003` to the canonical review-unit identifier `real-evidence-candidate-003-registered-language`, matching the persisted review JSON and intake linkage. This correction changes only the documentary identifier and does not alter the human judgment, evidence snapshot, binding, comment, timestamp, or review outcome.
 
 ## Boundary
 
