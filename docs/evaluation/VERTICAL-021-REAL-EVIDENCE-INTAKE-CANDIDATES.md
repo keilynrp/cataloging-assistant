@@ -1,21 +1,16 @@
 # VERTICAL-021 Real Evidence Intake Candidates
 
-**Estado:** PARTIAL HUMAN REVIEW COMPLETE — candidato 003 con ciclo `rereview-v2` adjudicado y promovido a `ADJUDICATED_GOLD` a nivel de caso; contrato catalográfico congelado por SHA-256; candidatos 001 y 002 permanecen bloqueados para intake; Gate D continúa abierto.
+**Estado:** CORRECTIVE REREVIEW ACTIVE — el `ADJUDICATED_GOLD` de `rereview-v2` para candidate 003 fue retirado de uso evaluativo actual por una discrepancia semántica con ADR-012; `rereview-v3` está preparado para revisión humana independiente sobre la lengua de redacción del recurso; candidato 002 pasa a estado de evidencia pendiente/remediable; Gate D continúa abierto.
 
 Baseline: `main` @ `909aac81f4d97106231d77c014f19ab0d38c07b1`.
 
 ## 1. Propósito
 
-Registrar un conjunto inicial de fuentes reales para su incorporación controlada al Golden Set humano de VERTICAL-021. La autorización aplica únicamente a evaluación local: no implica data egress, activación de proveedor LLM ni permiso de escritura DSpace.
+Registrar y corregir de forma auditable el conjunto inicial de fuentes reales para su incorporación controlada al Golden Set humano de VERTICAL-021. La autorización aplica únicamente a evaluación local: no implica data egress, activación de proveedor LLM ni permiso de escritura DSpace.
 
-## 2. Autorización y confirmación humana
+## 2. Regla semántica relevante
 
-El usuario autorizó las tres fuentes para evaluación local el 2026-08-17. Posteriormente confirmó y dio luz verde a que dos personas reales ocupen los slots seudónimos de revisión independiente:
-
-- `cataloger-a` — `independent_reviewer_1`;
-- `cataloger-b` — `independent_reviewer_2`.
-
-Para el ciclo `rereview-v2` del candidato 003, ambos revisores completaron juicios independientes sobre el mismo paquete de evidencia enriquecida. Una tercera persona humana, `adjudicator-1`, resolvió la discrepancia formal entre `ACCEPT_WITH_MINOR_EDIT` y `ACCEPT_AS_IS`.
+ADR-012 establece que `dc.description.registeredLanguage` representa la lengua de redacción/registro del recurso y debe mantenerse independiente de la lengua objeto de estudio. Por tanto, la presencia de P’urhepecha en clases, citas, análisis o contenidos temáticos no basta para catalogar el recurso como escrito en P’urhepecha.
 
 ## 3. Estado por candidato
 
@@ -24,71 +19,88 @@ Para el ciclo `rereview-v2` del candidato 003, ambos revisores completaron juici
 - Título: *Spatial Language and the Use of Body-Part Terms in Nahuatl and P’urhepecha*.
 - Autor: Martha Mendoza.
 - Estado de autorización: `AUTHORIZED_LOCAL_EVALUATION`.
-- Revisores: confirmados (`cataloger-a`, `cataloger-b`).
 - Snapshot: no materializado.
 - Licencia/reutilización: pendiente de verificación.
-- Intake: `BLOCKED_FOR_INTAKE`.
+- Estado: `BLOCKED_FOR_INTAKE`.
 
-No entra todavía a revisión independiente.
+Candidate 001 permanece bloqueado hasta que exista una representación inmutable y una base de reutilización/licencia verificable.
 
 ### Candidato 002
 
 - Título: *Lenguas europeas y lenguas mexicanas: actitudes lingüísticas de universitarios en Guadalajara (México)*.
 - DOI: `10.32870/punto.v1i9.75`.
 - Licencia: `CC BY-NC 4.0` verificada en página editorial.
-- Representación local inmutable: `apps/api/tests/golden/llm-evidence/human-review/snapshots/real-evidence-candidate-002.txt`.
+- Representación local actual: `apps/api/tests/golden/llm-evidence/human-review/snapshots/real-evidence-candidate-002.txt`.
 - SHA-256: `b7c6fbc726441695d47aba958700c69527877585f6d4e32d2d0a2cd2cad9f01a`.
-- Revisores: confirmados (`cataloger-a`, `cataloger-b`).
-- Binding crítico confirmado desde la representación actual: ninguno.
-- Intake: `BLOCKED_FOR_INTAKE`.
+- Estado: `AWAITING_AUTHORIZED_EVIDENCE`.
 
-La representación actual conserva metadatos editoriales, resumen y licencia, pero no evidencia suficiente para admitir un binding lingüístico crítico.
+La representación actual conserva metadatos editoriales, resumen y licencia, pero no evidencia suficiente para admitir un binding lingüístico crítico. Esta carencia es remediable mediante inspección autorizada más completa, por lo que ya no se modela como bloqueo permanente.
 
-### Candidato 003
+### Candidato 003 — historia y corrección
 
 - Título: *La construcción de la identidad p’urhepechas a partir de la educación intercultural bilingüe propia*.
 - DOI: `10.1590/010318138653739444541`.
 - Licencia: `CC BY` verificada en página editorial.
-- Paquete de re-revisión v2: `apps/api/tests/golden/llm-evidence/human-review/snapshots/real-evidence-candidate-003.rereview-v2.packet.txt`.
-- SHA-256 del paquete v2: `2a1ceef24ef537796ed5ec44dc7682a8b900964fd9ea70b9647404ad54817f81`.
-- Binding evaluado: `registered-language` → `dc.description.registeredLanguage`.
+- Binding: `registered-language` → `dc.description.registeredLanguage`.
+
+#### Ciclo original
+
+La primera ronda, basada en evidencia más estrecha, permanece preservada e inmutable con dos decisiones `RESEARCH_REQUIRED`.
+
+#### `rereview-v2` — registro histórico preservado
+
+- Snapshot: `apps/api/tests/golden/llm-evidence/human-review/snapshots/real-evidence-candidate-003.rereview-v2.packet.txt`.
+- SHA-256: `2a1ceef24ef537796ed5ec44dc7682a8b900964fd9ea70b9647404ad54817f81`.
 - Revisores: `cataloger-a`, `cataloger-b`.
 - Adjudicador: `adjudicator-1`.
-- Decisión humana adjudicada: `ACCEPT_WITH_MINOR_EDIT`.
-- Valor final humano: `Purépecha`.
-- Abstención: `false`.
-- Error codes: ninguno.
-- Adjudicación canónica: `FINAL`.
-- Estado del caso `rereview-v2`: `ADJUDICATED_GOLD`.
-- Estado agregado del intake: `BLOCKED_FOR_INTAKE` porque la primera ronda histórica del candidato 003 continúa bloqueada.
+- Adjudicación: `FINAL`.
+- Decisión histórica: `ACCEPT_WITH_MINOR_EDIT`.
+- Valor histórico: `Purépecha`.
 
-La primera ronda, basada en evidencia más estrecha, permanece preservada e inmutable con dos decisiones `RESEARCH_REQUIRED`. El ciclo v2 no reescribe esa historia. La promoción a gold es exclusivamente de nivel de caso y no convierte el intake global en gold.
+Durante la revisión pre-merge se identificó que el paquete v2 sustentaba P’urhepecha como lengua estudiada/usada en el contexto descrito, pero no como lengua de redacción del artículo. El `ADJUDICATED_GOLD` de v2 se retiró del uso evaluativo actual sin borrar ni reescribir los juicios humanos. La corrección queda documentada en:
+
+`apps/api/tests/golden/llm-evidence/human-review/corrections/real-evidence-candidate-003.registered-language.rereview-v2.gold-withdrawal.md`
+
+#### `rereview-v3` — proposición corregida
+
+- Case: `real-evidence-candidate-003-registered-language-rereview-v3`.
+- Metadata field: `dc.description.registeredLanguage`.
+- Candidate value: `Español`.
+- Candidate intent: `RESOURCE_WRITING_LANGUAGE`.
+- Expected abstention: `false`.
+- Evidence packet: `apps/api/tests/golden/llm-evidence/human-review/snapshots/real-evidence-candidate-003.rereview-v3.registered-language.packet.txt`.
+- Evidence SHA-256: `58ec2dd6ae0c55a2118ae4c8c27fc21497ab3fc96a73acc2175f4af861c7a7b1`.
+- Estado: `READY_FOR_INDEPENDENT_REVIEW`.
+
+El paquete v3 materializa evidencia explícita sobre la lengua de redacción del recurso: título, resumen e inicio del cuerpo principal en español, distinguiendo esa evidencia de las menciones o fragmentos en P’urhepecha. No hay todavía decisiones humanas v3 registradas.
 
 ## 4. Contrato catalográfico congelado
 
-El contrato maestro usado para evaluación es `dspace-cataloger-v3.6`, materializado desde `apps/api/src/cataloging_api/cataloging_contract.py`.
+El contrato maestro usado para evaluación es `dspace-cataloger-v3.6`.
 
-Artefacto de identidad:
+SHA-256 autoritativo del contrato:
 
-`apps/api/tests/golden/llm-evidence/catalog-contract-dspace-cataloger-v3.6.sha256.json`
+`a68fbf9664b7165ea240508da85167058cd57796fbda9c1a9869986afb0178bb`
 
-Identidades congeladas:
+El contrato continúa siendo el mismo; la corrección afecta la semántica aplicada al caso de revisión, no la identidad del contrato.
 
-- Git blob SHA-1 del source: `bdab45fd46b020f76df01ee2fa513aa7f094aeb5`;
-- SHA-256 del source UTF-8: `05380a8e49e41ff70749c2bde09b3c4059f87e50707144ae2cad228d4e74391f`;
-- SHA-256 autoritativo del contrato para VERTICAL-021: `a68fbf9664b7165ea240508da85167058cd57796fbda9c1a9869986afb0178bb`.
+## 5. Intake y schema
 
-El SHA-256 autoritativo se calcula sobre la serialización JSON canónica de `contract_payload()` con UTF-8, `ensure_ascii=false`, claves ordenadas y separadores compactos. El hash del source se conserva únicamente como ancla adicional de reproducibilidad.
+El schema de intake ahora permite materializar para casos `READY_FOR_INDEPENDENT_REVIEW` / `UNDER_INDEPENDENT_REVIEW` los elementos que exige el protocolo: `metadata_field`, `candidate_value` o abstención esperada, `candidate_intent` y `expected_abstention`. Esto impide abrir nuevos casos de revisión humana sin una proposición concreta.
 
-## 5. Gate
+El intake de candidate 003 conserva los ciclos históricos y añade v3. El estado global permanece no final porque contiene ciclos históricos bloqueados; v3 puede estar `READY_FOR_INDEPENDENT_REVIEW` a nivel de caso sin declarar gold global.
 
-Persisten como bloqueos o decisiones pendientes:
+## 6. Gate D
 
-1. candidato 001: snapshot inmutable y verificación de reutilización/licencia;
-2. candidato 002: inspección autorizada más completa antes de admitir cualquier binding crítico;
-3. el intake global permanece `BLOCKED_FOR_INTAKE` porque contiene la ronda histórica bloqueada del candidato 003;
-4. Gate D no está cerrado: todavía faltan cobertura empírica de los cinco bindings críticos, tamaños de muestra suficientes por binding, las adjudicaciones restantes, identidades/hashes congelados de vocabularios controlados, comparación/provenance de proveedores y demás evidencia exigida por el plan de evaluación.
+Gate D permanece abierto. Aún faltan, entre otros elementos:
 
-## 6. Frontera arquitectónica
+1. dos decisiones humanas independientes para `rereview-v3` y adjudicación si existe desacuerdo;
+2. cobertura empírica de los cinco bindings críticos;
+3. tamaños de muestra suficientes por binding;
+4. adjudicación de las oportunidades restantes;
+5. identidades/hashes congelados de vocabularios controlados;
+6. comparación/provenance de proveedores y demás evidencia del plan de evaluación.
 
-La adjudicación `FINAL` y la promoción de `rereview-v2` a `ADJUDICATED_GOLD` son estados del artefacto de evaluación. No convierten evidencia runtime en `VERIFICADO`, no activan proveedor LLM, no autorizan data egress, no crean candidatos runtime y no escriben en DSpace.
+## 7. Frontera arquitectónica
+
+Esta corrección no convierte evidencia runtime en `VERIFICADO`, no activa proveedor LLM, no autoriza data egress, no crea candidatos runtime y no escribe en DSpace. La adjudicación v2 permanece como registro histórico; cualquier nueva adjudicación v3 que la sustituya deberá enlazarla explícitamente mediante `supersedes_adjudication_id`.
