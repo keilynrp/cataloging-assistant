@@ -6,6 +6,8 @@ from pathlib import Path
 
 from jsonschema import Draft202012Validator
 
+from cataloging_api.evaluation import validate_intake_manifest_semantics
+
 
 ROOT = Path(__file__).parent / "golden" / "llm-evidence" / "human-review"
 REAL_HASH = "a" * 64
@@ -39,6 +41,11 @@ def _make_final_case(intake: dict) -> dict:
     ]
     case["adjudicator_id"] = "adjudicator-c"
     case["review_status"] = "ADJUDICATED_GOLD"
+    case["metadata_field"] = "test.metadataField"
+    case["candidate_value"] = "test-value"
+    case["candidate_intent"] = "INFERRED_VALUE"
+    case["expected_abstention"] = False
+    case["resulting_gold_version"] = "test-gold-adjudicated"
     intake["catalog_contract_sha256"] = CONTRACT_HASH
     return case
 
@@ -83,6 +90,7 @@ def test_stratum_a_adjudicated_gold_requires_two_distinct_completed_reviews_and_
 
     _make_final_case(intake)
     Draft202012Validator(schema).validate(intake)
+    assert validate_intake_manifest_semantics(intake) == []
 
 
 def test_stratum_a_adjudicated_gold_rejects_pending_authorization_and_placeholder_hash() -> None:
@@ -104,6 +112,10 @@ def test_global_adjudicated_gold_requires_every_case_final_and_real_contract_has
     final_case = _make_final_case(intake)
     second_case = copy.deepcopy(final_case)
     second_case["case_id"] = "case-2"
+    second_case["completed_reviews"] = [
+        _completed_review("review-3", "cataloger-a", "case-2", second_case["bindings_under_review"][0]),
+        _completed_review("review-4", "cataloger-b", "case-2", second_case["bindings_under_review"][0]),
+    ]
     second_case["review_status"] = "AWAITING_AUTHORIZED_EVIDENCE"
     intake["cases"].append(second_case)
     intake["status"] = "ADJUDICATED_GOLD"
@@ -116,22 +128,46 @@ def test_global_adjudicated_gold_requires_every_case_final_and_real_contract_has
 
     intake["catalog_contract_sha256"] = CONTRACT_HASH
     Draft202012Validator(schema).validate(intake)
+    assert validate_intake_manifest_semantics(intake) == []
 
 
 def test_completed_review_links_match_case_binding_snapshot_and_reviewer_summary() -> None:
     intake = _load(ROOT / "templates" / "intake-manifest.template.json")
+    _make_final_case(intake)
+
+    assert validate_intake_manifest_semantics(intake) == []
+
+
+def test_completed_review_link_rejects_wrong_parent_case() -> None:
+    intake = _load(ROOT / "templates" / "intake-manifest.template.json")
     case = _make_final_case(intake)
+    case["completed_reviews"][0]["case_id"] = "other-case"
 
-    review_case_ids = {review["case_id"] for review in case["completed_reviews"]}
-    review_binding_ids = {review["binding_id"] for review in case["completed_reviews"]}
-    review_hashes = {review["evidence_snapshot_sha256"] for review in case["completed_reviews"]}
-    reviewer_ids = {review["reviewer_id"] for review in case["completed_reviews"]}
+    assert any("case_id must match parent case_id" in error for error in validate_intake_manifest_semantics(intake))
 
-    assert review_case_ids == {case["case_id"]}
-    assert review_binding_ids == set(case["bindings_under_review"])
-    assert review_hashes == {case["evidence_snapshot_sha256"]}
-    assert reviewer_ids == set(case["reviewer_ids"])
-    assert len(reviewer_ids) == 2
+
+def test_completed_review_link_rejects_unknown_reviewer() -> None:
+    intake = _load(ROOT / "templates" / "intake-manifest.template.json")
+    case = _make_final_case(intake)
+    case["completed_reviews"][0]["reviewer_id"] = "cataloger-x"
+
+    assert any("reviewer_id must belong" in error for error in validate_intake_manifest_semantics(intake))
+
+
+def test_completed_review_link_rejects_wrong_binding() -> None:
+    intake = _load(ROOT / "templates" / "intake-manifest.template.json")
+    case = _make_final_case(intake)
+    case["completed_reviews"][0]["binding_id"] = "other-binding"
+
+    assert any("binding_id must belong" in error for error in validate_intake_manifest_semantics(intake))
+
+
+def test_completed_review_link_rejects_wrong_snapshot() -> None:
+    intake = _load(ROOT / "templates" / "intake-manifest.template.json")
+    case = _make_final_case(intake)
+    case["completed_reviews"][0]["evidence_snapshot_sha256"] = "c" * 64
+
+    assert any("must match parent evidence snapshot" in error for error in validate_intake_manifest_semantics(intake))
 
 
 def test_final_adjudication_requires_real_hashes_frozen_versions_and_distinct_reviews() -> None:
