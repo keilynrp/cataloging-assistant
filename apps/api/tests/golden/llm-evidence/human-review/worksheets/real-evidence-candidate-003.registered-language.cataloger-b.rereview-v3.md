@@ -26,12 +26,13 @@
 
 Assess only whether `Español` is the correct value for the language in which the resource itself is written/registered. Do not use P’urhepecha merely because it is studied, taught, quoted, or discussed in the article.
 
-## Human decision to provide
+## Human decision
 
-- Decision: one of `ACCEPT_AS_IS`, `ACCEPT_WITH_MINOR_EDIT`, `RESEARCH_REQUIRED`, `REJECT`
-- Proposed corrected value: only when applicable
-- Final abstention recommended: `true` or `false`
-- Error codes: only from the closed VERTICAL-021 taxonomy when applicable
-- Brief technical comment
+- Decision: `ACCEPT_AS_IS`
+- Proposed corrected value: none
+- Final abstention recommended: `false`
+- Error codes: none
+- Comment: `El artículo está redactado en español y la presencia de P’urhepecha corresponde al objeto de estudio. Por tanto, prevalece el idioma en que está escrito originalmente el texto.`
+- Timestamp UTC: `2026-08-18T06:48:00Z`
 
-No decision is pre-filled in this worksheet. The reviewer must decide independently.
+The reviewer independently accepted the concrete proposition `dc.description.registeredLanguage = Español` under the resource-writing-language semantic boundary.
