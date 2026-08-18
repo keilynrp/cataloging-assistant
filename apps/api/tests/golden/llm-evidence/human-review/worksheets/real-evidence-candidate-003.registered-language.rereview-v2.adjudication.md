@@ -16,7 +16,7 @@
 
 ## Purpose
 
-Resolve the formal disagreement between the two completed independent v2 reviews. The adjudicator may inspect both reviewer decisions and the shared evidence packet. This worksheet does not prescribe an outcome.
+Resolve the formal disagreement between the two completed independent v2 reviews. This worksheet preserves the historical human decision and does not rewrite it after later governance corrections.
 
 ## Input review A
 
@@ -38,10 +38,6 @@ Resolve the formal disagreement between the two completed independent v2 reviews
 - Error codes: none
 - Comment: `Acepto Purépecha como clasificación adoptada por el INALI.`
 
-## Disagreement resolved
-
-Both reviewers converged on `Purépecha` as the accepted catalog value and neither recommended abstention or assigned an error code. The formal disagreement was whether the result should be classified as `ACCEPT_AS_IS` or `ACCEPT_WITH_MINOR_EDIT`.
-
 ## Adjudicator response
 
 - Adjudicator ID: `adjudicator-1`
@@ -52,6 +48,12 @@ Both reviewers converged on `Purépecha` as the accepted catalog value and neith
 - Comment: `Aunque ambas revisiones de catalogadores humanos aceptaron el término Purépecha como autoridad verificada, es necesario reconsiderar la revisión final con mayor profundidad. Si es preciso, debe documentarse en una nota interna de catalogación para que quede como evidencia trazable, tanto para catalogadores humanos como para LLM, redes neuronales futuras y otros algoritmos especializados.`
 - Timestamp UTC: `2026-08-18T05:51:00Z`
 
-## Governance status
+## Subsequent governance correction
 
-The canonical adjudication JSON is `FINAL` under explicit governance authorization and references the frozen real catalog-contract SHA-256. Under a subsequent explicit governance decision, this v2 case is also `ADJUDICATED_GOLD` at case level. The aggregate intake remains `BLOCKED_FOR_INTAKE` because the original narrow review cycle is still blocked. This case-level gold state does not close Gate D, does not convert runtime evidence to `VERIFICADO`, and does not authorize LLM provider egress or DSpace write.
+The canonical v2 adjudication remains `FINAL` as an immutable historical human-decision record. A later pre-merge review identified that the v2 evidence supported P’urhepecha as a language studied/used in the resource, while ADR-012 defines `dc.description.registeredLanguage` as the resource's own writing/registration language. Therefore the v2 case-level `ADJUDICATED_GOLD` promotion was withdrawn from current evaluation use without deleting or rewriting the human adjudication.
+
+The correction is recorded in:
+
+`apps/api/tests/golden/llm-evidence/human-review/corrections/real-evidence-candidate-003.registered-language.rereview-v2.gold-withdrawal.md`
+
+A new `rereview-v3` evaluates the corrected proposition `dc.description.registeredLanguage = Español`. Gate D remains open; no runtime `VERIFICADO`, provider egress, productive LLM behavior, or DSpace write is authorized.
