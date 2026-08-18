@@ -1,7 +1,7 @@
 {
   "golden_set_version": "0.2.1-stratum-a-diverse",
   "catalog_contract_version": "dspace-cataloger-v3.6",
-  "catalog_contract_sha256": "UNMATERIALIZED_CONTRACT_HASH",
+  "catalog_contract_sha256": "a68fbf9664b7165ea240508da85167058cd57796fbda9c1a9869986afb0178bb",
   "status": "STRATUM_A_SAMPLE_FLOOR_MET_SYNTHETIC_ONLY",
   "methodology_status": "DIVERSITY_RECONCILED_SYNTHETIC_ONLY",
   "cases": [
