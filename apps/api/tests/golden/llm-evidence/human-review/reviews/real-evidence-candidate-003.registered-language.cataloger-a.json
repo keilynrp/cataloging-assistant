@@ -1,0 +1,20 @@
+{
+  "review_id": "review-real-evidence-candidate-003-registered-language-cataloger-a-v1",
+  "case_id": "real-evidence-candidate-003-registered-language",
+  "binding_id": "registered-language",
+  "metadata_field": "dc.description.registeredLanguage",
+  "reviewer_id": "cataloger-a",
+  "decision": "RESEARCH_REQUIRED",
+  "timestamp_utc": "2026-08-18T03:43:00Z",
+  "comment": "Se necesita tener más evidencia descriptiva, contrastando otras fuentes como el PDF del texto completo y otras autoridades oficiales que permitan emitir un juicio más certero.",
+  "error_codes": [],
+  "proposed_corrected_value": null,
+  "final_abstention_recommended": false,
+  "source_refs": [
+    "apps/api/tests/golden/llm-evidence/human-review/snapshots/real-evidence-candidate-003.txt"
+  ],
+  "evidence_snapshot_sha256": "f4baeb9fea9e552969532cd5de9f7eaee072590c6505203f66087dfa5b22f3c5",
+  "golden_set_version": "0.2.0-stratum-a",
+  "catalog_contract_version": "dspace-cataloger-v3.6",
+  "catalog_contract_sha256": "REPLACE_CATALOG_CONTRACT_SHA256"
+}
