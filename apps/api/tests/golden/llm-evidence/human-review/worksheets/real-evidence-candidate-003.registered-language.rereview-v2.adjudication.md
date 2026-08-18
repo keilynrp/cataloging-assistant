@@ -10,6 +10,10 @@
 
 **Evidence snapshot SHA-256:** `2a1ceef24ef537796ed5ec44dc7682a8b900964fd9ea70b9647404ad54817f81`
 
+**Catalog contract:** `dspace-cataloger-v3.6`
+
+**Catalog contract SHA-256:** `a68fbf9664b7165ea240508da85167058cd57796fbda9c1a9869986afb0178bb`
+
 ## Purpose
 
 Resolve the formal disagreement between the two completed independent v2 reviews. The adjudicator may inspect both reviewer decisions and the shared evidence packet. This worksheet does not prescribe an outcome.
@@ -50,4 +54,4 @@ Both reviewers converge on `Purépecha` as the accepted catalog value and neithe
 
 ## Boundary
 
-A real human adjudication decision has been recorded, but the canonical adjudication JSON remains `TEMPLATE` rather than `FINAL` because `catalog_contract_sha256` is still unmaterialized. This does not create `ADJUDICATED_GOLD`, does not convert runtime evidence to `VERIFICADO`, and does not authorize LLM provider egress or DSpace write. Finalization requires freezing the real catalog-contract SHA-256 under the current schema.
+A real human adjudication decision has been recorded and the catalog contract is now frozen with a real SHA-256. The canonical adjudication JSON intentionally remains `TEMPLATE` rather than `FINAL` because hash materialization does not itself authorize the state transition. This does not create `ADJUDICATED_GOLD`, does not convert runtime evidence to `VERIFICADO`, and does not authorize LLM provider egress or DSpace write. An explicit governance decision is still required before `TEMPLATE` → `FINAL`, and `ADJUDICATED_GOLD` remains a separate later transition.
