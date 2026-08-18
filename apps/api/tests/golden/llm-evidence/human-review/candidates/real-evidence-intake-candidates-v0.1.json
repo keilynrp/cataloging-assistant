@@ -1,6 +1,6 @@
 {
-  "candidate_set_version": "0.6.0",
-  "status": "PARTIAL_READY_WITH_CANDIDATE_003_ADJUDICATED_PENDING_FINALIZATION",
+  "candidate_set_version": "0.7.0",
+  "status": "PARTIAL_READY_WITH_CANDIDATE_003_ADJUDICATED_GOLD",
   "baseline_main_sha": "909aac81f4d97106231d77c014f19ab0d38c07b1",
   "catalog_contract_version": "dspace-cataloger-v3.6",
   "catalog_contract_sha256": "a68fbf9664b7165ea240508da85167058cd57796fbda9c1a9869986afb0178bb",
@@ -79,22 +79,23 @@
       "representation_completeness": "EXPANDED_PUBLISHER_PDF_EVIDENCE_PLUS_OFFICIAL_AUTHORITIES",
       "reviewer_assignment_status": "CONFIRMED_REAL_HUMAN_ASSIGNMENT",
       "reviewer_ids": ["cataloger-a", "cataloger-b"],
-      "binding_scope_status": "HUMAN_ADJUDICATION_RECORDED_PENDING_FINALIZATION",
+      "binding_scope_status": "HUMAN_ADJUDICATION_FINAL_ADJUDICATED_GOLD",
       "confirmed_bindings": ["registered-language"],
       "confirmed_metadata_fields": ["dc.description.registeredLanguage"],
       "unsupported_or_unconfirmed_bindings": ["linguistic-family", "linguistic-branch", "linguistic-group", "linguistic-variant"],
-      "human_review_entry_status": "BLOCKED_FOR_INTAKE",
-      "notes": "The v2 re-review completed two independent human reviews and a human adjudication decision for registered-language with final value Purépecha. The adjudication record intentionally remains TEMPLATE pending an explicitly authorized transition to FINAL. Hash materialization alone does not create ADJUDICATED_GOLD. Meseta Tarasca remains excluded as evidence of linguistic family."
+      "human_review_entry_status": "ADJUDICATED_GOLD",
+      "notes": "The v2 re-review completed two independent human reviews and a canonical FINAL human adjudication for registered-language with final value Purépecha. Under explicit governance authorization, this v2 case is ADJUDICATED_GOLD. The original narrow review cycle remains preserved and blocked, and case-level gold does not close Gate D or imply global intake gold. Meseta Tarasca remains excluded as evidence of linguistic family."
     }
   ],
   "gate": {
     "can_enter_human_review": true,
     "ready_candidate_ids": [],
-    "blocked_candidate_ids": ["real-evidence-candidate-001", "real-evidence-candidate-002", "real-evidence-candidate-003"],
+    "blocked_candidate_ids": ["real-evidence-candidate-001", "real-evidence-candidate-002"],
+    "adjudicated_gold_candidate_ids": ["real-evidence-candidate-003"],
     "remaining_requirements": [
       "candidate-001 immutable snapshot and license/reuse status before admission",
       "candidate-002 fuller authorized source inspection before any critical binding is admitted",
-      "candidate-003 explicit governance authorization before TEMPLATE-to-FINAL adjudication transition; ADJUDICATED_GOLD remains a separate later decision"
+      "Gate D remains open pending empirical coverage across all five critical bindings, sufficient per-binding sample sizes, remaining adjudications, frozen controlled-vocabulary identities/hashes, provider comparison/provenance, and other required evaluation evidence"
     ]
   }
 }
