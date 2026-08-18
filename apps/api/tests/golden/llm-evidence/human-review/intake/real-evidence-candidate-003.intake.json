@@ -1,6 +1,6 @@
 {
-  "intake_version": "0.1.0-candidate-003",
-  "status": "READY_FOR_INDEPENDENT_REVIEW",
+  "intake_version": "0.2.0-candidate-003",
+  "status": "UNDER_INDEPENDENT_REVIEW",
   "golden_set_version": "0.2.0-stratum-a",
   "catalog_contract_version": "dspace-cataloger-v3.6",
   "catalog_contract_sha256": "REPLACE_CATALOG_CONTRACT_SHA256",
@@ -14,10 +14,18 @@
       "evidence_locator": "apps/api/tests/golden/llm-evidence/human-review/snapshots/real-evidence-candidate-003.txt",
       "evidence_snapshot_sha256": "f4baeb9fea9e552969532cd5de9f7eaee072590c6505203f66087dfa5b22f3c5",
       "reviewer_ids": ["cataloger-a", "cataloger-b"],
-      "completed_reviews": [],
+      "completed_reviews": [
+        {
+          "review_id": "review-real-evidence-candidate-003-registered-language-cataloger-a-v1",
+          "reviewer_id": "cataloger-a",
+          "case_id": "real-evidence-candidate-003-registered-language",
+          "binding_id": "registered-language",
+          "evidence_snapshot_sha256": "f4baeb9fea9e552969532cd5de9f7eaee072590c6505203f66087dfa5b22f3c5"
+        }
+      ],
       "adjudicator_id": null,
-      "review_status": "READY_FOR_INDEPENDENT_REVIEW"
+      "review_status": "UNDER_INDEPENDENT_REVIEW"
     }
   ],
-  "notes": "Two real people are confirmed for the pseudonymous reviewer slots. This artifact opens independent review for registered-language only. It records no reviewer judgment and cannot be promoted to ADJUDICATED_GOLD until completed reviews, adjudication conditions, and a real catalog-contract SHA-256 are present."
+  "notes": "cataloger-a completed an independent review with decision RESEARCH_REQUIRED and no abstention recommendation. cataloger-b remains pending and must not be shown cataloger-a's judgment before submitting an independent decision. No adjudication state is implied."
 }
