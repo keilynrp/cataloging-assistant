@@ -10,7 +10,7 @@
 
 **Candidate value:** `Español`
 
-**Candidate intent:** `RESOURCE_WRITING_LANGUAGE`
+**Candidate intent:** `INFERRED_VALUE`
 
 **Expected abstention:** `false`
 
@@ -34,5 +34,9 @@ Assess only whether `Español` is the correct value for the language in which th
 - Error codes: none
 - Brief technical comment: `El artículo está redactado en español y la presencia de P’urhepecha corresponde al objeto de estudio.`
 - Timestamp UTC: `2026-08-18T06:45:00Z`
+
+## Documentary correction
+
+The scorer-facing candidate intent was normalized pre-merge from the non-contract label `RESOURCE_WRITING_LANGUAGE` to the supported VERTICAL-021 intent `INFERRED_VALUE`. The resource-writing-language distinction remains the semantic meaning of the `registered-language` binding under ADR-012. The immutable evidence packet is not rewritten because its SHA-256 anchors the completed human review. This documentary correction does not change the candidate value, semantic proposition, evidence snapshot, human decision, comment, timestamp, or abstention judgment.
 
 This decision records only `cataloger-a`'s independent review. It does not pre-fill, infer, or disclose a decision for `cataloger-b`.
