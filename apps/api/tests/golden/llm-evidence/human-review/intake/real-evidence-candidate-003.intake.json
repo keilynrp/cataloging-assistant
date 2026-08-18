@@ -1,5 +1,5 @@
 {
-  "intake_version": "0.15.0-candidate-003",
+  "intake_version": "0.16.0-candidate-003",
   "status": "BLOCKED_FOR_INTAKE",
   "golden_set_version": "0.2.0-stratum-a",
   "catalog_contract_version": "dspace-cataloger-v3.6",
@@ -67,8 +67,9 @@
       "bindings_under_review": ["registered-language"],
       "metadata_field": "dc.description.registeredLanguage",
       "candidate_value": "Español",
-      "candidate_intent": "RESOURCE_WRITING_LANGUAGE",
+      "candidate_intent": "INFERRED_VALUE",
       "expected_abstention": false,
+      "resulting_gold_version": "0.2.0-stratum-a-rereview-v3-adjudicated-gold",
       "authorization_status": "AUTHORIZED_LOCAL_EVALUATION",
       "evidence_location_mode": "REPOSITORY_FIXTURE",
       "evidence_locator": "apps/api/tests/golden/llm-evidence/human-review/snapshots/real-evidence-candidate-003.rereview-v3.registered-language.packet.txt",
@@ -94,5 +95,5 @@
       "review_status": "ADJUDICATED_GOLD"
     }
   ],
-  "notes": "The original narrow cycle remains immutable and BLOCKED_FOR_INTAKE. The v2 human reviews and FINAL adjudication remain preserved as historical records, but their case-level gold was withdrawn after semantic review. Under explicit governance authorization, the corrective v3 case is now ADJUDICATED_GOLD for dc.description.registeredLanguage = Español under RESOURCE_WRITING_LANGUAGE semantics, based on two independent ACCEPT_AS_IS reviews on the same immutable snapshot and a canonical FINAL consensus closure by adjudicator-1. The aggregate intake remains BLOCKED_FOR_INTAKE because historical blocked cases remain included. Gate D remains open; this case-level gold does not convert runtime evidence to VERIFICADO and does not authorize provider egress, productive LLM behavior, OCR, or DSpace write."
+  "notes": "The original narrow cycle remains immutable and BLOCKED_FOR_INTAKE. The v2 human reviews and FINAL adjudication remain preserved as historical records, but their case-level gold was withdrawn after semantic review. Under explicit governance authorization, the corrective v3 case is ADJUDICATED_GOLD for dc.description.registeredLanguage = Español. For scorer compatibility, the model intent is INFERRED_VALUE; the resource-writing-language distinction remains the binding semantics under ADR-012. The immutable v3 evidence packet retains the earlier RESOURCE_WRITING_LANGUAGE label as historical review-context text and is not rewritten because its SHA-256 anchors the completed human reviews. The per-case resulting_gold_version publishes the corrected gold identity. The aggregate intake remains BLOCKED_FOR_INTAKE because historical blocked cases remain included. Gate D remains open; this case-level gold does not convert runtime evidence to VERIFICADO and does not authorize provider egress, productive LLM behavior, OCR, or DSpace write."
 }
