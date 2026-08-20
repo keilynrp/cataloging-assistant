@@ -1,0 +1,42 @@
+{
+  "skill": "dspace-cataloger",
+  "version": "3.9",
+  "sourceArtifactName": "dspace-cataloger.zip",
+  "canonicalArtifactName": "dspace-cataloger-v3.9.skill",
+  "sha256": "81e20a04162c8d6631eff7f5555e980102a68532d16e052731e015e1e615679e",
+  "sizeBytes": 122755,
+  "zipIntegrity": "PASS",
+  "packageRoot": "dspace-cataloger/",
+  "fileCount": 80,
+  "jsonFileCount": 33,
+  "jsonValidation": "PASS",
+  "releaseManifestVersion": "3.9",
+  "release": "v3.9",
+  "previousVersion": "3.8",
+  "previousRelease": "v3.8",
+  "parentArtifact": {
+    "release": "v3.8",
+    "sha256": "2f373dc9593cbc23f7fd6f32a6e1ae7a10194732841ef4553e4c4d5437cf860e",
+    "verifiedExact": true
+  },
+  "formBindingCount": 56,
+  "goldenSetFixtureCount": 20,
+  "runtimeContractLock": {
+    "skillVersion": "3.9",
+    "runtimeContractVersion": "dspace-cataloger-v3.6",
+    "catalogContractSha256": "a68fbf9664b7165ea240508da85167058cd57796fbda9c1a9869986afb0178bb",
+    "applicationMainCommitReviewed": "c57d48bf7ff07e47c6c44e0a625e1f5445e2b33e"
+  },
+  "runtimeBoundaries": {
+    "runtimeLlmExtraction": false,
+    "runtimeDspaceWrite": false,
+    "runtimeOcr": false,
+    "runtimeAgentMutations": false,
+    "humanApprovalRequired": true
+  },
+  "verificationNotes": [
+    "Original uploaded bytes preserved unchanged; only canonical repository filename changes extension/name.",
+    "ZIP integrity verified locally.",
+    "All JSON members parsed successfully."
+  ]
+}

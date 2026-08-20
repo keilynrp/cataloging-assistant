@@ -26,28 +26,52 @@ Expected naming examples:
 
 ```text
 versions/dspace-cataloger-v3.8.skill
-versions/dspace-cataloger-v3.9.skill
-audits/dspace-cataloger-v3.8-audit.json
+versions/v3.9/
+audits/dspace-cataloger-v3.9-audit.json
 migrations/dspace-cataloger-v3.8-to-v3.9-alignment-report.md
 ```
 
 ## Current repository-preserved version
 
-**None declared yet.**
+**3.9 — CURRENT / CANONICAL / REPOSITORY-PRESERVED**
 
-No version should be marked `CURRENT`, `CANONICAL`, or repository-preserved until the complete artifact has been committed and verified.
+Canonical preservation representation:
+
+`skills/dspace-cataloger/versions/v3.9/`
+
+Artifact identity:
+
+- canonical artifact name: `dspace-cataloger-v3.9.skill`;
+- representation: lossless Base64 multipart;
+- original size: `122755` bytes;
+- Base64 representation length: `163676` characters;
+- SHA-256: `81e20a04162c8d6631eff7f5555e980102a68532d16e052731e015e1e615679e`;
+- ZIP integrity: `PASS`;
+- JSON validation: `PASS` (`33` JSON members);
+- package files: `80`;
+- form bindings: `56`;
+- Golden Set: `GR01–GR20` present.
+
+Canonical evidence:
+
+- [`versions/v3.9/manifest.json`](versions/v3.9/manifest.json)
+- [`versions/v3.9/RECONSTRUCT.md`](versions/v3.9/RECONSTRUCT.md)
+- [`audits/dspace-cataloger-v3.9-audit.json`](audits/dspace-cataloger-v3.9-audit.json)
+
+The multipart representation is lossless and reconstructs the original artifact identified by the SHA-256 above. The manifest records the exact reconstruction order and Git blob SHA-1 for every part.
 
 ## Historical migration candidates
 
-Historical evidence indicates the prior existence of at least the following artifacts outside this repository:
+Historical evidence indicates the prior existence of the following artifacts:
 
 | Version | Historical artifact | GitHub preservation status |
 | --- | --- | --- |
 | 3.5 | `dspace-cataloger-v3.5.skill` | `PENDING_MIGRATION` |
 | 3.6 | `dspace-cataloger-v3.6.skill` | `PENDING_MIGRATION` |
 | 3.8 | `dspace-cataloger-v3.8.skill` | `PENDING_MIGRATION` |
+| 3.9 | `dspace-cataloger-v3.9.skill` | `CURRENT / CANONICAL / REPOSITORY-PRESERVED` |
 
-These entries are discovery and migration records only. They do not assert that the corresponding bytes are currently preserved in GitHub.
+The earlier entries are discovery and migration records only. They do not assert that the corresponding complete historical artifacts are currently preserved in GitHub.
 
 ## Preservation requirements
 
