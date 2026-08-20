@@ -197,4 +197,4 @@ Keep changes scoped and auditable:
 
 ## License
 
-No license is declared in this README. Refer to the repository license file if one is added or maintained separately.
+This project is licensed under the Apache License 2.0. See [`LICENSE`](LICENSE) for details.
