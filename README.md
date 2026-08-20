@@ -1,178 +1,131 @@
-# Agente de Asistencia Catalográfica para DSpace
+# Cataloging Assistant
 
-Primera vertical del MVP para **P'UHREPECHA** (`123456789/4`).
+Human-in-the-loop cataloging assistance with evidence traceability and read-only integration with DSpace.
 
-## Alcance actual
+## Overview
 
-- Cliente DSpace 7.6.6 estrictamente de lectura y enumeración mediante Discover.
-- HAL+JSON original más metadatos repetibles normalizados en PostgreSQL.
-- Sincronización paginada, idempotente, reanudable y auditable.
-- API FastAPI para búsqueda, filtros, detalle y estado de sincronización.
-- Explorador Next.js con lista y ficha completa.
-- Diagnóstico determinista, versionado y reconstruible por ítem.
-- Registros similares con puntaje y evidencia estructurada.
-- Perfil cuantitativo de cobertura, valores y relaciones observadas.
-- Cola operativa con prioridad, filtros y métricas reconciliadas a grano de ítem.
-- Revisión humana append-only de hallazgos, almacenada únicamente en PostgreSQL local.
-- Borradores lingüísticos locales con revisiones y detección de fuente obsoleta.
-- Vocabularios aprobados versionados y validación literal con evidencia de procedencia.
-- Agente conversacional de solo lectura sobre las herramientas internas existentes.
-- Sin identidad institucional ni escritura en DSpace, ni por humanos ni por el agente.
+Cataloging Assistant is an experimental platform for assisting technical cataloging workflows while preserving human review as the final decision point.
 
-## Arranque en WSL
+The current MVP combines a DSpace 7.6.6 read-only integration, normalized local metadata, deterministic diagnostics, controlled-vocabulary validation, auditable human review, local draft preparation, operational monitoring, and a conversational assistant built on internal read-only tools.
+
+The system is designed to support catalogers without silently modifying source records or treating generated suggestions as authoritative cataloging decisions.
+
+## Core principles
+
+- **Human-in-the-loop:** cataloging decisions remain under human review.
+- **DSpace as source of truth:** the current scope does not write back to DSpace.
+- **Evidence traceability:** findings and suggestions should expose their source, validation context, and relevant provenance.
+- **Deterministic behavior where applicable:** diagnostics and operational classifications should be reproducible from the same inputs and approved vocabularies.
+- **Explicit separation of states:** extraction, validation, suggestion, selection, review, and persistence are treated as distinct concerns.
+- **No silent normalization or semantic overwrite:** blocked, stale, or uncertain values remain visible for review.
+- **Auditable local operations:** human review and draft revisions are recorded locally without changing the source repository.
+
+## Current scope
+
+The MVP currently includes:
+
+- read-only synchronization and enumeration from DSpace 7.6.6;
+- normalized repeatable metadata stored in PostgreSQL;
+- paginated, idempotent, resumable synchronization;
+- FastAPI endpoints for search, filters, item detail, diagnostics, and operational state;
+- a Next.js interface for catalog exploration and review;
+- deterministic cataloging diagnostics;
+- structured similar-record comparison;
+- collection-level coverage and relationship profiling;
+- an operational work queue;
+- append-only human review of findings;
+- local linguistic metadata drafts with source-staleness detection;
+- versioned approved controlled vocabularies and literal validation;
+- notification and operational monitoring flows;
+- a conversational assistant restricted to internal read-only tools;
+- UX experimentation for evidence-centered cataloging workflows.
+
+The current scope intentionally excludes direct metadata writes to DSpace.
+
+## Architecture
+
+At a high level, the project is composed of:
+
+```text
+DSpace 7.6.6
+    │
+    │ read-only synchronization
+    ▼
+FastAPI services
+    │
+    ├── synchronization
+    ├── diagnostics
+    ├── validation
+    ├── review and local drafts
+    ├── notifications
+    └── conversational assistant tools
+    │
+    ▼
+PostgreSQL
+    │
+    ▼
+Next.js web interface
+```
+
+Detailed architectural decisions and implementation constraints are documented under [`docs/adr`](docs/adr) and [`docs/specs`](docs/specs).
+
+## Technology stack
+
+- **Backend:** FastAPI / Python
+- **Frontend:** Next.js / TypeScript
+- **Database:** PostgreSQL
+- **Containerization:** Docker Compose
+- **Source system:** DSpace 7.6.6
+- **Testing:** local fixtures and PostgreSQL-backed test flows
+
+Additional libraries and services should be treated as implementation details and are documented alongside the relevant specifications or ADRs.
+
+## Getting started
+
+### Requirements
+
+A local development environment should provide:
+
+- Docker and Docker Compose;
+- Git;
+- access to the required environment configuration described in `.env.example`.
+
+WSL2 or a Linux-compatible development environment is recommended for local development.
+
+### Clone and configure
 
 ```bash
-cd /home/keilyn/cat
+git clone <repository-url>
+cd cataloging-assistant
 cp .env.example .env
+```
+
+Review `.env` before starting the services. Do not commit secrets, provider credentials, tokens, or machine-specific paths.
+
+### Start the application
+
+```bash
 docker compose up -d postgres api web
+```
+
+Run the initial synchronization and diagnostics when required:
+
+```bash
 docker compose run --rm api python -m cataloging_api.sync.cli
 docker compose run --rm api python -m cataloging_api.diagnostics.cli
 ```
 
-- Web: `http://localhost:3000`
-- API: `http://localhost:8000/docs`
-- Salud: `http://localhost:8000/health`
+Default local services:
 
-No se descarga el contenido de los bitstreams; se conservan únicamente descriptores y enlaces públicos.
+- Web interface: `http://localhost:3000`
+- API documentation: `http://localhost:8000/docs`
+- Health endpoint: `http://localhost:8000/health`
 
-## Diagnóstico inicial
+The application does not require real DSpace access for the complete test suite; fixtures are available for local verification.
 
-Las reglas activas son `CAT-LING-001` (familia sin rama) y `CAT-LING-002`
-(rama sin familia). Los campos obligatorios se configuran mediante
-`CATALOG_REQUIRED_FIELDS`, como una lista de claves separadas por comas. La
-configuración queda vacía hasta que el referente catalográfico confirme P-002.
-No se evalúan relaciones controladas ni variantes ortográficas sin vocabularios aprobados.
+## Verification
 
-## Similitud estructurada
-
-`GET /api/items/{uuid}/similar` compara únicamente ítems activos de la misma
-colección. El puntaje combina coincidencias lingüísticas y tokens de título;
-sirve para ordenar vecinos y no debe interpretarse como confianza catalográfica.
-No utiliza embeddings, bitstreams ni fuentes externas.
-
-## Evidencia de colección
-
-`GET /api/catalog-profile` y `http://localhost:3000/catalog-profile` muestran
-cobertura, valores frecuentes, patrones de completitud y relaciones observadas.
-Todas las métricas usan ítems activos como población y muestran la frescura de
-la sincronización. Las observaciones no se consideran vocabularios autorizados.
-
-## Cola de trabajo
-
-`GET /api/work-queue` y `http://localhost:3000/work-queue` priorizan ítems
-con hallazgos vigentes o borradores locales. Las tarjetas usan toda la colección
-activa; los filtros sólo afectan la lista. Todos los conteos tienen grano de ítem
-y la vista declara fuente, denominador y frescura. La clasificación es
-determinista y no modifica DSpace.
-
-
-## Revisión humana local
-
-La ficha permite confirmar, descartar o posponer hallazgos y registrar una nota
-auditable. Configure un valor aleatorio largo en `CATALOG_REVIEW_TOKEN`; Next.js
-lo usa sólo en el servidor para llamar a la API. El nombre del revisor es
-autodeclarado durante el piloto. No existe ninguna operación de escritura hacia
-DSpace ni edición de metadatos normalizados.
-
-## Borradores locales
-
-La ficha permite preparar reemplazos para los cuatro campos lingüísticos. Cada
-borrador conserva una instantánea normalizada y revisiones append-only. Si cambia
-el `source_hash` sincronizado, se bloquean nuevas revisiones; no hay rebase ni
-aplicación automática. Los valores proceden del catalogador y no se consideran
-vocabulario autorizado. Antes de guardar, el editor muestra una comparación
-literal no bloqueante con los vocabularios activos. En cada revisión el servidor
-guarda una instantánea de esa evidencia (revisión, fuente, aprobador, valores y
-resultado); si no existe vocabulario, queda registrada como «no configurado».
-
-## Vocabularios controlados
-
-`GET /api/controlled-vocabularies`, `GET /api/items/{uuid}/metadata-validation`
-y `http://localhost:3000/controlled-terms` exponen revisiones locales aprobadas.
-Cada revisión conserva fuente, versión, aprobador e historial. La comparación es
-literal; sin una fuente aprobada el estado permanece «no configurado». El alta
-local requiere `CATALOG_REVIEW_TOKEN` y nunca escribe en DSpace.
-Al reconstruir diagnósticos, un valor fuera de una revisión activa genera
-`CAT-VOCAB-001`. La revisión forma parte del perfil y del fingerprint de
-evidencia; reemplazarla marca resultados anteriores como obsoletos y evita
-reutilizar decisiones humanas sobre evidencia diferente.
-
-## Notificaciones en tiempo real
-
-La campana en el encabezado muestra avisos operativos (sincronización,
-diagnósticos, borradores obsoletos, revisiones pospuestas, sugerencias
-pendientes y vocabularios promovidos) para el destinatario colectivo piloto
-`pilot-catalogers`. PostgreSQL es la fuente de verdad: cada caso de uso local
-inserta el evento y su fila de outbox en la misma transacción; un publicador en
-segundo plano dentro del proceso de la API reclama la outbox con
-`FOR UPDATE SKIP LOCKED`, crea entregas idempotentes y señala a los sockets
-abiertos únicamente un cursor monotónico (`GET /ws/notifications`, sin cuerpo
-ni secretos). El contenido, el conteo de no leídas y las transiciones de
-lectura/archivado se sirven siempre por HTTP
-(`GET /api/notifications`, `GET /api/notifications/unread-count`,
-`POST /api/notifications/{id}/read`, `POST /api/notifications/read-all`,
-`POST /api/notifications/{id}/archive`), con reconexión con backoff,
-sondeo de respaldo cada 30 segundos y recuperación tras foco/reconexión.
-Las mutaciones exigen `CATALOG_REVIEW_TOKEN`, adjuntado únicamente por rutas
-proxy de Next.js para que el token nunca llegue al navegador. Una notificación
-no es evidencia catalográfica ni cambia hallazgos, borradores, sugerencias o
-DSpace.
-
-Los hallazgos de diagnóstico nuevos se agregan por corrida de sincronización o
-por reconstrucción (`GET /api/notifications` recibe un aviso por lote, no uno
-por ítem). `GET`/`PUT /api/notifications/preferences` permite silenciar un
-tipo de evento: el evento se sigue registrando en PostgreSQL, sólo se omite su
-entrega. `http://localhost:3000/notifications` ofrece el historial completo
-con filtros por estado y tipo, paginado por cursor. `GET
-/api/notifications/metrics` expone eventos por tipo, entregas por estado,
-backlog/edad/reintentos de la cola de salida y conexiones WebSocket aceptadas
-o rechazadas.
-
-```bash
-docker compose run --rm api python -m cataloging_api.notifications.digest_cli
-```
-
-Genera un aviso `digest.summary` con el conteo de actividad desde el resumen
-anterior (o de las últimas 24 horas si nunca corrió), reutilizando el mismo
-canal que el resto de las notificaciones; no emite nada si no hubo actividad.
-Se opera igual que `sync`/`diagnose` (`make digest`); este repositorio no
-incluye un programador propio, así que debe invocarse periódicamente desde el
-host (por ejemplo con `cron`).
-
-## Reanudación
-
-`GET /api/sync-runs/latest` muestra el checkpoint. Para reanudar:
-
-```bash
-docker compose run --rm api python -m cataloging_api.sync.cli --resume-page 3
-```
-
-Una reanudación no marca ausentes como eliminados. La conciliación sólo ocurre tras un recorrido completo exitoso desde la página cero.
-
-## Asistente conversacional
-
-`http://localhost:3000/asistente` abre un chat que responde preguntas sobre
-la colección piloto usando exclusivamente herramientas internas de solo
-lectura (búsqueda, ítem, similares, validación, sugerencias, cola de
-trabajo, perfil, vocabularios, estado de sincronización). Nunca escribe en
-DSpace ni genera hallazgos, borradores o sugerencias por su cuenta — sólo
-enlaza a la ficha correspondiente para que un humano decida allí. La
-integración con los proveedores del modelo vive aislada en
-`cataloging_api/agent/providers/` (ADR-010, ADR-011); hoy soporta Anthropic
-y OpenAI detrás de un mismo contrato.
-
-La credencial del proveedor ya no se configura por variable de entorno:
-se administra en `http://localhost:3000/settings`, donde se guarda cifrada
-en PostgreSQL (`provider_credentials`, Fernet con clave raíz
-`SETTINGS_ENCRYPTION_KEY`) y sólo se expone una vista enmascarada. Sin una
-credencial activa, crear una conversación funciona pero enviar mensajes
-responde `503`. Igual que el resto de las mutaciones — y también las
-lecturas de esta pantalla de configuración, por ser más sensibles — iniciar
-una conversación, enviar mensajes y gestionar credenciales exige
-`CATALOG_REVIEW_TOKEN`. El historial de la conversación persiste en
-PostgreSQL (`agent_conversations`, `agent_messages`, append-only).
-
-## Verificación
+Run the standard project checks with:
 
 ```bash
 make test
@@ -180,4 +133,68 @@ make lint
 docker compose build web
 ```
 
-La suite usa fixtures HAL+JSON y PostgreSQL local; DSpace real no es una dependencia obligatoria.
+The expected development baseline is a passing test suite, lint checks, and a successful web build before merging changes that affect runtime behavior.
+
+## Project structure
+
+```text
+.
+├── cataloging_api/     # backend services and domain logic
+├── docs/
+│   ├── adr/            # architecture decision records
+│   ├── evaluation/     # evaluation and validation artifacts
+│   ├── specs/          # technical and functional specifications
+│   └── ux/             # UX governance, prompts, evidence, and reviews
+├── web/                # web application when applicable to the current layout
+├── docker-compose.yml  # local service orchestration
+└── README.md
+```
+
+The repository may evolve as the MVP grows. Specifications and ADRs are the preferred source for implementation-level detail.
+
+## Documentation
+
+Project documentation is organized by purpose:
+
+- [`docs/adr`](docs/adr) — architecture decisions and design constraints;
+- [`docs/specs`](docs/specs) — functional and technical specifications;
+- [`docs/evaluation`](docs/evaluation) — evaluation methodology and evidence;
+- [`docs/ux`](docs/ux) — UX governance, prototypes, prompt history, and audit evidence.
+
+The README intentionally avoids duplicating detailed specifications, operational internals, endpoint catalogs, security implementation details, or UX audit records.
+
+## Data handling and security
+
+The project follows these baseline rules:
+
+- DSpace access is read-only within the current MVP scope;
+- secrets and credentials must not be committed to the repository;
+- review tokens and provider credentials belong in configuration or protected storage, not in client-side code;
+- local review and draft data are separate from normalized source metadata;
+- generated or inferred content must not be treated as source evidence without explicit provenance and review;
+- machine-specific paths, usernames, personal identifiers, and private environment details must not be documented in the repository README.
+
+Security-sensitive implementation details belong in the corresponding ADR or specification rather than in this public-facing project overview.
+
+## Development status
+
+This repository represents an evolving MVP. Some capabilities are production-oriented experiments, while others remain explicitly constrained to local or presentation-only behavior.
+
+Before promoting a capability beyond the MVP, verify its specification, runtime classification, persistence model, evidence semantics, and DSpace interaction contract.
+
+For UX work, the current governance and audit trail are maintained under [`docs/ux`](docs/ux).
+
+## Contributing
+
+Keep changes scoped and auditable:
+
+1. create a focused branch;
+2. document architectural or semantic changes when required;
+3. avoid mixing unrelated refactors with functional changes;
+4. run the relevant tests and checks;
+5. preserve read-only DSpace behavior unless an approved specification explicitly changes that contract;
+6. update documentation when a change affects public behavior, architecture, or cataloging semantics.
+
+## License
+
+This project is licensed under the Apache License 2.0. See [`LICENSE`](LICENSE) for details.
