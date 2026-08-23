@@ -104,7 +104,7 @@ def _canonical_registry(
         if payloads is None:
             warnings.append(f"UNOBSERVABLE_SURFACE:{surface}")
             continue
-        fields = []
+        fields: list[dict[str, Any]] = []
         for payload in payloads:
             embedded = payload.get("_embedded")
             values = embedded.get("metadatafields") if isinstance(embedded, dict) else None
@@ -143,6 +143,32 @@ def _canonical_registry(
     return schemas, canonical_fields
 
 
+def _config_form_id(section: dict[str, Any]) -> str | None:
+    links = section.get("_links")
+    config = links.get("config") if isinstance(links, dict) else None
+    href = config.get("href") if isinstance(config, dict) else None
+    if isinstance(href, str) and href.rstrip("/"):
+        return href.rstrip("/").rsplit("/", 1)[-1]
+    return None
+
+
+def _canonical_sections(sections: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    canonical: list[dict[str, Any]] = []
+    for order, section in enumerate(sections):
+        canonical.append(
+            {
+                "id": section.get("id"),
+                "order": order,
+                "sectionType": section.get("sectionType"),
+                "header": section.get("header"),
+                "mandatory": section.get("mandatory"),
+                "scope": section.get("scope"),
+                "configForm": _config_form_id(section),
+            }
+        )
+    return canonical
+
+
 def _active_form_ids(
     sections: list[dict[str, Any]],
     warnings: list[str],
@@ -151,11 +177,9 @@ def _active_form_ids(
     for section in sections:
         if section.get("sectionType") != "submission-form":
             continue
-        links = section.get("_links")
-        config = links.get("config") if isinstance(links, dict) else None
-        href = config.get("href") if isinstance(config, dict) else None
-        if isinstance(href, str) and href.rstrip("/"):
-            result.append(href.rstrip("/").rsplit("/", 1)[-1])
+        config_form = _config_form_id(section)
+        if config_form:
+            result.append(config_form)
             continue
         section_id = section.get("id")
         if isinstance(section_id, str) and section_id:
@@ -268,6 +292,7 @@ def build_contract_snapshot(
         "activeDefinition": active_definition_name,
         "schemas": schemas,
         "fields": fields,
+        "sections": _canonical_sections(active_sections),
         "bindings": bindings,
     }
     unique_warnings = tuple(sorted(set(warnings)))
@@ -300,6 +325,17 @@ def diff_contract_snapshots(
         for key in sorted(old_schemas.keys() - new_schemas.keys()):
             changes.append(
                 ContractChange("SCHEMA_REMOVED", "HIGH", key, before=old_schemas[key])
+            )
+    for key in sorted(old_schemas.keys() & new_schemas.keys()):
+        if old_schemas[key] != new_schemas[key]:
+            changes.append(
+                ContractChange(
+                    "SCHEMA_CHANGED",
+                    "MEDIUM",
+                    key,
+                    old_schemas[key],
+                    new_schemas[key],
+                )
             )
 
     old_fields = _map(previous.canonical, "fields", "metadata")
@@ -371,6 +407,16 @@ def diff_contract_snapshots(
                 "activeDefinition",
                 previous.canonical.get("activeDefinition"),
                 current.canonical.get("activeDefinition"),
+            )
+        )
+    if previous.canonical.get("sections") != current.canonical.get("sections"):
+        changes.append(
+            ContractChange(
+                "FORM_STRUCTURE_CHANGED",
+                "HIGH",
+                "activeSections",
+                previous.canonical.get("sections"),
+                current.canonical.get("sections"),
             )
         )
     return changes
