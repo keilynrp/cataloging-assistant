@@ -22,6 +22,14 @@ REQUIRED_SURFACES = frozenset(
         "active_submission_sections",
     }
 )
+PAGINATED_REQUIRED_SURFACES = frozenset(
+    {
+        "metadata_schemas",
+        "metadata_fields",
+        "submission_forms",
+        "active_submission_sections",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -60,6 +68,68 @@ def _surface_items(surface: str, payloads: list[dict[str, Any]]) -> list[dict[st
         if isinstance(values, list):
             result.extend(value for value in values if isinstance(value, dict))
     return result
+
+
+def _validate_page_sequence(surface: str, payloads: list[dict[str, Any]]) -> list[str]:
+    if not payloads:
+        return [f"EMPTY_REQUIRED_SURFACE:{surface}"]
+
+    page_numbers: list[int] = []
+    total_pages_values: set[int] = set()
+    total_elements_values: set[int] = set()
+    for payload in payloads:
+        page = payload.get("page")
+        if not isinstance(page, dict):
+            return [f"INVALID_PAGE_METADATA:{surface}"]
+        number = page.get("number")
+        total_pages = page.get("totalPages")
+        total_elements = page.get("totalElements")
+        if not isinstance(number, int) or number < 0:
+            return [f"INVALID_PAGE_METADATA:{surface}"]
+        if not isinstance(total_pages, int) or total_pages < 0:
+            return [f"INVALID_PAGE_METADATA:{surface}"]
+        if not isinstance(total_elements, int) or total_elements < 0:
+            return [f"INVALID_PAGE_METADATA:{surface}"]
+        page_numbers.append(number)
+        total_pages_values.add(total_pages)
+        total_elements_values.add(total_elements)
+
+    if len(total_pages_values) != 1 or len(total_elements_values) != 1:
+        return [f"INCONSISTENT_PAGE_METADATA:{surface}"]
+
+    total_pages = next(iter(total_pages_values))
+    total_elements = next(iter(total_elements_values))
+    observed = sorted(page_numbers)
+    if len(observed) != len(set(observed)):
+        return [f"DUPLICATE_PAGE_EVIDENCE:{surface}"]
+
+    if total_pages == 0:
+        if observed != [0] or total_elements != 0:
+            return [f"INCOMPLETE_PAGE_SEQUENCE:{surface}"]
+        return []
+
+    if observed != list(range(total_pages)):
+        return [f"INCOMPLETE_PAGE_SEQUENCE:{surface}"]
+    return []
+
+
+def _page_sequence_warnings(
+    pages_by_surface: dict[str, list[dict[str, Any]]],
+) -> list[str]:
+    warnings: list[str] = []
+    surfaces = set(PAGINATED_REQUIRED_SURFACES)
+    surfaces.update(
+        surface
+        for surface in pages_by_surface
+        if surface.startswith("metadata_fields_by_schema:")
+    )
+    for surface in sorted(surfaces):
+        payloads = pages_by_surface.get(surface)
+        if payloads is None:
+            warnings.append(f"UNOBSERVABLE_SURFACE:{surface}")
+            continue
+        warnings.extend(_validate_page_sequence(surface, payloads))
+    return warnings
 
 
 def _field_name(field: dict[str, Any], prefix: str) -> str | None:
@@ -264,6 +334,7 @@ def build_contract_snapshot(
     warnings: list[str] = []
     missing = sorted(REQUIRED_SURFACES - pages_by_surface.keys())
     warnings.extend(f"UNOBSERVABLE_SURFACE:{surface}" for surface in missing)
+    warnings.extend(_page_sequence_warnings(pages_by_surface))
 
     schemas, fields = _canonical_registry(pages_by_surface, warnings)
     forms = _surface_items(
@@ -275,6 +346,8 @@ def build_contract_snapshot(
         pages_by_surface.get("active_submission_sections", []),
     )
     active_definition_payloads = pages_by_surface.get("active_submission_definition", [])
+    if len(active_definition_payloads) != 1:
+        warnings.append("INVALID_ACTIVE_DEFINITION_EVIDENCE")
     active_definition = active_definition_payloads[0] if active_definition_payloads else {}
     active_definition_name = active_definition.get("name")
     if not isinstance(active_definition_name, str) or not active_definition_name:
