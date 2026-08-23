@@ -4,7 +4,16 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String, Text, UniqueConstraint, select
+from sqlalchemy import (
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Index,
+    String,
+    Text,
+    UniqueConstraint,
+    select,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
@@ -66,6 +75,7 @@ async def persist_snapshot(
     *,
     run_id: uuid.UUID,
     snapshot: ContractSnapshotView,
+    status: str,
     changes: list[ContractChange] | None = None,
 ) -> DSpaceContractSnapshot:
     """Persist one immutable comparable view per acquisition run."""
@@ -75,13 +85,13 @@ async def persist_snapshot(
     )
     existing = result.scalar_one_or_none()
     if existing is not None:
-        if existing.semantic_hash != snapshot.semantic_hash:
+        if existing.semantic_hash != snapshot.semantic_hash or existing.status != status:
             raise ValueError("contract_snapshot_conflict")
         return existing
 
     record = DSpaceContractSnapshot(
         run_id=run_id,
-        status="OBSERVED",
+        status=status,
         semantic_hash=snapshot.semantic_hash,
         complete=snapshot.complete,
         canonical_json=snapshot.canonical,
