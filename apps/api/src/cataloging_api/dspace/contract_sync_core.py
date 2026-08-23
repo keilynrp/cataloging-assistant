@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,7 +19,7 @@ from cataloging_api.dspace.contract_store import (
     persist_page_and_advance_checkpoint,
 )
 
-COLLECTOR_VERSION = "vertical-022/2"
+COLLECTOR_VERSION = "vertical-022/3"
 SurfaceLoader = Callable[..., Awaitable[HalCollectionPage]]
 
 
@@ -30,6 +31,7 @@ async def _collect_surface(
     endpoint: str,
     loader: SurfaceLoader,
     page_size: int,
+    request_params_extra: dict[str, Any] | None = None,
 ) -> None:
     page_number = checkpoint_next_page(run, surface)
     while True:
@@ -39,10 +41,59 @@ async def _collect_surface(
                 "invalid_hal",
                 f"DSpace returned page {page.page} for requested page {page_number} at {endpoint}",
             )
+        request_params = {
+            "page": page_number,
+            "size": page_size,
+            **(request_params_extra or {}),
+        }
         await persist_page_and_advance_checkpoint(
             session,
             run=run,
             surface=surface,
+            endpoint=endpoint,
+            page_number=page.page,
+            request_params=request_params,
+            raw_payload=page.raw_payload,
+        )
+        await session.commit()
+        if page.total_pages <= page.page + 1:
+            return
+        page_number = checkpoint_next_page(run, surface)
+
+
+async def _collect_metadata_registry(
+    session: AsyncSession,
+    *,
+    run: DSpaceContractSyncRun,
+    client: DSpaceClient,
+    page_size: int,
+) -> None:
+    """Collect schemas and every metadata field with an explicit schema identity.
+
+    Schema pages are intentionally re-observed from page zero on resume. Existing
+    evidence is validated idempotently, preventing a resumed run from mixing two
+    different schema registries.
+    """
+
+    schema_prefixes: list[str] = []
+    page_number = 0
+    endpoint = "/core/metadataschemas"
+    while True:
+        page = await client.get_metadata_schemas_page(page=page_number, size=page_size)
+        if page.page != page_number:
+            raise DSpaceError(
+                "invalid_hal",
+                f"DSpace returned schema page {page.page} for requested page {page_number}",
+            )
+        for schema in page.items:
+            prefix = schema.get("prefix")
+            if not isinstance(prefix, str) or not prefix:
+                raise DSpaceError("invalid_hal", "Metadata schema lacks a prefix")
+            schema_prefixes.append(prefix)
+        await persist_page_and_advance_checkpoint(
+            session,
+            run=run,
+            surface="metadata_schemas",
             endpoint=endpoint,
             page_number=page.page,
             request_params={"page": page_number, "size": page_size},
@@ -50,8 +101,40 @@ async def _collect_surface(
         )
         await session.commit()
         if page.total_pages <= page.page + 1:
-            return
-        page_number = checkpoint_next_page(run, surface)
+            break
+        page_number += 1
+
+    # Preserve the global registry as an independent coverage check.
+    await _collect_surface(
+        session,
+        run=run,
+        surface="metadata_fields",
+        endpoint="/core/metadatafields",
+        loader=client.get_metadata_fields_page,
+        page_size=page_size,
+    )
+
+    by_schema_endpoint = "/core/metadatafields/search/bySchema"
+    for prefix in sorted(set(schema_prefixes)):
+
+        async def schema_loader(
+            *, page: int, size: int, schema_prefix: str = prefix
+        ) -> HalCollectionPage:
+            return await client.get_metadata_fields_by_schema_page(
+                schema_prefix,
+                page=page,
+                size=size,
+            )
+
+        await _collect_surface(
+            session,
+            run=run,
+            surface=f"metadata_fields_by_schema:{prefix}",
+            endpoint=by_schema_endpoint,
+            loader=schema_loader,
+            page_size=page_size,
+            request_params_extra={"schema": prefix},
+        )
 
 
 async def _collect_active_definition(
@@ -65,9 +148,6 @@ async def _collect_active_definition(
     surface = "active_submission_definition"
     endpoint = "/config/submissiondefinitions/search/findByCollection"
 
-    # Always re-observe the singleton. The append-only store validates an already
-    # persisted page idempotently; if the active definition changed mid-run, the
-    # provenance/hash conflict aborts the run instead of mixing old and new state.
     payload = await client.get_submission_definition_for_collection(collection_uuid)
     definition_name = payload.get("name")
     if not isinstance(definition_name, str) or not definition_name:
@@ -124,8 +204,6 @@ async def collect_contract_run(
         await session.commit()
 
     surfaces: tuple[tuple[str, str, SurfaceLoader], ...] = (
-        ("metadata_schemas", "/core/metadataschemas", client.get_metadata_schemas_page),
-        ("metadata_fields", "/core/metadatafields", client.get_metadata_fields_page),
         (
             "submission_definitions",
             "/config/submissiondefinitions",
@@ -144,6 +222,12 @@ async def collect_contract_run(
     )
 
     try:
+        await _collect_metadata_registry(
+            session,
+            run=run,
+            client=client,
+            page_size=page_size,
+        )
         for surface_name, endpoint_path, loader in surfaces:
             await _collect_surface(
                 session,
