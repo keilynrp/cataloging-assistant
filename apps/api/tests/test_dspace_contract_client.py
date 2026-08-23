@@ -2,7 +2,7 @@ import asyncio
 
 import httpx
 
-from cataloging_api.dspace.client import DSpaceClient
+from cataloging_api.dspace.client import DSpaceClient, DSpaceError
 
 
 def _hal_page(relation: str) -> dict:
@@ -109,3 +109,69 @@ def test_repeating_same_page_request_is_observationally_idempotent() -> None:
 
     asyncio.run(run())
     assert calls == 2
+
+
+def test_normalized_items_cannot_mutate_raw_hal_evidence() -> None:
+    expected = _hal_page("metadatafields")
+
+    def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=expected)
+
+    async def run() -> None:
+        async with DSpaceClient(
+            "https://dspace.example/server/api",
+            transport=httpx.MockTransport(handler),
+        ) as client:
+            page = await client.get_metadata_fields_page(page=0)
+
+        page.items[0]["name"] = "mutated"
+        assert page.raw_payload == expected
+        assert page.raw_payload["_embedded"]["metadatafields"][0]["name"] == "first"
+
+    asyncio.run(run())
+
+
+def test_missing_hal_relation_is_rejected() -> None:
+    malformed = {"_embedded": {}, "page": {"number": 0, "totalPages": 1, "totalElements": 0}}
+
+    def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=malformed)
+
+    async def run() -> None:
+        async with DSpaceClient(
+            "https://dspace.example/server/api",
+            transport=httpx.MockTransport(handler),
+        ) as client:
+            try:
+                await client.get_metadata_fields_page(page=0)
+            except DSpaceError as exc:
+                assert exc.code == "invalid_hal"
+            else:
+                raise AssertionError("missing HAL relation must be rejected")
+
+    asyncio.run(run())
+
+
+def test_malformed_hal_relation_is_rejected() -> None:
+    malformed_payloads = [
+        {"_embedded": {"metadatafields": {}}, "page": {}},
+        {"_embedded": {"metadatafields": [{"id": 1}, "not-an-object"]}, "page": {}},
+    ]
+
+    async def run(payload: dict) -> None:
+        def handler(_: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, json=payload)
+
+        async with DSpaceClient(
+            "https://dspace.example/server/api",
+            transport=httpx.MockTransport(handler),
+        ) as client:
+            try:
+                await client.get_metadata_fields_page(page=0)
+            except DSpaceError as exc:
+                assert exc.code == "invalid_hal"
+            else:
+                raise AssertionError("malformed HAL relation must be rejected")
+
+    for payload in malformed_payloads:
+        asyncio.run(run(payload))
