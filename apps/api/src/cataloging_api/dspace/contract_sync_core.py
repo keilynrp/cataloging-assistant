@@ -18,8 +18,7 @@ from cataloging_api.dspace.contract_store import (
     persist_page_and_advance_checkpoint,
 )
 
-COLLECTOR_VERSION = "vertical-022/1"
-
+COLLECTOR_VERSION = "vertical-022/2"
 SurfaceLoader = Callable[..., Awaitable[HalCollectionPage]]
 
 
@@ -33,7 +32,6 @@ async def _collect_surface(
     page_size: int,
 ) -> None:
     page_number = checkpoint_next_page(run, surface)
-
     while True:
         page = await loader(page=page_number, size=page_size)
         if page.page != page_number:
@@ -41,7 +39,6 @@ async def _collect_surface(
                 "invalid_hal",
                 f"DSpace returned page {page.page} for requested page {page_number} at {endpoint}",
             )
-
         await persist_page_and_advance_checkpoint(
             session,
             run=run,
@@ -51,26 +48,47 @@ async def _collect_surface(
             request_params={"page": page_number, "size": page_size},
             raw_payload=page.raw_payload,
         )
-        # Evidence + checkpoint become durable atomically before another page is requested.
         await session.commit()
-
         if page.total_pages <= page.page + 1:
             return
         page_number = checkpoint_next_page(run, surface)
+
+
+async def _collect_active_definition(
+    session: AsyncSession,
+    *,
+    run: DSpaceContractSyncRun,
+    client: DSpaceClient,
+    collection_uuid: str,
+) -> None:
+    surface = "active_submission_definition"
+    if checkpoint_next_page(run, surface) > 0:
+        return
+    endpoint = "/config/submissiondefinitions/search/findByCollection"
+    payload = await client.get_submission_definition_for_collection(collection_uuid)
+    if not isinstance(payload.get("name"), str):
+        raise DSpaceError("invalid_hal", "Active submission definition lacks a name")
+    await persist_page_and_advance_checkpoint(
+        session,
+        run=run,
+        surface=surface,
+        endpoint=endpoint,
+        page_number=0,
+        request_params={"uuid": collection_uuid},
+        raw_payload=payload,
+    )
+    await session.commit()
 
 
 async def collect_contract_run(
     session: AsyncSession,
     client: DSpaceClient,
     *,
+    collection_uuid: str | None = None,
     collector_version: str = COLLECTOR_VERSION,
     page_size: int = 100,
 ) -> DSpaceContractSyncRun:
-    """Collect all required contract surfaces with resumable page checkpoints.
-
-    This slice creates no comparable snapshot and performs no baseline promotion.
-    A complete run is only an immutable acquisition unit for later canonicalization.
-    """
+    """Collect contract evidence. No snapshot or baseline promotion occurs here."""
 
     run = await find_resumable_run(session, collector_version=collector_version)
     if run is None:
@@ -96,6 +114,11 @@ async def collect_contract_run(
             "/config/submissionsections",
             client.get_submission_sections_page,
         ),
+        (
+            "submission_forms",
+            "/config/submissionforms",
+            client.get_submission_forms_page,
+        ),
     )
 
     try:
@@ -107,6 +130,13 @@ async def collect_contract_run(
                 endpoint=endpoint,
                 loader=loader,
                 page_size=page_size,
+            )
+        if collection_uuid:
+            await _collect_active_definition(
+                session,
+                run=run,
+                client=client,
+                collection_uuid=collection_uuid,
             )
     except DSpaceError as exc:
         await mark_run_interrupted(
