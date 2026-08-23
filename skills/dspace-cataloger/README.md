@@ -17,61 +17,54 @@ A skill version is considered repository-preserved only when its complete artifa
 ```text
 skills/dspace-cataloger/
   README.md
+  CURRENT_RELEASE.md
   versions/
   audits/
   migrations/
 ```
 
-Expected naming examples:
-
-```text
-versions/dspace-cataloger-v3.8.skill
-versions/v3.9/
-audits/dspace-cataloger-v3.9-audit.json
-migrations/dspace-cataloger-v3.8-to-v3.9-alignment-report.md
-```
-
 ## Current repository-preserved version
 
-**3.9 — CURRENT / CANONICAL / REPOSITORY-PRESERVED**
+**3.9.1 — CURRENT / CANONICAL / REPOSITORY-PRESERVED**
 
 Canonical preservation representation:
 
-`skills/dspace-cataloger/versions/v3.9/`
+`skills/dspace-cataloger/versions/v3.9.1/`
 
 Artifact identity:
 
-- canonical artifact name: `dspace-cataloger-v3.9.skill`;
-- representation: lossless Base64 multipart;
-- original size: `122755` bytes;
-- Base64 representation length: `163676` characters;
-- SHA-256: `81e20a04162c8d6631eff7f5555e980102a68532d16e052731e015e1e615679e`;
+- canonical artifact name: `dspace-cataloger-v3.9.1.skill`;
+- representation: lossless Base64 multipart with repaired explicit continuations;
+- original size: `130657` bytes;
+- Base64 representation length: `174212` characters;
+- SHA-256: `b099ff6e3e15cf6f033b36ea9d3e2f265cff3811c092a31e6f9e7d74d1e483e9`;
 - ZIP integrity: `PASS`;
-- JSON validation: `PASS` (`33` JSON members);
-- package files: `80`;
+- JSON validation: `PASS` (`35` JSON members);
+- package files: `82`;
 - form bindings: `56`;
-- Golden Set: `GR01–GR20` present.
+- Golden Set: `GR01–GR22` present.
 
 Canonical evidence:
 
-- [`versions/v3.9/manifest.json`](versions/v3.9/manifest.json)
-- [`versions/v3.9/RECONSTRUCT.md`](versions/v3.9/RECONSTRUCT.md)
-- [`audits/dspace-cataloger-v3.9-audit.json`](audits/dspace-cataloger-v3.9-audit.json)
+- [`CURRENT_RELEASE.md`](CURRENT_RELEASE.md)
+- [`versions/v3.9.1/manifest.json`](versions/v3.9.1/manifest.json)
+- [`versions/v3.9.1/RECONSTRUCT.md`](versions/v3.9.1/RECONSTRUCT.md)
+- [`versions/v3.9.1/RELEASE-NOTES.md`](versions/v3.9.1/RELEASE-NOTES.md)
+- [`audits/dspace-cataloger-v3.9.1-audit.json`](audits/dspace-cataloger-v3.9.1-audit.json)
 
-The multipart representation is lossless and reconstructs the original artifact identified by the SHA-256 above. The manifest records the exact reconstruction order and Git blob SHA-1 for every part.
+The v3.9.1 repository representation reconstructs the artifact identified by the SHA-256 above. The manifest defines the canonical reconstruction order, including two explicit continuation segments that restore `7097` Base64 characters lost during the original connector upload. GitHub-observed segment sizes total exactly `174212` characters.
 
-## Historical migration candidates
+## Preserved versions
 
-Historical evidence indicates the prior existence of the following artifacts:
-
-| Version | Historical artifact | GitHub preservation status |
+| Version | Artifact | GitHub preservation status |
 | --- | --- | --- |
 | 3.5 | `dspace-cataloger-v3.5.skill` | `PENDING_MIGRATION` |
 | 3.6 | `dspace-cataloger-v3.6.skill` | `PENDING_MIGRATION` |
 | 3.8 | `dspace-cataloger-v3.8.skill` | `PENDING_MIGRATION` |
-| 3.9 | `dspace-cataloger-v3.9.skill` | `CURRENT / CANONICAL / REPOSITORY-PRESERVED` |
+| 3.9 | `dspace-cataloger-v3.9.skill` | `SUPERSEDED / REPOSITORY-PRESERVED` |
+| 3.9.1 | `dspace-cataloger-v3.9.1.skill` | `CURRENT / CANONICAL / REPOSITORY-PRESERVED` |
 
-The earlier entries are discovery and migration records only. They do not assert that the corresponding complete historical artifacts are currently preserved in GitHub.
+The v3.9.1 audit records `SOURCE_VARIANCE_RECORDED`: the local v3.9 artifact used as the direct patch base and the repository-preserved v3.9 artifact do not share the same SHA-256. The repository does not claim byte-identical lineage between those two v3.9 artifacts.
 
 ## Preservation requirements
 
