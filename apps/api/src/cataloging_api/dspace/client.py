@@ -1,4 +1,5 @@
 import asyncio
+import copy
 import random
 from dataclasses import dataclass
 from typing import Any
@@ -19,6 +20,21 @@ class DiscoverPage:
     page: int
     total_pages: int
     total_elements: int
+
+
+@dataclass(frozen=True)
+class HalCollectionPage:
+    """One immutable observation page from a DSpace HAL collection.
+
+    ``raw_payload`` is intentionally preserved so VERTICAL-022 can persist the
+    exact HAL+JSON evidence before a checkpoint advances.
+    """
+
+    items: list[dict[str, Any]]
+    page: int
+    total_pages: int
+    total_elements: int
+    raw_payload: dict[str, Any]
 
 
 class DSpaceClient:
@@ -88,6 +104,35 @@ class DSpaceClient:
         delay = min(8.0, 0.5 * (2**attempt)) + random.uniform(0, 0.25)
         await asyncio.sleep(delay)
 
+    async def _get_collection_page(
+        self,
+        path: str,
+        relation: str,
+        *,
+        page: int,
+        size: int,
+    ) -> HalCollectionPage:
+        payload = await self._get(path, params={"page": page, "size": size})
+        embedded = payload.get("_embedded")
+        if not isinstance(embedded, dict) or relation not in embedded:
+            raise DSpaceError("invalid_hal", f"Expected HAL relation {relation} at {path}")
+        values = embedded[relation]
+        if not isinstance(values, list) or any(not isinstance(value, dict) for value in values):
+            raise DSpaceError("invalid_hal", f"Expected object list for HAL relation {relation} at {path}")
+        page_info = payload.get("page", {})
+        if not isinstance(page_info, dict):
+            raise DSpaceError("invalid_hal", f"Expected page metadata at {path}")
+
+        items = copy.deepcopy(values)
+        raw_payload = copy.deepcopy(payload)
+        return HalCollectionPage(
+            items=items,
+            page=int(page_info.get("number", page)),
+            total_pages=int(page_info.get("totalPages", 0)),
+            total_elements=int(page_info.get("totalElements", len(items))),
+            raw_payload=raw_payload,
+        )
+
     async def get_root(self) -> dict[str, Any]:
         return await self._get("")
 
@@ -104,6 +149,30 @@ class DSpaceClient:
     async def get_bundle_bitstreams(self, bundle_uuid: str) -> list[dict[str, Any]]:
         payload = await self._get(f"/core/bundles/{bundle_uuid}/bitstreams", params={"size": 100})
         return _embedded_list(payload, "bitstreams")
+
+    async def get_metadata_schemas_page(self, *, page: int, size: int = 100) -> HalCollectionPage:
+        return await self._get_collection_page(
+            "/core/metadataschemas", "metadataschemas", page=page, size=size
+        )
+
+    async def get_metadata_fields_page(self, *, page: int, size: int = 100) -> HalCollectionPage:
+        return await self._get_collection_page(
+            "/core/metadatafields", "metadatafields", page=page, size=size
+        )
+
+    async def get_submission_definitions_page(
+        self, *, page: int, size: int = 100
+    ) -> HalCollectionPage:
+        return await self._get_collection_page(
+            "/config/submissiondefinitions", "submissiondefinitions", page=page, size=size
+        )
+
+    async def get_submission_sections_page(
+        self, *, page: int, size: int = 100
+    ) -> HalCollectionPage:
+        return await self._get_collection_page(
+            "/config/submissionsections", "submissionsections", page=page, size=size
+        )
 
     async def discover_items(self, collection_uuid: str, *, page: int, size: int) -> DiscoverPage:
         payload = await self._get(
