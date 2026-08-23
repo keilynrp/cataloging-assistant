@@ -1,4 +1,5 @@
 import asyncio
+import copy
 import random
 from dataclasses import dataclass
 from typing import Any
@@ -112,16 +113,24 @@ class DSpaceClient:
         size: int,
     ) -> HalCollectionPage:
         payload = await self._get(path, params={"page": page, "size": size})
-        items = _embedded_list(payload, relation)
+        embedded = payload.get("_embedded")
+        if not isinstance(embedded, dict) or relation not in embedded:
+            raise DSpaceError("invalid_hal", f"Expected HAL relation {relation} at {path}")
+        values = embedded[relation]
+        if not isinstance(values, list) or any(not isinstance(value, dict) for value in values):
+            raise DSpaceError("invalid_hal", f"Expected object list for HAL relation {relation} at {path}")
         page_info = payload.get("page", {})
         if not isinstance(page_info, dict):
             raise DSpaceError("invalid_hal", f"Expected page metadata at {path}")
+
+        items = copy.deepcopy(values)
+        raw_payload = copy.deepcopy(payload)
         return HalCollectionPage(
             items=items,
             page=int(page_info.get("number", page)),
             total_pages=int(page_info.get("totalPages", 0)),
             total_elements=int(page_info.get("totalElements", len(items))),
-            raw_payload=payload,
+            raw_payload=raw_payload,
         )
 
     async def get_root(self) -> dict[str, Any]:
