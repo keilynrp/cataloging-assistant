@@ -24,11 +24,7 @@ class DiscoverPage:
 
 @dataclass(frozen=True)
 class HalCollectionPage:
-    """One immutable observation page from a DSpace HAL collection.
-
-    ``raw_payload`` is intentionally preserved so VERTICAL-022 can persist the
-    exact HAL+JSON evidence before a checkpoint advances.
-    """
+    """One immutable observation page from a DSpace HAL collection."""
 
     items: list[dict[str, Any]]
     page: int
@@ -78,9 +74,7 @@ class DSpaceClient:
                 raise DSpaceError("network_error", f"DSpace request failed at {path}") from exc
 
             if response.status_code == 404:
-                raise DSpaceError(
-                    "not_found", f"DSpace resource not found: {path}", status_code=404
-                )
+                raise DSpaceError("not_found", f"DSpace resource not found: {path}", status_code=404)
             if response.status_code == 429 or response.status_code >= 500:
                 if attempt < self._max_retries:
                     await self._backoff(attempt)
@@ -123,14 +117,12 @@ class DSpaceClient:
         if not isinstance(page_info, dict):
             raise DSpaceError("invalid_hal", f"Expected page metadata at {path}")
 
-        items = copy.deepcopy(values)
-        raw_payload = copy.deepcopy(payload)
         return HalCollectionPage(
-            items=items,
+            items=copy.deepcopy(values),
             page=int(page_info.get("number", page)),
             total_pages=int(page_info.get("totalPages", 0)),
-            total_elements=int(page_info.get("totalElements", len(items))),
-            raw_payload=raw_payload,
+            total_elements=int(page_info.get("totalElements", len(values))),
+            raw_payload=copy.deepcopy(payload),
         )
 
     async def get_root(self) -> dict[str, Any]:
@@ -174,15 +166,25 @@ class DSpaceClient:
             "/config/submissionsections", "submissionsections", page=page, size=size
         )
 
+    async def get_submission_forms_page(
+        self, *, page: int, size: int = 100
+    ) -> HalCollectionPage:
+        return await self._get_collection_page(
+            "/config/submissionforms", "submissionforms", page=page, size=size
+        )
+
+    async def get_submission_definition_for_collection(
+        self, collection_uuid: str
+    ) -> dict[str, Any]:
+        return await self._get(
+            "/config/submissiondefinitions/search/findByCollection",
+            params={"uuid": collection_uuid},
+        )
+
     async def discover_items(self, collection_uuid: str, *, page: int, size: int) -> DiscoverPage:
         payload = await self._get(
             "/discover/search/objects",
-            params={
-                "dsoType": "ITEM",
-                "scope": collection_uuid,
-                "page": page,
-                "size": size,
-            },
+            params={"dsoType": "ITEM", "scope": collection_uuid, "page": page, "size": size},
         )
         search_result = payload.get("_embedded", {}).get("searchResult", {})
         objects = search_result.get("_embedded", {}).get("objects", [])
