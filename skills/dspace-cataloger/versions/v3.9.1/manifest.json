@@ -2,7 +2,7 @@
   "skill": "dspace-cataloger",
   "version": "3.9.1",
   "artifact": "dspace-cataloger-v3.9.1.skill",
-  "representation": "base64-multipart-with-explicit-continuations",
+  "representation": "lossless-base64-multipart-with-repaired-continuations",
   "sizeBytes": 130657,
   "base64Length": 174212,
   "sha256": "b099ff6e3e15cf6f033b36ea9d3e2f265cff3811c092a31e6f9e7d74d1e483e9",
@@ -11,6 +11,7 @@
     "dspace-cataloger-v3.9.1.skill.b64.part02",
     "dspace-cataloger-v3.9.1.skill.b64.part03",
     "dspace-cataloger-v3.9.1.skill.b64.part03.tail01",
+    "dspace-cataloger-v3.9.1.skill.b64.part03.tail01.cont",
     "dspace-cataloger-v3.9.1.skill.b64.part03.tail02",
     "dspace-cataloger-v3.9.1.skill.b64.part04",
     "dspace-cataloger-v3.9.1.skill.b64.part05",
@@ -20,13 +21,15 @@
     "dspace-cataloger-v3.9.1.skill.b64.part09",
     "dspace-cataloger-v3.9.1.skill.b64.part10",
     "dspace-cataloger-v3.9.1.skill.b64.part11",
+    "dspace-cataloger-v3.9.1.skill.b64.part11.cont",
     "dspace-cataloger-v3.9.1.skill.b64.part11.tail"
   ],
-  "expectedEncodedSegmentLengths": {
+  "observedEncodedSegmentLengths": {
     "part01": 16000,
     "part02": 16000,
     "part03_initial": 5868,
-    "part03_tail01": 5000,
+    "part03_tail01": 3060,
+    "part03_tail01_cont": 1940,
     "part03_tail02": 5132,
     "part04": 16000,
     "part05": 16000,
@@ -35,8 +38,22 @@
     "part08": 16000,
     "part09": 16000,
     "part10": 16000,
-    "part11_initial": 12305,
+    "part11_initial": 7148,
+    "part11_cont": 5157,
     "part11_tail": 1907
+  },
+  "preservationRepair": {
+    "reason": "PR #26 review identified connector-truncated Base64 payloads in part03.tail01 and part11.",
+    "missingCharactersRestored": 7097,
+    "restoredSegments": {
+      "part03_tail01_cont": 1940,
+      "part11_cont": 5157
+    },
+    "githubObservedLengthTotal": 174212,
+    "githubObservedLengthAudit": "PASS",
+    "continuationsDerivedFromCanonicalArtifactBase64": true,
+    "canonicalArtifactLocalRoundTrip": "PASS",
+    "canonicalArtifactZipIntegrity": "PASS"
   },
   "validation": {
     "zipIntegrity": "PASS",
@@ -51,7 +68,15 @@
     "humanApprovalRequired": true,
     "runtimeOcr": false,
     "runtimeDspaceWrite": false,
-    "runtimeAgentMutations": false
+    "runtimeAgentMutations": false,
+    "runtimeDraftableLinguisticFields": [
+      "dc.description.registeredLanguage",
+      "dc.subject.linguiscgroup",
+      "dc.subject.linguisticFamily",
+      "dc.subject.linguisticBranch",
+      "dc.subject.linguisticVariant"
+    ],
+    "languageUsageRuntimeDraftable": false
   },
   "lineage": {
     "status": "SOURCE_VARIANCE_RECORDED",
