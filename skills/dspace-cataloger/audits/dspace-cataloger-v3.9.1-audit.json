@@ -14,11 +14,8 @@
   "formBindingCount": 56,
   "goldenSet": {
     "count": 22,
-    "gr01_gr20_preservedByteForByte": true,
-    "newFixtures": [
-      "GR21",
-      "GR22"
-    ]
+    "gr01_gr20_preservedByteForByteAgainstLocalPatchBase": true,
+    "newFixtures": ["GR21", "GR22"]
   },
   "checks": {
     "form_binding_count_56": true,
@@ -32,10 +29,21 @@
     "gr22_present": true
   },
   "jsonErrors": [],
-  "parentArtifact": {
-    "release": "v3.9",
-    "sha256": "76fdc4674ef6b58474d224742005fbf6d4e885db80545ab1d9aa7a3e4e01c06c",
-    "verifiedExact": true
+  "lineage": {
+    "localPatchBase": {
+      "releaseLabel": "v3.9",
+      "sha256": "76fdc4674ef6b58474d224742005fbf6d4e885db80545ab1d9aa7a3e4e01c06c",
+      "sizeBytes": 122289,
+      "relationship": "DIRECT_PATCH_BASE"
+    },
+    "repositoryPreservedPredecessor": {
+      "releaseLabel": "v3.9",
+      "sha256": "81e20a04162c8d6631eff7f5555e980102a68532d16e052731e015e1e615679e",
+      "sizeBytes": 122755,
+      "relationship": "REPOSITORY_CANONICAL_PREDECESSOR"
+    },
+    "status": "SOURCE_VARIANCE_RECORDED",
+    "note": "The v3.9 local artifact used to build this patch is not byte-identical to the repository-preserved v3.9 artifact. No exact byte-lineage claim is made between those two v3.9 artifacts. v3.9.1 is preserved and independently verifiable by its own SHA-256."
   },
-  "changePolicy": "ADDITIVE_PATCH_NO_GOLDEN_SET_REPLACEMENT"
+  "changePolicy": "ADDITIVE_PATCH_WITH_RECORDED_SOURCE_VARIANCE"
 }
