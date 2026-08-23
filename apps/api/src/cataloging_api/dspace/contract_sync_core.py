@@ -68,12 +68,7 @@ async def _collect_metadata_registry(
     client: DSpaceClient,
     page_size: int,
 ) -> None:
-    """Collect schemas and every metadata field with an explicit schema identity.
-
-    Schema pages are intentionally re-observed from page zero on resume. Existing
-    evidence is validated idempotently, preventing a resumed run from mixing two
-    different schema registries.
-    """
+    """Collect schemas and every metadata field with explicit schema identity."""
 
     schema_prefixes: list[str] = []
     page_number = 0
@@ -104,7 +99,6 @@ async def _collect_metadata_registry(
             break
         page_number += 1
 
-    # Preserve the global registry as an independent coverage check.
     await _collect_surface(
         session,
         run=run,
@@ -186,11 +180,14 @@ async def collect_contract_run(
     session: AsyncSession,
     client: DSpaceClient,
     *,
-    collection_uuid: str | None = None,
+    collection_uuid: str,
     collector_version: str = COLLECTOR_VERSION,
     page_size: int = 100,
 ) -> DSpaceContractSyncRun:
-    """Collect contract evidence. No snapshot or baseline promotion occurs here."""
+    """Collect a complete collection-scoped contract observation."""
+
+    if not collection_uuid:
+        raise ValueError("collection_uuid_required")
 
     run = await find_resumable_run(session, collector_version=collector_version)
     if run is None:
@@ -237,14 +234,13 @@ async def collect_contract_run(
                 loader=loader,
                 page_size=page_size,
             )
-        if collection_uuid:
-            await _collect_active_definition(
-                session,
-                run=run,
-                client=client,
-                collection_uuid=collection_uuid,
-                page_size=page_size,
-            )
+        await _collect_active_definition(
+            session,
+            run=run,
+            client=client,
+            collection_uuid=collection_uuid,
+            page_size=page_size,
+        )
     except DSpaceError as exc:
         await mark_run_interrupted(
             session,
