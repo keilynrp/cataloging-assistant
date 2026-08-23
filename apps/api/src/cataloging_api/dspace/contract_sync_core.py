@@ -64,26 +64,24 @@ async def _collect_active_definition(
 ) -> None:
     surface = "active_submission_definition"
     endpoint = "/config/submissiondefinitions/search/findByCollection"
-    if checkpoint_next_page(run, surface) == 0:
-        payload = await client.get_submission_definition_for_collection(collection_uuid)
-        definition_name = payload.get("name")
-        if not isinstance(definition_name, str) or not definition_name:
-            raise DSpaceError("invalid_hal", "Active submission definition lacks a name")
-        await persist_page_and_advance_checkpoint(
-            session,
-            run=run,
-            surface=surface,
-            endpoint=endpoint,
-            page_number=0,
-            request_params={"uuid": collection_uuid},
-            raw_payload=payload,
-        )
-        await session.commit()
-    else:
-        payload = await client.get_submission_definition_for_collection(collection_uuid)
-        definition_name = payload.get("name")
-        if not isinstance(definition_name, str) or not definition_name:
-            raise DSpaceError("invalid_hal", "Active submission definition lacks a name")
+
+    # Always re-observe the singleton. The append-only store validates an already
+    # persisted page idempotently; if the active definition changed mid-run, the
+    # provenance/hash conflict aborts the run instead of mixing old and new state.
+    payload = await client.get_submission_definition_for_collection(collection_uuid)
+    definition_name = payload.get("name")
+    if not isinstance(definition_name, str) or not definition_name:
+        raise DSpaceError("invalid_hal", "Active submission definition lacks a name")
+    await persist_page_and_advance_checkpoint(
+        session,
+        run=run,
+        surface=surface,
+        endpoint=endpoint,
+        page_number=0,
+        request_params={"uuid": collection_uuid},
+        raw_payload=payload,
+    )
+    await session.commit()
 
     sections_endpoint = f"/config/submissiondefinitions/{definition_name}/sections"
 
@@ -128,18 +126,30 @@ async def collect_contract_run(
     surfaces: tuple[tuple[str, str, SurfaceLoader], ...] = (
         ("metadata_schemas", "/core/metadataschemas", client.get_metadata_schemas_page),
         ("metadata_fields", "/core/metadatafields", client.get_metadata_fields_page),
-        ("submission_definitions", "/config/submissiondefinitions", client.get_submission_definitions_page),
-        ("submission_sections", "/config/submissionsections", client.get_submission_sections_page),
-        ("submission_forms", "/config/submissionforms", client.get_submission_forms_page),
+        (
+            "submission_definitions",
+            "/config/submissiondefinitions",
+            client.get_submission_definitions_page,
+        ),
+        (
+            "submission_sections",
+            "/config/submissionsections",
+            client.get_submission_sections_page,
+        ),
+        (
+            "submission_forms",
+            "/config/submissionforms",
+            client.get_submission_forms_page,
+        ),
     )
 
     try:
-        for surface, endpoint, loader in surfaces:
+        for surface_name, endpoint_path, loader in surfaces:
             await _collect_surface(
                 session,
                 run=run,
-                surface=surface,
-                endpoint=endpoint,
+                surface=surface_name,
+                endpoint=endpoint_path,
                 loader=loader,
                 page_size=page_size,
             )
