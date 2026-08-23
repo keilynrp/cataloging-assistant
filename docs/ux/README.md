@@ -40,5 +40,6 @@ Execution evidence should record the target tool/project, prototype route or art
 8. `UX-PROMPT-003` — candidate selection and copy affordance. Status: `EXECUTED — ACCEPTED`.
 9. `UX-PROMPT-004` — pre-copy review flow. Status: `EXECUTED — ACCEPTED FOR CONTINUITY`; `UX004-DEBT-001` carried forward.
 10. `UX-PROMPT-005` — Inspector provenance focus. Status: `EXECUTED — AUDITED — ACCEPTED`; `UX004-DEBT-001` closed.
+11. `UX-PROMPT-006` — Inspector accessibility and density refinement. Status: `PROPOSED — NOT YET EXECUTED`; baseline `414097bf6f1f2a98a4e0b30e018b9eb26a1fa5a3`.
 
 The historical order is intentional: the first exploration is preserved as evidence that informed the later governance contract rather than being retrospectively presented as if it had been governed from the start. The three-region workspace topology and pane responsibilities remain frozen; subsequent iterations must continue to respect the governance contract.
