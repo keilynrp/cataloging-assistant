@@ -78,14 +78,14 @@ async def persist_snapshot(
     status: str,
     changes: list[ContractChange] | None = None,
 ) -> DSpaceContractSnapshot:
-    """Persist one immutable comparable view per acquisition run."""
+    """Persist immutable snapshot content while leaving governance status mutable."""
 
     result = await session.execute(
         select(DSpaceContractSnapshot).where(DSpaceContractSnapshot.run_id == run_id)
     )
     existing = result.scalar_one_or_none()
     if existing is not None:
-        if existing.semantic_hash != snapshot.semantic_hash or existing.status != status:
+        if existing.semantic_hash != snapshot.semantic_hash:
             raise ValueError("contract_snapshot_conflict")
         return existing
 
