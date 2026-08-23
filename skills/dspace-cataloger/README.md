@@ -34,7 +34,7 @@ Canonical preservation representation:
 Artifact identity:
 
 - canonical artifact name: `dspace-cataloger-v3.9.1.skill`;
-- representation: lossless Base64 multipart v2;
+- representation: lossless Base64 multipart with repaired explicit continuations;
 - original size: `130657` bytes;
 - Base64 representation length: `174212` characters;
 - SHA-256: `b099ff6e3e15cf6f033b36ea9d3e2f265cff3811c092a31e6f9e7d74d1e483e9`;
@@ -52,7 +52,7 @@ Canonical evidence:
 - [`versions/v3.9.1/RELEASE-NOTES.md`](versions/v3.9.1/RELEASE-NOTES.md)
 - [`audits/dspace-cataloger-v3.9.1-audit.json`](audits/dspace-cataloger-v3.9.1-audit.json)
 
-The v3.9.1 repository representation is lossless and must reconstruct the exact artifact identified by the SHA-256 above. The manifest defines the exact reconstruction order and expected payload lengths.
+The v3.9.1 repository representation reconstructs the artifact identified by the SHA-256 above. The manifest defines the canonical reconstruction order, including two explicit continuation segments that restore `7097` Base64 characters lost during the original connector upload. GitHub-observed segment sizes total exactly `174212` characters.
 
 ## Preserved versions
 
