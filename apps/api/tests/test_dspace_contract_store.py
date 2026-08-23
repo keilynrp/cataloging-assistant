@@ -6,10 +6,14 @@ import pytest
 from cataloging_api.dspace.contract_store import (
     DSpaceContractRawPage,
     DSpaceContractSyncRun,
+    RUN_COMPLETE,
     canonical_raw_hash,
     checkpoint_next_page,
     persist_page_and_advance_checkpoint,
 )
+
+ENDPOINT = "/core/metadatafields"
+PARAMS = {"page": 0, "size": 100}
 
 
 def _run() -> DSpaceContractSyncRun:
@@ -47,13 +51,15 @@ async def test_new_page_is_persisted_before_checkpoint_advances() -> None:
         session,
         run=run,
         surface="metadata_fields",
+        endpoint=ENDPOINT,
         page_number=0,
-        request_params={"page": 0, "size": 100},
+        request_params=PARAMS,
         raw_payload=payload,
     )
 
     session.add.assert_called_once_with(page)
     assert session.flush.await_count == 2
+    assert page.endpoint == ENDPOINT
     assert run.pages_completed == 1
     assert checkpoint_next_page(run, "metadata_fields") == 1
     assert run.raw_payload_hashes == [canonical_raw_hash(payload)]
@@ -67,8 +73,9 @@ async def test_retry_same_page_and_hash_is_idempotent() -> None:
         page_id=uuid.uuid4(),
         run_id=run.run_id,
         surface="metadata_fields",
+        endpoint=ENDPOINT,
         page_number=0,
-        request_params={"page": 0},
+        request_params=PARAMS,
         raw_payload=payload,
         raw_hash=canonical_raw_hash(payload),
     )
@@ -78,8 +85,9 @@ async def test_retry_same_page_and_hash_is_idempotent() -> None:
         session,
         run=run,
         surface="metadata_fields",
+        endpoint=ENDPOINT,
         page_number=0,
-        request_params={"page": 0},
+        request_params=PARAMS,
         raw_payload=payload,
     )
 
@@ -97,8 +105,9 @@ async def test_retry_same_page_with_different_evidence_never_overwrites() -> Non
         page_id=uuid.uuid4(),
         run_id=run.run_id,
         surface="metadata_fields",
+        endpoint=ENDPOINT,
         page_number=0,
-        request_params={"page": 0},
+        request_params=PARAMS,
         raw_payload=first_payload,
         raw_hash=canonical_raw_hash(first_payload),
     )
@@ -109,10 +118,59 @@ async def test_retry_same_page_with_different_evidence_never_overwrites() -> Non
             session,
             run=run,
             surface="metadata_fields",
+            endpoint=ENDPOINT,
             page_number=0,
-            request_params={"page": 0},
+            request_params=PARAMS,
             raw_payload={"_embedded": {"metadatafields": [{"id": 999}]}},
         )
 
     assert checkpoint_next_page(run, "metadata_fields") == 0
     session.add.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_retry_same_page_with_changed_provenance_is_rejected() -> None:
+    run = _run()
+    payload = {"_embedded": {"metadatafields": [{"id": 1}]}}
+    existing = DSpaceContractRawPage(
+        page_id=uuid.uuid4(),
+        run_id=run.run_id,
+        surface="metadata_fields",
+        endpoint=ENDPOINT,
+        page_number=0,
+        request_params=PARAMS,
+        raw_payload=payload,
+        raw_hash=canonical_raw_hash(payload),
+    )
+    session = _session_with_existing(existing)
+
+    with pytest.raises(ValueError, match="contract_raw_page_provenance_conflict"):
+        await persist_page_and_advance_checkpoint(
+            session,
+            run=run,
+            surface="metadata_fields",
+            endpoint="/other",
+            page_number=0,
+            request_params=PARAMS,
+            raw_payload=payload,
+        )
+
+
+@pytest.mark.asyncio
+async def test_complete_run_rejects_new_evidence() -> None:
+    run = _run()
+    run.status = RUN_COMPLETE
+    session = _session_with_existing(None)
+
+    with pytest.raises(ValueError, match="contract_sync_run_complete"):
+        await persist_page_and_advance_checkpoint(
+            session,
+            run=run,
+            surface="metadata_fields",
+            endpoint=ENDPOINT,
+            page_number=0,
+            request_params=PARAMS,
+            raw_payload={"_embedded": {"metadatafields": []}},
+        )
+
+    session.execute.assert_not_awaited()
