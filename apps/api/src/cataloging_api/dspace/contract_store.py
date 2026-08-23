@@ -58,6 +58,7 @@ class DSpaceContractRawPage(Base):
         ForeignKey("dspace_contract_sync_runs.run_id", ondelete="CASCADE"), index=True
     )
     surface: Mapped[str] = mapped_column(String(80))
+    endpoint: Mapped[str] = mapped_column(String(255))
     page_number: Mapped[int] = mapped_column(Integer)
     request_params: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     raw_payload: Mapped[dict[str, Any]] = mapped_column(JSONB)
@@ -119,6 +120,7 @@ async def persist_page_and_advance_checkpoint(
     *,
     run: DSpaceContractSyncRun,
     surface: str,
+    endpoint: str,
     page_number: int,
     request_params: dict[str, Any],
     raw_payload: dict[str, Any],
@@ -127,8 +129,11 @@ async def persist_page_and_advance_checkpoint(
 
     Retrying the same ``run_id + surface + page_number`` is idempotent when the raw
     hash is identical. A different payload for the same key is an evidence conflict
-    and is never overwritten.
+    and is never overwritten. Completed runs are immutable acquisition units.
     """
+
+    if run.status == RUN_COMPLETE:
+        raise ValueError("contract_sync_run_complete")
 
     raw_hash = canonical_raw_hash(raw_payload)
     result = await session.execute(
@@ -142,11 +147,14 @@ async def persist_page_and_advance_checkpoint(
     if existing is not None:
         if existing.raw_hash != raw_hash:
             raise ValueError("contract_raw_page_conflict")
+        if existing.endpoint != endpoint or existing.request_params != request_params:
+            raise ValueError("contract_raw_page_provenance_conflict")
         page = existing
     else:
         page = DSpaceContractRawPage(
             run_id=run.run_id,
             surface=surface,
+            endpoint=endpoint,
             page_number=page_number,
             request_params=request_params,
             raw_payload=raw_payload,
