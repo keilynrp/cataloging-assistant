@@ -28,6 +28,7 @@ async def _collect_surface(
     *,
     run: DSpaceContractSyncRun,
     surface: str,
+    endpoint: str,
     loader: SurfaceLoader,
     page_size: int,
 ) -> None:
@@ -35,10 +36,17 @@ async def _collect_surface(
 
     while True:
         page = await loader(page=page_number, size=page_size)
+        if page.page != page_number:
+            raise DSpaceError(
+                "invalid_hal",
+                f"DSpace returned page {page.page} for requested page {page_number} at {endpoint}",
+            )
+
         await persist_page_and_advance_checkpoint(
             session,
             run=run,
             surface=surface,
+            endpoint=endpoint,
             page_number=page.page,
             request_params={"page": page_number, "size": page_size},
             raw_payload=page.raw_payload,
@@ -75,19 +83,28 @@ async def collect_contract_run(
         run.failed_at = None
         await session.commit()
 
-    surfaces: tuple[tuple[str, SurfaceLoader], ...] = (
-        ("metadata_schemas", client.get_metadata_schemas_page),
-        ("metadata_fields", client.get_metadata_fields_page),
-        ("submission_definitions", client.get_submission_definitions_page),
-        ("submission_sections", client.get_submission_sections_page),
+    surfaces: tuple[tuple[str, str, SurfaceLoader], ...] = (
+        ("metadata_schemas", "/core/metadataschemas", client.get_metadata_schemas_page),
+        ("metadata_fields", "/core/metadatafields", client.get_metadata_fields_page),
+        (
+            "submission_definitions",
+            "/config/submissiondefinitions",
+            client.get_submission_definitions_page,
+        ),
+        (
+            "submission_sections",
+            "/config/submissionsections",
+            client.get_submission_sections_page,
+        ),
     )
 
     try:
-        for surface, loader in surfaces:
+        for surface, endpoint, loader in surfaces:
             await _collect_surface(
                 session,
                 run=run,
                 surface=surface,
+                endpoint=endpoint,
                 loader=loader,
                 page_size=page_size,
             )
