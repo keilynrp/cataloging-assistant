@@ -60,24 +60,48 @@ async def _collect_active_definition(
     run: DSpaceContractSyncRun,
     client: DSpaceClient,
     collection_uuid: str,
+    page_size: int,
 ) -> None:
     surface = "active_submission_definition"
-    if checkpoint_next_page(run, surface) > 0:
-        return
     endpoint = "/config/submissiondefinitions/search/findByCollection"
-    payload = await client.get_submission_definition_for_collection(collection_uuid)
-    if not isinstance(payload.get("name"), str):
-        raise DSpaceError("invalid_hal", "Active submission definition lacks a name")
-    await persist_page_and_advance_checkpoint(
+    if checkpoint_next_page(run, surface) == 0:
+        payload = await client.get_submission_definition_for_collection(collection_uuid)
+        definition_name = payload.get("name")
+        if not isinstance(definition_name, str) or not definition_name:
+            raise DSpaceError("invalid_hal", "Active submission definition lacks a name")
+        await persist_page_and_advance_checkpoint(
+            session,
+            run=run,
+            surface=surface,
+            endpoint=endpoint,
+            page_number=0,
+            request_params={"uuid": collection_uuid},
+            raw_payload=payload,
+        )
+        await session.commit()
+    else:
+        payload = await client.get_submission_definition_for_collection(collection_uuid)
+        definition_name = payload.get("name")
+        if not isinstance(definition_name, str) or not definition_name:
+            raise DSpaceError("invalid_hal", "Active submission definition lacks a name")
+
+    sections_endpoint = f"/config/submissiondefinitions/{definition_name}/sections"
+
+    async def sections_loader(*, page: int, size: int) -> HalCollectionPage:
+        return await client.get_submission_definition_sections_page(
+            definition_name,
+            page=page,
+            size=size,
+        )
+
+    await _collect_surface(
         session,
         run=run,
-        surface=surface,
-        endpoint=endpoint,
-        page_number=0,
-        request_params={"uuid": collection_uuid},
-        raw_payload=payload,
+        surface="active_submission_sections",
+        endpoint=sections_endpoint,
+        loader=sections_loader,
+        page_size=page_size,
     )
-    await session.commit()
 
 
 async def collect_contract_run(
@@ -104,21 +128,9 @@ async def collect_contract_run(
     surfaces: tuple[tuple[str, str, SurfaceLoader], ...] = (
         ("metadata_schemas", "/core/metadataschemas", client.get_metadata_schemas_page),
         ("metadata_fields", "/core/metadatafields", client.get_metadata_fields_page),
-        (
-            "submission_definitions",
-            "/config/submissiondefinitions",
-            client.get_submission_definitions_page,
-        ),
-        (
-            "submission_sections",
-            "/config/submissionsections",
-            client.get_submission_sections_page,
-        ),
-        (
-            "submission_forms",
-            "/config/submissionforms",
-            client.get_submission_forms_page,
-        ),
+        ("submission_definitions", "/config/submissiondefinitions", client.get_submission_definitions_page),
+        ("submission_sections", "/config/submissionsections", client.get_submission_sections_page),
+        ("submission_forms", "/config/submissionforms", client.get_submission_forms_page),
     )
 
     try:
@@ -137,6 +149,7 @@ async def collect_contract_run(
                 run=run,
                 client=client,
                 collection_uuid=collection_uuid,
+                page_size=page_size,
             )
     except DSpaceError as exc:
         await mark_run_interrupted(
