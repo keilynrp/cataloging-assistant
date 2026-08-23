@@ -66,6 +66,7 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("surface", sa.String(length=80), nullable=False),
+        sa.Column("endpoint", sa.String(length=255), nullable=False),
         sa.Column("page_number", sa.Integer(), nullable=False),
         sa.Column(
             "request_params",
