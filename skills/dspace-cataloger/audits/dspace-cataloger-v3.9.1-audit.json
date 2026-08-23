@@ -3,6 +3,7 @@
   "version": "3.9.1",
   "sourceVersion": "3.9",
   "generatedAt": "2026-08-23T09:50:00-06:00",
+  "preservationHotfixAt": "2026-08-23T11:55:00-06:00",
   "artifact": "dspace-cataloger-v3.9.1.skill",
   "sha256": "b099ff6e3e15cf6f033b36ea9d3e2f265cff3811c092a31e6f9e7d74d1e483e9",
   "sizeBytes": 130657,
@@ -26,7 +27,34 @@
     "runtime_dspace_write_false": true,
     "runtime_agent_mutations_false": true,
     "gr21_present": true,
-    "gr22_present": true
+    "gr22_present": true,
+    "runtime_registered_language_draftable": true,
+    "runtime_linguiscgroup_draftable": true,
+    "runtime_linguistic_family_draftable": true,
+    "runtime_linguistic_branch_draftable": true,
+    "runtime_linguistic_variant_draftable": true,
+    "runtime_language_usage_draftable": false
+  },
+  "repositoryPreservationHotfix": {
+    "trigger": "Codex review on PR #26",
+    "issuesAddressed": [
+      "P1 missing Base64 payload characters",
+      "P1 stale runtime-draftable field mirror",
+      "P2 stale root current-version registry"
+    ],
+    "missingBase64CharactersIdentified": 7097,
+    "restoredContinuations": {
+      "dspace-cataloger-v3.9.1.skill.b64.part03.tail01.cont": 1940,
+      "dspace-cataloger-v3.9.1.skill.b64.part11.cont": 5157
+    },
+    "githubObservedEncodedLength": 174212,
+    "githubObservedLengthAudit": "PASS",
+    "canonicalArtifactLocalRoundTrip": "PASS",
+    "canonicalArtifactZipIntegrity": "PASS",
+    "runtimeMirrorAlignedToApplicationContract": true,
+    "rootRegistryAligned": true,
+    "artifactBytesChanged": false,
+    "artifactSha256Changed": false
   },
   "jsonErrors": [],
   "lineage": {
@@ -45,5 +73,5 @@
     "status": "SOURCE_VARIANCE_RECORDED",
     "note": "The v3.9 local artifact used to build this patch is not byte-identical to the repository-preserved v3.9 artifact. No exact byte-lineage claim is made between those two v3.9 artifacts. v3.9.1 is preserved and independently verifiable by its own SHA-256."
   },
-  "changePolicy": "ADDITIVE_PATCH_WITH_RECORDED_SOURCE_VARIANCE"
+  "changePolicy": "ADDITIVE_PATCH_WITH_RECORDED_SOURCE_VARIANCE_AND_PRESERVATION_HOTFIX"
 }
