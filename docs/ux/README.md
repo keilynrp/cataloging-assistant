@@ -33,11 +33,12 @@ Execution evidence should record the target tool/project, prototype route or art
 1. `UX-PROMPT-001` — original Evidence Workspace exploration in Lovable. Status: `EXECUTED`.
 2. Evidence Navigator v0.1 — exploratory three-pane prototype.
 3. `UX-GOVERNANCE-CONTRACT.md` — normative UX/UI governance established after the exploration.
-4. `UX-DECISION-001` — durable three-pane Evidence Workspace architecture. Status: `ACCEPTED`.
+4. `UX-DECISION-001` — durable three-region Evidence Workspace architecture. Status: `ACCEPTED`.
 5. `UX-SPEC-001` — Evidence Workspace Contract Reconciliation.
-6. `UX-PROMPT-002` — Lovable v0.2 reconciliation prompt. Status: `PROPOSED`.
-7. `UX-RUNTIME-GAP-001` — pre-Lovable runtime-to-target gap analysis.
-8. `UX-ALIGNMENT-001` — pre-execution acceptance template; to be completed after v0.2 execution.
-9. UX contract freeze for the Evidence Workspace increment.
+6. `UX-PROMPT-002` — Lovable v0.2 reconciliation. Status: `EXECUTED — ACCEPTED`.
+7. `UX-RUNTIME-GAP-001` and `UX-ALIGNMENT-001` — runtime gap and alignment evidence for the frozen workspace.
+8. `UX-PROMPT-003` — candidate selection and copy affordance. Status: `EXECUTED — ACCEPTED`.
+9. `UX-PROMPT-004` — pre-copy review flow. Status: `EXECUTED — ACCEPTED FOR CONTINUITY`; `UX004-DEBT-001` carried forward.
+10. `UX-PROMPT-005` — Inspector provenance focus. Status: `EXECUTED — AUDITED — ACCEPTED`; `UX004-DEBT-001` closed.
 
-The historical order is intentional: the first exploration is preserved as evidence that informed the later governance contract rather than being retrospectively presented as if it had been governed from the start. `UX-DECISION-001` freezes only the durable workspace topology and pane responsibilities; it does not pre-accept the pending Lovable v0.2 implementation.
+The historical order is intentional: the first exploration is preserved as evidence that informed the later governance contract rather than being retrospectively presented as if it had been governed from the start. The three-region workspace topology and pane responsibilities remain frozen; subsequent iterations must continue to respect the governance contract.

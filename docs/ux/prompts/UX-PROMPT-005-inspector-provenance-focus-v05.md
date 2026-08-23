@@ -1,6 +1,6 @@
 # UX-PROMPT-005 — Inspector Provenance Focus v0.5
 
-Status: PROPOSED — NOT YET EXECUTED
+Status: EXECUTED — AUDITED — ACCEPTED
 
 Target: Lovable
 Project: Evidence Navigator
@@ -287,3 +287,17 @@ UX-PROMPT-005 se considera exitoso únicamente si:
 ## Execution policy
 
 DO NOT execute this prompt in Lovable until credits are available and execution is explicitly authorized.
+
+
+## Execution record
+
+- Executed: 2026-08-23
+- Lovable message ID: `umsg_01m0pv2jpkfhmbf97enspqk0je`
+- Lovable edit ID: `edt-216c3657-7465-40c0-96bf-06fd4cf8648b`
+- Resulting Lovable commit: `414097bf6f1f2a98a4e0b30e018b9eb26a1fa5a3`
+- Lovable cost: 4.8 credits
+- Typecheck: PASS
+- Public visual audit: PASS with minor observations
+- Execution evidence: `docs/ux/evidence/UX-PROMPT-005-EXECUTION-2026-08-23.md`
+
+The historical execution policy above was satisfied: credits were available and execution was explicitly authorized before the prompt was sent to Lovable.
