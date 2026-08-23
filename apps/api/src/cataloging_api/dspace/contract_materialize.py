@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from cataloging_api.dspace.contract_snapshot import (
+    ContractChange,
     ContractSnapshotView,
     build_contract_snapshot,
     diff_contract_snapshots,
@@ -60,7 +61,7 @@ def _as_view(record: DSpaceContractSnapshot) -> ContractSnapshotView:
 def classify_snapshot_status(
     active: DSpaceContractSnapshot | None,
     current: ContractSnapshotView,
-    changes: list,
+    changes: list[ContractChange],
 ) -> str:
     if active is None:
         return "BASELINE_REVIEW_REQUIRED" if current.complete else "REVIEW_REQUIRED"
