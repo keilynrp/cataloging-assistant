@@ -1,0 +1,49 @@
+{
+  "skill": "dspace-cataloger",
+  "version": "3.9.1",
+  "sourceVersion": "3.9",
+  "generatedAt": "2026-08-23T09:50:00-06:00",
+  "artifact": "dspace-cataloger-v3.9.1.skill",
+  "sha256": "b099ff6e3e15cf6f033b36ea9d3e2f265cff3811c092a31e6f9e7d74d1e483e9",
+  "sizeBytes": 130657,
+  "zipIntegrity": "PASS",
+  "packageRoot": "dspace-cataloger/",
+  "fileCount": 82,
+  "jsonValidation": "PASS",
+  "jsonFileCount": 35,
+  "formBindingCount": 56,
+  "goldenSet": {
+    "count": 22,
+    "gr01_gr20_preservedByteForByteAgainstLocalPatchBase": true,
+    "newFixtures": ["GR21", "GR22"]
+  },
+  "checks": {
+    "form_binding_count_56": true,
+    "literal_linguiscgroup_preserved": true,
+    "canonical_evidence_states_preserved": true,
+    "human_approval_required": true,
+    "runtime_ocr_false": true,
+    "runtime_dspace_write_false": true,
+    "runtime_agent_mutations_false": true,
+    "gr21_present": true,
+    "gr22_present": true
+  },
+  "jsonErrors": [],
+  "lineage": {
+    "localPatchBase": {
+      "releaseLabel": "v3.9",
+      "sha256": "76fdc4674ef6b58474d224742005fbf6d4e885db80545ab1d9aa7a3e4e01c06c",
+      "sizeBytes": 122289,
+      "relationship": "DIRECT_PATCH_BASE"
+    },
+    "repositoryPreservedPredecessor": {
+      "releaseLabel": "v3.9",
+      "sha256": "81e20a04162c8d6631eff7f5555e980102a68532d16e052731e015e1e615679e",
+      "sizeBytes": 122755,
+      "relationship": "REPOSITORY_CANONICAL_PREDECESSOR"
+    },
+    "status": "SOURCE_VARIANCE_RECORDED",
+    "note": "The v3.9 local artifact used to build this patch is not byte-identical to the repository-preserved v3.9 artifact. No exact byte-lineage claim is made between those two v3.9 artifacts. v3.9.1 is preserved and independently verifiable by its own SHA-256."
+  },
+  "changePolicy": "ADDITIVE_PATCH_WITH_RECORDED_SOURCE_VARIANCE"
+}
