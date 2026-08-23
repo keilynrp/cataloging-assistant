@@ -6,6 +6,7 @@ from sqlalchemy import engine_from_config, pool
 from cataloging_api.config import get_settings
 from cataloging_api.db import models  # noqa: F401
 from cataloging_api.db.base import Base
+from cataloging_api.dspace import contract_store as dspace_contract_models  # noqa: F401
 from cataloging_api.evidence import models as evidence_models  # noqa: F401
 
 config = context.config
