@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from types import SimpleNamespace
 
 from cataloging_api.cataloging_contract import FIELDS
@@ -96,9 +97,17 @@ def _fixture():
         warnings,
     )
     assert not warnings
+
+    # Mirror the live export artifact: its global-section fallback made the
+    # two relevant form positions 1/2 rather than local 0/1. That first
+    # position component is not authoritative; row/field/option positions are.
+    approved_bindings = deepcopy(bindings)
+    for binding in approved_bindings:
+        binding["position"][0] += 1
+
     effective = dict(observed_canonical)
     effective["sections"] = sections
-    effective["bindings"] = bindings
+    effective["bindings"] = approved_bindings
     active = SimpleNamespace(
         effective_hash=_json_hash(effective),
         effective_canonical_json=effective,
@@ -112,7 +121,7 @@ def _fixture():
     return active, observed, pages
 
 
-def test_exact_match_inherits_approved_204_resolution() -> None:
+def test_exact_match_inherits_approved_204_resolution_despite_form_position_offset() -> None:
     active, observed, pages = _fixture()
     inherited = build_inherited_effective_snapshot(
         active=active,
