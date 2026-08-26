@@ -7,6 +7,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from cataloging_api.dspace.contract_governance import governed_canonical, governed_hash
+from cataloging_api.dspace.contract_inheritance import (
+    apply_inherited_resolution,
+    build_inherited_effective_snapshot,
+)
 from cataloging_api.dspace.contract_snapshot import (
     ContractChange,
     ContractSnapshotView,
@@ -82,9 +86,10 @@ async def materialize_snapshot_for_run(
 ) -> DSpaceContractSnapshot:
     """Build and persist one governed snapshot from an immutable COMPLETE run.
 
-    This function never promotes a snapshot to ACTIVE. Only a complete first
-    observation, or a separately resolved evidence overlay, can become an
-    approvable baseline candidate.
+    A previously human-approved 204 resolution may be inherited only when the
+    new run independently reproduces the exact approved schemas, registry and
+    submission-form bindings. Inheritance never changes the observed snapshot
+    and never promotes a new baseline.
     """
 
     run = await session.get(DSpaceContractSyncRun, run_id)
@@ -94,17 +99,34 @@ async def materialize_snapshot_for_run(
         raise ValueError("contract_sync_run_not_complete")
 
     pages_by_surface = await _load_pages_by_surface(session, run_id=run_id)
-    current = build_contract_snapshot(pages_by_surface)
+    observed = build_contract_snapshot(pages_by_surface)
     active = await _active_snapshot(session)
-    changes = [] if active is None else diff_contract_snapshots(_as_view(active), current)
-    status = classify_snapshot_status(active, current, changes)
 
+    inherited: ContractSnapshotView | None = None
+    comparison = observed
+    if active is not None and not observed.complete:
+        inherited = build_inherited_effective_snapshot(
+            active=active,
+            observed=observed,
+            pages_by_surface=pages_by_surface,
+        )
+        if inherited is not None:
+            comparison = inherited
+
+    changes = [] if active is None else diff_contract_snapshots(_as_view(active), comparison)
+    status = classify_snapshot_status(active, comparison, changes)
+
+    # Persist the immutable REST observation, not the synthesized effective view.
     record = await persist_snapshot(
         session,
         run_id=run_id,
-        snapshot=current,
+        snapshot=observed,
         status=status,
         changes=changes,
     )
+    if inherited is not None and active is not None:
+        apply_inherited_resolution(record=record, active=active, inherited=inherited)
+        await session.flush()
+
     await session.commit()
     return record
