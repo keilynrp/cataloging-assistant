@@ -166,21 +166,107 @@ If the result is `REVIEW_REQUIRED` or `DRIFT_DETECTED`, do not enable the schedu
 
 Enable scheduling only after Step 7 succeeds.
 
-Recommended initial cadence:
+### 8.1 Repository-managed wrapper
 
-```cron
-0 3 * * *
-```
+The repository provides `scripts/dspace-contract-sync.sh`, a thin, auditable wrapper
+around the exact command from Step 4 (`make contract-sync` /
+`docker compose run --rm api python -m cataloging_api.dspace.contract_job`). The
+wrapper:
 
-Run the job inside the existing API runtime/container. For a host-level cron using Docker Compose, the conceptual command is:
+- runs under `set -euo pipefail`;
+- executes the job through the existing Docker Compose `api` service, never DSpace
+  directly;
+- runs the read-only contract job and nothing else — no approval, resolution, or
+  promotion call, no scheduler loop, no other command;
+- returns the contract job's own exit code (`0` on a completed run — regardless of
+  `contract_health` — non-zero on a job/auth/network failure such as a missing
+  credential or an unhandled exception);
+- writes timestamped, append-only operational output to a log file;
+- reads its Docker Compose invocation and service name from environment variables
+  (`COMPOSE`, `DSPACE_CONTRACT_SYNC_SERVICE`) so a Dokploy-managed compose project
+  name can be supplied without editing the script or committing anything — no
+  secret is read, set, or logged by the wrapper itself; DSpace credentials continue
+  to flow to the `api` service exclusively through the deployment's `.env` /
+  Dokploy environment, exactly as they already do for `docker compose up`.
+
+Nothing in the repository installs a cron entry automatically. Installing the
+schedule on the VPS/Dokploy host is a manual, opt-in step (8.2).
+
+### 8.2 Installation (manual, opt-in)
+
+On the VPS/Dokploy host, from the deployed repository checkout:
 
 ```bash
-cd /path/to/cataloging-assistant && docker compose run --rm api python -m cataloging_api.dspace.contract_job
+chmod +x scripts/dspace-contract-sync.sh
+crontab -e
 ```
 
-For Dokploy, configure the equivalent scheduled command against the API application/runtime rather than starting a scheduler loop inside FastAPI.
+Add a line conceptually equivalent to:
 
-Confirm the scheduler timezone explicitly. If the desired time is 03:00 in Mexico City, configure `America/Mexico_City` or translate the cron time to the scheduler timezone.
+```cron
+CRON_TZ=America/Mexico_City
+0 3 * * * /path/to/cataloging-assistant/scripts/dspace-contract-sync.sh
+```
+
+If the host's cron does not support the `CRON_TZ` prefix, either configure the
+crond service timezone to `America/Mexico_City` or translate `03:00
+America/Mexico_City` into the cron daemon's actual timezone before writing the
+entry. Confirm which one applies before enabling the schedule — do not guess.
+
+If Dokploy exposes its own scheduled-task/cron feature for the application, point
+it at the same script path and the same daily cadence instead of maintaining a
+duplicate host crontab entry. Do not run the job as a long-lived process or as a
+loop inside FastAPI.
+
+### 8.3 Manual verification
+
+Before trusting the installed schedule, run the wrapper once by hand exactly as
+cron would invoke it:
+
+```bash
+/path/to/cataloging-assistant/scripts/dspace-contract-sync.sh; echo "exit=$?"
+```
+
+Confirm:
+
+- the exit code is `0`;
+- the printed/logged JSON shows `contract_health = SYNCED`, `snapshot_status =
+  NO_CHANGE`, `resolution_inherited = true` (per Step 7);
+- a new line was appended to the log file (8.4).
+
+### 8.4 Log inspection
+
+The wrapper writes to `var/log/dspace-contract-sync/contract-sync.log` under the
+repository checkout by default (override with `DSPACE_CONTRACT_SYNC_LOG_DIR` /
+`DSPACE_CONTRACT_SYNC_LOG_FILE`). This path is git-ignored; it is operational
+output, not repository content.
+
+```bash
+tail -f /path/to/cataloging-assistant/var/log/dspace-contract-sync/contract-sync.log
+```
+
+Each run writes a `start` line, one `job:` line per line of job output (the job's
+JSON result), and a `completed` or `FAILED` summary line, each prefixed with a UTC
+timestamp. See Section 9 for how to interpret the JSON result.
+
+### 8.5 Removal / disable procedure
+
+To disable the schedule without touching governance state:
+
+```bash
+crontab -e   # remove or comment out the dspace-contract-sync.sh line
+```
+
+or, if configured through Dokploy's scheduler feature, disable/delete the
+scheduled task there instead. Disabling the schedule:
+
+- does not delete snapshots, raw pages, change records, or the last ACTIVE
+  baseline;
+- does not require a database change or a code deploy;
+- can be reversed by re-adding the same cron/Dokploy entry.
+
+To re-run a one-off observation without a schedule, invoke the wrapper (or `make
+contract-sync`) manually at any time — it is safe to run ad hoc.
 
 ## 9. Operational interpretation
 
