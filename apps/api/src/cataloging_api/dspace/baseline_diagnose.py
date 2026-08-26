@@ -6,7 +6,11 @@ import json
 import uuid
 from typing import Any
 
-from cataloging_api.cataloging_contract import FIELDS
+from cataloging_api.cataloging_contract import (
+    FIELDS,
+    live_dspace_label,
+    live_dspace_selector_label,
+)
 from cataloging_api.db.session import SessionFactory
 from cataloging_api.dspace.baseline_payload import _resolved_bindings, _resolved_sections
 from cataloging_api.dspace.contract_materialize import _load_pages_by_surface
@@ -60,7 +64,12 @@ def diagnose_bindings(bindings: list[dict[str, Any]]) -> dict[str, Any]:
         checks = (
             ("form", binding.get("form"), expected_form),
             ("metadata", binding.get("metadata"), expected.metadata_field),
-            ("label", binding.get("label"), expected.ui_label),
+            ("label", binding.get("label"), live_dspace_label(expected)),
+            (
+                "selectorLabel",
+                binding.get("selectorLabel"),
+                live_dspace_selector_label(expected),
+            ),
             ("required", bool(binding.get("required", False)), expected.required),
             ("repeatable", bool(binding.get("repeatable", False)), expected.repeatable),
             (
