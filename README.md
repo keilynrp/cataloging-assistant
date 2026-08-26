@@ -67,7 +67,7 @@ PostgreSQL
 Next.js web interface
 ```
 
-Detailed architectural decisions and implementation constraints are documented under [`docs/adr`](docs/adr) and [`docs/specs`](docs/specs).
+Detailed architectural decisions and implementation constraints are documented under [`docs/adr`](docs/adr) and the [`vertical specifications index`](docs/specs/README.md).
 
 ## Technology stack
 
@@ -157,7 +157,7 @@ The repository may evolve as the MVP grows. Specifications and ADRs are the pref
 Project documentation is organized by purpose:
 
 - [`docs/adr`](docs/adr) — architecture decisions and design constraints;
-- [`docs/specs`](docs/specs) — functional and technical specifications;
+- [`docs/specs/README.md`](docs/specs/README.md) — canonical index of functional and technical vertical specifications and evidence-backed lifecycle status;
 - [`docs/evaluation`](docs/evaluation) — evaluation methodology and evidence;
 - [`docs/ux`](docs/ux) — UX governance, prototypes, prompt history, and audit evidence.
 
