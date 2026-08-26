@@ -6,6 +6,7 @@ from collections import defaultdict
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from cataloging_api.dspace.contract_governance import governed_canonical, governed_hash
 from cataloging_api.dspace.contract_snapshot import (
     ContractChange,
     ContractSnapshotView,
@@ -51,9 +52,9 @@ async def _active_snapshot(session: AsyncSession) -> DSpaceContractSnapshot | No
 
 def _as_view(record: DSpaceContractSnapshot) -> ContractSnapshotView:
     return ContractSnapshotView(
-        canonical=record.canonical_json,
-        semantic_hash=record.semantic_hash,
-        complete=record.complete,
+        canonical=governed_canonical(record),
+        semantic_hash=governed_hash(record),
+        complete=True if record.effective_hash else record.complete,
         warnings=tuple(record.warnings or []),
     )
 
@@ -67,7 +68,7 @@ def classify_snapshot_status(
         return "BASELINE_REVIEW_REQUIRED" if current.complete else "REVIEW_REQUIRED"
     if not current.complete:
         return "REVIEW_REQUIRED"
-    if current.semantic_hash == active.semantic_hash:
+    if current.semantic_hash == governed_hash(active):
         return "NO_CHANGE"
     if any(change.severity in {"HIGH", "CRITICAL"} for change in changes):
         return "REVIEW_REQUIRED"
@@ -82,7 +83,8 @@ async def materialize_snapshot_for_run(
     """Build and persist one governed snapshot from an immutable COMPLETE run.
 
     This function never promotes a snapshot to ACTIVE. Only a complete first
-    observation can become BASELINE_REVIEW_REQUIRED.
+    observation, or a separately resolved evidence overlay, can become an
+    approvable baseline candidate.
     """
 
     run = await session.get(DSpaceContractSyncRun, run_id)
