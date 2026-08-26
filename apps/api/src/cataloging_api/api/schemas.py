@@ -260,6 +260,17 @@ class SuggestionHistoryOut(BaseModel):
     entries: list[SuggestionHistoryEntryOut]
 
 
+class ReadinessComponentOut(BaseModel):
+    name: str
+    status: str
+    detail_code: str
+
+
+class ReadinessOut(BaseModel):
+    status: str
+    components: list[ReadinessComponentOut]
+
+
 class SyncRunOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

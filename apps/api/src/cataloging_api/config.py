@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     evidence_remote_fetch_max_bytes: int = Field(default=25 * 1024 * 1024, gt=0)
     evidence_remote_fetch_max_redirects: int = Field(default=3, ge=0, le=10)
     evidence_remote_fetch_user_agent: str = "CatalogingAssistantEvidenceFetcher/1.0"
+    readiness_database_timeout_seconds: float = Field(default=2, gt=0, le=5)
 
     @property
     def required_fields(self) -> tuple[str, ...]:
