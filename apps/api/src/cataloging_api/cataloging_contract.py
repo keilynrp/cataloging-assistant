@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Final
 
-CONTRACT_VERSION: Final = "dspace-cataloger-v3.6"
+CONTRACT_VERSION: Final = "dspace-cataloger-v3.9.1"
 DSpace_VERSION: Final = "7.6.6"
 
 EVIDENCE_STATES: Final = (
