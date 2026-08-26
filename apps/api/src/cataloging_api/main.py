@@ -10,6 +10,7 @@ from cataloging_api.api.routes import router
 from cataloging_api.cataloging_contract_routes import router as cataloging_contract_router
 from cataloging_api.config import get_settings
 from cataloging_api.db.session import SessionFactory
+from cataloging_api.dspace.contract_routes import router as dspace_contract_router
 from cataloging_api.evidence.routes import router as evidence_router
 from cataloging_api.notifications.broadcaster import broadcaster
 from cataloging_api.notifications.routes import router as notifications_router
@@ -45,6 +46,7 @@ app.add_middleware(
 )
 app.include_router(router)
 app.include_router(cataloging_contract_router)
+app.include_router(dspace_contract_router)
 app.include_router(evidence_router)
 app.include_router(provenance_audit_router)
 app.include_router(dspace_vocabulary_router)

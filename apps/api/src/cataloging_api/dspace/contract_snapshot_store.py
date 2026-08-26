@@ -13,6 +13,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     select,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,6 +29,12 @@ class DSpaceContractSnapshot(Base):
     __table_args__ = (
         UniqueConstraint("run_id", name="uq_dspace_contract_snapshot_run"),
         Index("ix_dspace_contract_snapshots_status_created", "status", "created_at"),
+        Index(
+            "uq_dspace_contract_single_active",
+            "status",
+            unique=True,
+            postgresql_where=text("status = 'ACTIVE'"),
+        ),
     )
 
     snapshot_id: Mapped[uuid.UUID] = mapped_column(
@@ -41,6 +48,10 @@ class DSpaceContractSnapshot(Base):
     complete: Mapped[bool] = mapped_column(Boolean, nullable=False)
     canonical_json: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
     warnings: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
+    approved_by: Mapped[str | None] = mapped_column(String(120))
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    approval_note: Mapped[str | None] = mapped_column(Text)
+    approved_hash: Mapped[str | None] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), index=True
     )
