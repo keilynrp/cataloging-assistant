@@ -3,10 +3,12 @@ from __future__ import annotations
 from collections.abc import Awaitable, Callable
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from cataloging_api.dspace.client import DSpaceClient, DSpaceError, HalCollectionPage
 from cataloging_api.dspace.contract_store import (
+    DSpaceContractRawPage,
     DSpaceContractSyncRun,
     RUN_INTERRUPTED,
     RUN_RUNNING,
@@ -23,6 +25,49 @@ COLLECTOR_VERSION = "vertical-022/3"
 SurfaceLoader = Callable[..., Awaitable[HalCollectionPage]]
 
 
+async def _surface_checkpoint_is_complete(
+    session: AsyncSession,
+    *,
+    run: DSpaceContractSyncRun,
+    surface: str,
+) -> bool:
+    """Return True when persisted pagination proves this surface is complete.
+
+    A checkpoint stores the *next* page number. After an interrupted run, a
+    previously completed surface therefore has a checkpoint equal to
+    ``totalPages``. Re-requesting that page asks DSpace for an out-of-range page,
+    which this live DSpace instance represents without the expected HAL relation.
+    We only skip the request when the last persisted page from the same run proves
+    that all pages were already captured.
+    """
+
+    next_page = checkpoint_next_page(run, surface)
+    if next_page <= 0:
+        return False
+
+    result = await session.execute(
+        select(DSpaceContractRawPage).where(
+            DSpaceContractRawPage.run_id == run.run_id,
+            DSpaceContractRawPage.surface == surface,
+            DSpaceContractRawPage.page_number == next_page - 1,
+        )
+    )
+    last_page = result.scalar_one_or_none()
+    if last_page is None:
+        return False
+
+    page_info = (last_page.raw_payload or {}).get("page")
+    if not isinstance(page_info, dict):
+        return False
+    try:
+        returned_page = int(page_info.get("number", next_page - 1))
+        total_pages = int(page_info.get("totalPages", 0))
+    except (TypeError, ValueError):
+        return False
+
+    return returned_page == next_page - 1 and total_pages <= next_page
+
+
 async def _collect_surface(
     session: AsyncSession,
     *,
@@ -33,6 +78,9 @@ async def _collect_surface(
     page_size: int,
     request_params_extra: dict[str, Any] | None = None,
 ) -> None:
+    if await _surface_checkpoint_is_complete(session, run=run, surface=surface):
+        return
+
     page_number = checkpoint_next_page(run, surface)
     while True:
         page = await loader(page=page_number, size=page_size)
