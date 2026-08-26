@@ -166,14 +166,42 @@ async def _collect_active_definition(
             size=size,
         )
 
-    await _collect_surface(
-        session,
-        run=run,
-        surface="active_submission_sections",
-        endpoint=sections_endpoint,
-        loader=sections_loader,
-        page_size=page_size,
-    )
+    try:
+        await _collect_surface(
+            session,
+            run=run,
+            surface="active_submission_sections",
+            endpoint=sections_endpoint,
+            loader=sections_loader,
+            page_size=page_size,
+        )
+    except DSpaceError as exc:
+        if exc.status_code != 204:
+            raise
+        # The target DSpace 7.6.6 instance returns 204 No Content for this
+        # documented linked resource. Preserve that HTTP observation explicitly
+        # instead of treating it as an empty collection or aborting the entire run.
+        await persist_page_and_advance_checkpoint(
+            session,
+            run=run,
+            surface="active_submission_sections",
+            endpoint=sections_endpoint,
+            page_number=0,
+            request_params={"page": 0, "size": page_size},
+            raw_payload={
+                "_observation": {
+                    "observable": False,
+                    "statusCode": 204,
+                    "reason": "no_content",
+                },
+                "page": {
+                    "number": 0,
+                    "totalPages": 0,
+                    "totalElements": 0,
+                },
+            },
+        )
+        await session.commit()
 
 
 async def collect_contract_run(
