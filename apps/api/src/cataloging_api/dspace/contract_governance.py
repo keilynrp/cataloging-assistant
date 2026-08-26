@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from typing import Protocol
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,6 +13,14 @@ from cataloging_api.dspace.contract_snapshot_store import DSpaceContractSnapshot
 
 class ContractGovernanceError(ValueError):
     pass
+
+
+class SnapshotLike(Protocol):
+    snapshot_id: uuid.UUID
+    status: str
+    semantic_hash: str
+    complete: bool
+    approved_hash: str | None
 
 
 @dataclass(frozen=True)
@@ -59,6 +68,31 @@ def derive_contract_health(
     )
 
 
+def validate_approval_transition(
+    *,
+    candidate: SnapshotLike,
+    active: SnapshotLike | None,
+    expected_hash: str,
+) -> str:
+    """Return baseline|promotion|idempotent or raise a governed transition error."""
+
+    if candidate.semantic_hash != expected_hash:
+        raise ContractGovernanceError("snapshot_hash_mismatch")
+    if not candidate.complete:
+        raise ContractGovernanceError("incomplete_snapshot_cannot_be_approved")
+    if candidate.status == "ACTIVE":
+        if candidate.approved_hash != expected_hash:
+            raise ContractGovernanceError("active_snapshot_audit_mismatch")
+        return "idempotent"
+    if active is None:
+        if candidate.status != "BASELINE_REVIEW_REQUIRED":
+            raise ContractGovernanceError("baseline_candidate_required")
+        return "baseline"
+    if candidate.status not in {"DIFF_DETECTED", "REVIEW_REQUIRED"}:
+        raise ContractGovernanceError("reviewed_snapshot_required")
+    return "promotion"
+
+
 async def get_contract_health(session: AsyncSession) -> ContractHealth:
     active_result = await session.execute(
         select(DSpaceContractSnapshot)
@@ -93,10 +127,6 @@ async def approve_snapshot(
     candidate = candidate_result.scalar_one_or_none()
     if candidate is None:
         raise ContractGovernanceError("snapshot_not_found")
-    if candidate.semantic_hash != expected_hash:
-        raise ContractGovernanceError("snapshot_hash_mismatch")
-    if not candidate.complete:
-        raise ContractGovernanceError("incomplete_snapshot_cannot_be_approved")
 
     active_result = await session.execute(
         select(DSpaceContractSnapshot)
@@ -104,20 +134,15 @@ async def approve_snapshot(
         .with_for_update()
     )
     active = active_result.scalar_one_or_none()
-
-    if candidate.status == "ACTIVE":
-        if candidate.approved_hash != expected_hash:
-            raise ContractGovernanceError("active_snapshot_audit_mismatch")
+    transition = validate_approval_transition(
+        candidate=candidate,
+        active=active,
+        expected_hash=expected_hash,
+    )
+    if transition == "idempotent":
         return candidate
 
-    if active is None:
-        if candidate.status != "BASELINE_REVIEW_REQUIRED":
-            raise ContractGovernanceError("baseline_candidate_required")
-    else:
-        if candidate.status not in {"DIFF_DETECTED", "REVIEW_REQUIRED"}:
-            raise ContractGovernanceError("reviewed_snapshot_required")
-        if active.snapshot_id == candidate.snapshot_id:
-            return candidate
+    if transition == "promotion" and active is not None:
         active.status = "SUPERSEDED"
 
     candidate.status = "ACTIVE"
