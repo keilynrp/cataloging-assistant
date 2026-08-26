@@ -139,6 +139,14 @@ def apply_inherited_resolution(
 ) -> None:
     """Persist provenance for an automatically inherited, previously approved resolution."""
 
+    if record.effective_hash is not None:
+        if (
+            record.effective_hash == inherited.semantic_hash
+            and record.resolution_inherited_from_snapshot_id == active.snapshot_id
+        ):
+            return
+        raise ValueError("inherited_resolution_conflict")
+
     record.effective_hash = inherited.semantic_hash
     record.effective_canonical_json = inherited.canonical
     record.resolution_surface = active.resolution_surface
