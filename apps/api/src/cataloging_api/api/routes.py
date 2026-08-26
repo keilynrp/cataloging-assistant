@@ -1,8 +1,8 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query
-from sqlalchemy import exists, func, or_, select, text
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response
+from sqlalchemy import exists, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -25,6 +25,8 @@ from cataloging_api.api.schemas import (
     MetadataValueOut,
     PersistedSuggestionOut,
     PersistedSuggestionsOut,
+    ReadinessComponentOut,
+    ReadinessOut,
     ReviewDecisionCreate,
     ReviewDecisionOut,
     SimilarItemOut,
@@ -62,6 +64,7 @@ from cataloging_api.drafts.service import (
     append_draft_revision,
     create_draft,
 )
+from cataloging_api.health.service import check_database
 from cataloging_api.profile.schemas import CollectionProfileOut
 from cataloging_api.profile.service import build_collection_profile
 from cataloging_api.reviews.security import review_token_is_valid
@@ -123,9 +126,27 @@ def draft_to_out(draft: CatalogDraft, current_source_hash: str) -> CatalogDraftO
 
 
 @router.get("/health")
-async def health(session: SessionDep) -> dict[str, str]:
-    await session.execute(text("select 1"))
-    return {"status": "ok", "dspace_mode": "read-only"}
+async def health() -> dict[str, str]:
+    return {"status": "LIVE", "dspace_mode": "read-only"}
+
+
+@router.get("/ready", response_model=ReadinessOut)
+async def ready(session: SessionDep, response: Response) -> ReadinessOut:
+    timeout_seconds = get_settings().readiness_database_timeout_seconds
+    database_check = await check_database(session, timeout_seconds)
+    overall_status = "READY" if database_check.status == "READY" else "NOT_READY"
+    if overall_status != "READY":
+        response.status_code = 503
+    return ReadinessOut(
+        status=overall_status,
+        components=[
+            ReadinessComponentOut(
+                name=database_check.name,
+                status=database_check.status,
+                detail_code=database_check.detail_code,
+            )
+        ],
+    )
 
 
 @router.get(
