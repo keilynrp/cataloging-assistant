@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Any
 
@@ -18,6 +19,29 @@ INHERITABLE_WARNINGS = {
     "UNOBSERVABLE_SURFACE:active_submission_sections",
     "UNOBSERVABLE_SURFACE:active_submission_sections:HTTP_204",
 }
+EXPECTED_FORMS = ["traditionalpageone", "traditionalpagetwo"]
+
+
+def _normalized_binding_for_compare(binding: dict[str, Any]) -> dict[str, Any] | None:
+    form = binding.get("form")
+    if form not in EXPECTED_FORMS:
+        return None
+    position = binding.get("position")
+    if not isinstance(position, list) or len(position) != 4:
+        return None
+    normalized = deepcopy(binding)
+    normalized["position"] = [EXPECTED_FORMS.index(form), *position[1:]]
+    return normalized
+
+
+def _normalized_bindings(bindings: list[dict[str, Any]]) -> list[dict[str, Any]] | None:
+    normalized: list[dict[str, Any]] = []
+    for binding in bindings:
+        value = _normalized_binding_for_compare(binding)
+        if value is None:
+            return None
+        normalized.append(value)
+    return sorted(normalized, key=lambda item: item["bindingKey"])
 
 
 def build_inherited_effective_snapshot(
@@ -53,7 +77,7 @@ def build_inherited_effective_snapshot(
         for section in active_sections
         if isinstance(section, dict) and section.get("sectionType") == "submission-form"
     ]
-    if form_ids != ["traditionalpageone", "traditionalpagetwo"]:
+    if form_ids != EXPECTED_FORMS:
         return None
 
     forms = _surface_items(
@@ -82,12 +106,23 @@ def build_inherited_effective_snapshot(
         return None
     if observed.canonical.get("fields") != active_canonical.get("fields"):
         return None
-    if current_bindings != active_bindings:
+
+    # The first component of `position` in the approved 1E evidence came from
+    # the global-section fallback and is not authoritative for the two active
+    # forms. Normalize only that component; row/field/option order and every
+    # semantic attribute still have to match exactly.
+    normalized_current = _normalized_bindings(current_bindings)
+    normalized_active = _normalized_bindings(active_bindings)
+    if normalized_current is None or normalized_active is None:
+        return None
+    if normalized_current != normalized_active:
         return None
 
+    # The new run proved the same contract independently. Preserve the exact
+    # approved canonical representation so its governed hash remains stable.
     effective = dict(observed.canonical)
-    effective["sections"] = active_sections
-    effective["bindings"] = current_bindings
+    effective["sections"] = deepcopy(active_sections)
+    effective["bindings"] = deepcopy(active_bindings)
     return ContractSnapshotView(
         canonical=effective,
         semantic_hash=_json_hash(effective),
