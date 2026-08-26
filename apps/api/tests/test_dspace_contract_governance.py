@@ -17,20 +17,31 @@ def _snapshot(
     complete: bool = True,
     semantic_hash: str = "a" * 64,
     approved_hash: str | None = None,
+    effective_hash: str | None = None,
+    effective_canonical_json: dict | None = None,
+    resolution_surface: str | None = None,
+    resolved_by: str | None = None,
+    resolved_at: datetime | None = None,
     fields: int = 56,
     bindings: int = 56,
     created_at: datetime | None = None,
 ):
+    canonical = {
+        "fields": [{"metadata": f"dc.test.{i}"} for i in range(fields)],
+        "bindings": [{"bindingKey": str(i)} for i in range(bindings)],
+    }
     return SimpleNamespace(
         snapshot_id=uuid.uuid4(),
         status=status,
         semantic_hash=semantic_hash,
         complete=complete,
         approved_hash=approved_hash,
-        canonical_json={
-            "fields": [{"metadata": f"dc.test.{i}"} for i in range(fields)],
-            "bindings": [{"bindingKey": str(i)} for i in range(bindings)],
-        },
+        effective_hash=effective_hash,
+        effective_canonical_json=effective_canonical_json,
+        resolution_surface=resolution_surface,
+        resolved_by=resolved_by,
+        resolved_at=resolved_at,
+        canonical_json=canonical,
         warnings=[],
         created_at=created_at or datetime(2026, 8, 26, tzinfo=timezone.utc),
     )
@@ -59,6 +70,31 @@ def test_active_snapshot_health_reports_synced_contract_counts() -> None:
     assert health.active_hash == "a" * 64
     assert health.metadata_field_count == 54
     assert health.form_binding_count == 56
+
+
+def test_resolved_active_health_uses_effective_contract() -> None:
+    resolved_at = datetime(2026, 8, 26, 1, tzinfo=timezone.utc)
+    effective = {
+        "fields": [{"metadata": f"dc.live.{i}"} for i in range(54)],
+        "bindings": [{"bindingKey": str(i)} for i in range(56)],
+    }
+    active = _snapshot(
+        status="ACTIVE",
+        complete=False,
+        semantic_hash="a" * 64,
+        approved_hash="b" * 64,
+        effective_hash="b" * 64,
+        effective_canonical_json=effective,
+        resolution_surface="active_submission_sections",
+        resolved_by="cataloger",
+        resolved_at=resolved_at,
+    )
+    health = derive_contract_health(active=active, latest=active)
+    assert health.status == "SYNCED"
+    assert health.active_hash == "b" * 64
+    assert health.metadata_field_count == 54
+    assert health.form_binding_count == 56
+    assert health.last_verified_at == resolved_at
 
 
 def test_incomplete_latest_check_keeps_previous_verified_time() -> None:
@@ -108,6 +144,25 @@ def test_incomplete_snapshot_cannot_be_approved() -> None:
             active=None,
             expected_hash=candidate.semantic_hash,
         )
+
+
+def test_resolved_incomplete_snapshot_can_be_approved_by_effective_hash() -> None:
+    candidate = _snapshot(
+        status="BASELINE_REVIEW_REQUIRED",
+        complete=False,
+        effective_hash="b" * 64,
+        effective_canonical_json={"fields": [], "bindings": []},
+        resolution_surface="active_submission_sections",
+        resolved_by="cataloger",
+    )
+    assert (
+        validate_approval_transition(
+            candidate=candidate,
+            active=None,
+            expected_hash="b" * 64,
+        )
+        == "baseline"
+    )
 
 
 def test_hash_mismatch_blocks_approval() -> None:
