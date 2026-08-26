@@ -10,7 +10,10 @@ from __future__ import annotations
 
 import asyncio
 import time
+import uuid
 from collections.abc import AsyncIterator
+from datetime import UTC, datetime
+from types import SimpleNamespace
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -19,7 +22,13 @@ from sqlalchemy.exc import OperationalError
 from cataloging_api import config as config_module
 from cataloging_api.api import routes as routes_module
 from cataloging_api.db.session import get_session
+from cataloging_api.dspace import (
+    contract_governance,
+    contract_resolution,
+    contract_snapshot_store,
+)
 from cataloging_api.dspace.client import DSpaceClient, DSpaceError
+from cataloging_api.dspace.contract_governance import derive_contract_health
 
 KNOWN_SECRETS = {
     "POSTGRES_PASSWORD": "super-secret-postgres-password",
@@ -130,6 +139,67 @@ def test_health_and_ready_payloads_never_contain_known_secrets() -> None:
             for secret_name, secret_value in KNOWN_SECRETS.items():
                 assert secret_name not in response.text
                 assert secret_value not in response.text
+
+
+def _governance_snapshot(*, status: str, created_at: datetime) -> SimpleNamespace:
+    """Minimal VERTICAL-022 snapshot stand-in, matching the fixture shape used by
+    test_dspace_contract_governance.py, just enough for derive_contract_health."""
+    return SimpleNamespace(
+        snapshot_id=uuid.uuid4(),
+        status=status,
+        semantic_hash="a" * 64,
+        complete=True,
+        approved_hash=None,
+        effective_hash=None,
+        effective_canonical_json=None,
+        resolution_surface=None,
+        resolved_by=None,
+        resolved_at=None,
+        canonical_json={"fields": [], "bindings": []},
+        warnings=[],
+        created_at=created_at,
+    )
+
+
+def _forbid_mutation(boundary_name: str):
+    async def _guard(*_args, **_kwargs):
+        raise AssertionError(f"unexpected VERTICAL-022 mutation call: {boundary_name}")
+
+    return _guard
+
+
+def test_review_required_dspace_contract_does_not_mutate_governance_or_break_health(
+    monkeypatch,
+) -> None:
+    """A degraded/REVIEW_REQUIRED VERTICAL-022 contract state must never reach any
+    governance mutation boundary (baseline ACTIVE, snapshot persistence, evidence
+    resolution, approve/promote/supersede) from health/readiness, and must not
+    change /health or /ready semantics."""
+    active = _governance_snapshot(
+        status="ACTIVE", created_at=datetime(2026, 1, 1, tzinfo=UTC)
+    )
+    latest = _governance_snapshot(
+        status="REVIEW_REQUIRED", created_at=datetime(2026, 1, 2, tzinfo=UTC)
+    )
+    degraded_health = derive_contract_health(active=active, latest=latest)
+    assert degraded_health.status == "REVIEW_REQUIRED"
+
+    monkeypatch.setattr(
+        contract_governance, "approve_snapshot", _forbid_mutation("approve_snapshot")
+    )
+    monkeypatch.setattr(
+        contract_snapshot_store, "persist_snapshot", _forbid_mutation("persist_snapshot")
+    )
+    monkeypatch.setattr(
+        contract_resolution,
+        "resolve_authoritative_evidence",
+        _forbid_mutation("resolve_authoritative_evidence"),
+    )
+
+    client = _client_with_session(_FakeSession())
+
+    assert client.get("/health").status_code == 200
+    assert client.get("/ready").status_code == 200
 
 
 def test_health_stays_live_when_dspace_is_unavailable(monkeypatch) -> None:
