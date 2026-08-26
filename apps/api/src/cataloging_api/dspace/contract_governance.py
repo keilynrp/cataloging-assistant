@@ -144,6 +144,7 @@ async def approve_snapshot(
 
     if transition == "promotion" and active is not None:
         active.status = "SUPERSEDED"
+        await session.flush()
 
     candidate.status = "ACTIVE"
     candidate.approved_by = approved_by
