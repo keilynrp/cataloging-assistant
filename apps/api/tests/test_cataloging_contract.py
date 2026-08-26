@@ -4,6 +4,7 @@ from cataloging_api.cataloging_contract import (
     CONTROLLED_RUNTIME_FIELDS,
     DRAFTABLE_LINGUISTIC_FIELDS,
     EVIDENCE_STATES,
+    FIELD_BY_BINDING,
     FIELDS,
     LINGUISTIC_BRANCH,
     LINGUISTIC_FAMILY,
@@ -11,11 +12,13 @@ from cataloging_api.cataloging_contract import (
     LINGUISTIC_VARIANT,
     REGISTERED_LANGUAGE,
     contract_payload,
+    live_dspace_label,
+    live_dspace_selector_label,
 )
 
 
 def test_master_contract_keeps_56_ui_bindings() -> None:
-    assert CONTRACT_VERSION == "dspace-cataloger-v3.6"
+    assert CONTRACT_VERSION == "dspace-cataloger-v3.9.1"
     assert len(FIELDS) == 56
     assert sum(field.metadata_field == "dc.format.medium" for field in FIELDS) == 2
     assert sum(field.metadata_field == "dc.subject" for field in FIELDS) == 2
@@ -62,6 +65,50 @@ def test_master_contract_preserves_dspace_ui_order() -> None:
         "self-denomination",
         "iso6391",
     ]
+
+
+def test_live_repeatable_flags_match_authenticated_form_evidence() -> None:
+    repeatable_binding_ids = {
+        "title-alternative",
+        "title-subtitle",
+        "issn",
+        "identifier-other",
+        "ismn",
+        "govdoc",
+        "uri",
+        "isbn",
+        "eissn",
+        "eisbn",
+        "handle",
+        "doi",
+        "type",
+        "self-denomination",
+        "iso6391",
+        "education-level",
+    }
+
+    assert all(FIELD_BY_BINDING[binding_id].repeatable for binding_id in repeatable_binding_ids)
+
+
+def test_identifier_widget_preserves_live_label_and_selector_separately() -> None:
+    expected_selectors = {
+        "issn": "ISSN",
+        "identifier-other": "Other",
+        "ismn": "ISMN",
+        "govdoc": "Gov't Doc #",
+        "uri": "URI",
+        "isbn": "ISBN",
+        "eissn": "eISSN",
+        "eisbn": "eISBN",
+        "handle": "Handle",
+        "doi": "DOI",
+    }
+
+    for binding_id, selector_label in expected_selectors.items():
+        field = FIELD_BY_BINDING[binding_id]
+        assert live_dspace_label(field) == "Identificador"
+        assert live_dspace_selector_label(field) == selector_label
+        assert field.ui_label.startswith("Identificador — ")
 
 
 def test_evidence_states_exclude_qa_statuses() -> None:
