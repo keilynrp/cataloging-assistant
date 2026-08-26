@@ -21,6 +21,10 @@ class SnapshotLike(Protocol):
     semantic_hash: str
     complete: bool
     approved_hash: str | None
+    effective_hash: str | None
+    effective_canonical_json: dict | None
+    resolution_surface: str | None
+    resolved_by: str | None
 
 
 @dataclass(frozen=True)
@@ -34,6 +38,25 @@ class ContractHealth:
     metadata_field_count: int | None
     form_binding_count: int | None
     warning_count: int
+
+
+def governed_hash(snapshot: SnapshotLike) -> str:
+    return snapshot.effective_hash or snapshot.semantic_hash
+
+
+def governed_canonical(snapshot: DSpaceContractSnapshot) -> dict:
+    return snapshot.effective_canonical_json or snapshot.canonical_json or {}
+
+
+def governance_complete(snapshot: SnapshotLike) -> bool:
+    if snapshot.complete:
+        return True
+    return bool(
+        snapshot.effective_hash
+        and snapshot.effective_canonical_json
+        and snapshot.resolution_surface
+        and snapshot.resolved_by
+    )
 
 
 def derive_contract_health(
@@ -54,18 +77,18 @@ def derive_contract_health(
     else:
         operational = "SYNCED"
 
-    canonical = (active.canonical_json if active is not None else None) or {}
-    if latest is not None and latest.complete:
-        last_verified_at = latest.created_at
+    canonical = governed_canonical(active) if active is not None else {}
+    if latest is not None and governance_complete(latest):
+        last_verified_at = latest.resolved_at or latest.created_at
     elif active is not None:
-        last_verified_at = active.created_at
+        last_verified_at = active.resolved_at or active.created_at
     else:
         last_verified_at = None
 
     return ContractHealth(
         status=operational,
         active_snapshot_id=active.snapshot_id if active is not None else None,
-        active_hash=active.semantic_hash if active is not None else None,
+        active_hash=governed_hash(active) if active is not None else None,
         latest_snapshot_id=latest.snapshot_id if latest is not None else None,
         latest_status=latest.status if latest is not None else None,
         last_verified_at=last_verified_at,
@@ -83,9 +106,9 @@ def validate_approval_transition(
 ) -> str:
     """Return baseline|promotion|idempotent or raise a governed transition error."""
 
-    if candidate.semantic_hash != expected_hash:
+    if governed_hash(candidate) != expected_hash:
         raise ContractGovernanceError("snapshot_hash_mismatch")
-    if not candidate.complete:
+    if not governance_complete(candidate):
         raise ContractGovernanceError("incomplete_snapshot_cannot_be_approved")
     if candidate.status == "ACTIVE":
         if candidate.approved_hash != expected_hash:
