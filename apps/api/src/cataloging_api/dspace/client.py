@@ -113,23 +113,40 @@ class DSpaceClient:
     ) -> HalCollectionPage:
         params = {"page": page, "size": size, **(extra_params or {})}
         payload = await self._get(path, params=params)
-        embedded = payload.get("_embedded")
-        if not isinstance(embedded, dict) or relation not in embedded:
-            raise DSpaceError("invalid_hal", f"Expected HAL relation {relation} at {path}")
-        values = embedded[relation]
-        if not isinstance(values, list) or any(not isinstance(value, dict) for value in values):
-            raise DSpaceError(
-                "invalid_hal",
-                f"Expected object list for HAL relation {relation} at {path}",
-            )
-        page_info = payload.get("page", {})
+        page_info = payload.get("page")
         if not isinstance(page_info, dict):
             raise DSpaceError("invalid_hal", f"Expected page metadata at {path}")
+
+        returned_page = int(page_info.get("number", page))
+        total_pages = int(page_info.get("totalPages", 0))
+        total_elements = int(page_info.get("totalElements", 0))
+        embedded = payload.get("_embedded")
+
+        # Spring HATEOAS may omit `_embedded` entirely for a proven-empty
+        # collection page. Accept that shape only when pagination metadata
+        # explicitly reports zero elements. Otherwise fail closed so a
+        # malformed/partial response cannot masquerade as removals.
+        if total_elements == 0 and (
+            embedded is None or (isinstance(embedded, dict) and relation not in embedded)
+        ):
+            values: list[dict[str, Any]] = []
+        else:
+            if not isinstance(embedded, dict) or relation not in embedded:
+                raise DSpaceError("invalid_hal", f"Expected HAL relation {relation} at {path}")
+            values = embedded[relation]
+            if not isinstance(values, list) or any(
+                not isinstance(value, dict) for value in values
+            ):
+                raise DSpaceError(
+                    "invalid_hal",
+                    f"Expected object list for HAL relation {relation} at {path}",
+                )
+
         return HalCollectionPage(
             items=copy.deepcopy(values),
-            page=int(page_info.get("number", page)),
-            total_pages=int(page_info.get("totalPages", 0)),
-            total_elements=int(page_info.get("totalElements", len(values))),
+            page=returned_page,
+            total_pages=total_pages,
+            total_elements=total_elements,
             raw_payload=copy.deepcopy(payload),
         )
 
