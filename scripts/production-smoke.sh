@@ -255,8 +255,13 @@ check_web_internal() {
 
 public_http_check() {
   local name="$1" url="$2" ok_code="$3" bad_gateway_code="$4" unreachable_code="$5"
+  # --location follows redirects so %{http_code} reflects the FINAL response,
+  # not the initial 3xx -- otherwise a 301/302 to a broken destination
+  # (502/503) would be misread as a pass. --max-redirs keeps the chain bounded;
+  # TLS verification stays on (no -k/--insecure).
   run_capture timeout "$EXEC_BOUND" curl -sS -o /dev/null -w '%{http_code}' \
-    --connect-timeout "$CONNECT_TIMEOUT" --max-time "$HTTP_TIMEOUT" --max-redirs 5 -- "$url"
+    --location --max-redirs 5 \
+    --connect-timeout "$CONNECT_TIMEOUT" --max-time "$HTTP_TIMEOUT" -- "$url"
   if [ "$RC" -ne 0 ]; then
     record "$name" FAIL "$unreachable_code"
     return

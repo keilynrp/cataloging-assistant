@@ -9,10 +9,12 @@ a real network, or real DSpace/VERTICAL-022 state.
 
 from __future__ import annotations
 
+import http.server
 import os
 import re
 import stat
 import subprocess
+import threading
 import time
 from pathlib import Path
 
@@ -346,6 +348,81 @@ def test_public_api_health_path_is_not_duplicated_when_already_present(tmp_path:
     invoked = curl_args_file.read_text()
     assert "http://api.custom.invalid/health" in invoked
     assert "http://api.custom.invalid/health/health" not in invoked
+
+
+class _RedirectToBadGatewayHandler(http.server.BaseHTTPRequestHandler):
+    """A real HTTP server: /redirect-to-502 -> 302 -> /bad-gateway -> 502.
+
+    Used with the REAL system curl (not the fake) to prove end-to-end that a
+    public probe follows a redirect and evaluates the FINAL status code,
+    rather than treating the initial 3xx as a pass.
+    """
+
+    def log_message(self, *args: object) -> None:  # noqa: D401 -- silence server logs
+        pass
+
+    def do_GET(self) -> None:  # noqa: N802 -- required BaseHTTPRequestHandler name
+        if self.path == "/redirect-to-502":
+            self.send_response(302)
+            self.send_header("Location", "/bad-gateway")
+            self.end_headers()
+        elif self.path == "/bad-gateway":
+            self.send_response(502)
+            self.end_headers()
+        elif self.path == "/health":
+            self.send_response(200)
+            self.end_headers()
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+
+def test_public_redirect_to_final_bad_gateway_is_fail(tmp_path: Path) -> None:
+    server = http.server.HTTPServer(("127.0.0.1", 0), _RedirectToBadGatewayHandler)
+    port = server.server_address[1]
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        bin_dir = tmp_path / "bin"
+        bin_dir.mkdir()
+        _write_fake(bin_dir, "docker", _FAKE_DOCKER)
+        # Deliberately do NOT fake `curl` here -- the real system curl must
+        # actually follow the redirect and report the final status code.
+
+        env = dict(os.environ)
+        env["PATH"] = f"{bin_dir}:{env['PATH']}"
+        env["FAKE_DOCKER_ARGS_FILE"] = str(tmp_path / "docker-args.txt")
+        env["SMOKE_PUBLIC_FRONTEND_URL"] = f"http://127.0.0.1:{port}/redirect-to-502"
+        env["SMOKE_PUBLIC_API_URL"] = f"http://127.0.0.1:{port}/health"
+        env["SMOKE_CONNECT_TIMEOUT_SECONDS"] = "3"
+        env["SMOKE_HTTP_TIMEOUT_SECONDS"] = "3"
+
+        result = subprocess.run(
+            ["bash", str(SCRIPT_PATH)],
+            capture_output=True,
+            text=True,
+            env=env,
+            timeout=30,
+        )
+    finally:
+        server.shutdown()
+        server.server_close()
+
+    assert "FAIL public_frontend PUBLIC_FRONTEND_BAD_GATEWAY" in result.stdout, result.stdout
+    assert "PASS public_api" in result.stdout
+    assert "RESULT FAIL" in result.stdout
+    assert result.returncode != 0
+
+
+def test_script_follows_redirects_with_a_bounded_count_and_no_tls_bypass() -> None:
+    content = SCRIPT_PATH.read_text()
+    code_lines = "\n".join(
+        line for line in content.splitlines() if not line.strip().startswith("#")
+    )
+    assert "--location" in code_lines
+    assert "--max-redirs" in code_lines
+    assert "--insecure" not in code_lines
+    assert " -k " not in code_lines
 
 
 def test_timeouts_have_a_safe_upper_bound_regardless_of_override() -> None:
