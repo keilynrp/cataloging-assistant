@@ -40,27 +40,68 @@ def _embedded_items(payloads: list[dict[str, Any]], relation: str) -> list[dict[
     return items
 
 
+def _section_fingerprint(section: dict[str, Any]) -> tuple[Any, ...]:
+    return (
+        section.get("id"),
+        section.get("sectionType"),
+        section.get("header"),
+        bool(section.get("mandatory", False)),
+        section.get("scope"),
+        _config_form_id(section),
+    )
+
+
+def _select_authoritative_section(
+    *,
+    form_id: str,
+    candidates: list[dict[str, Any]],
+) -> dict[str, Any]:
+    if not candidates:
+        raise ValueError(f"missing_authoritative_section:{form_id}")
+    if len(candidates) == 1:
+        return candidates[0]
+
+    exact_id = [section for section in candidates if section.get("id") == form_id]
+    if len(exact_id) == 1:
+        return exact_id[0]
+    if exact_id:
+        candidates = exact_id
+
+    fingerprints = {_section_fingerprint(section) for section in candidates}
+    if len(fingerprints) == 1:
+        return candidates[0]
+
+    candidate_ids = sorted(
+        str(section.get("id")) for section in candidates if section.get("id") is not None
+    )
+    raise ValueError(
+        f"ambiguous_authoritative_section:{form_id}:candidate_ids={','.join(candidate_ids)}"
+    )
+
+
 def _resolved_sections(pages_by_surface: dict[str, list[dict[str, Any]]]) -> list[dict[str, Any]]:
     global_sections = _embedded_items(
         pages_by_surface.get("submission_sections", []),
         "submissionsections",
     )
-    sections_by_form: dict[str, dict[str, Any]] = {}
+    candidates_by_form: dict[str, list[dict[str, Any]]] = {
+        form_id: [] for form_id in EXPECTED_FORMS
+    }
     for section in global_sections:
         form_id = _config_form_id(section)
         if form_id is None:
             section_id = section.get("id")
             form_id = section_id if isinstance(section_id, str) else None
-        if form_id in EXPECTED_FORMS:
-            if form_id in sections_by_form:
-                raise ValueError(f"duplicate_authoritative_section:{form_id}")
-            sections_by_form[form_id] = section
+        if form_id in candidates_by_form:
+            candidates_by_form[form_id].append(section)
 
-    missing = [form_id for form_id in EXPECTED_FORMS if form_id not in sections_by_form]
-    if missing:
-        raise ValueError(f"missing_authoritative_sections:{','.join(missing)}")
-
-    ordered = [sections_by_form[form_id] for form_id in EXPECTED_FORMS]
+    ordered = [
+        _select_authoritative_section(
+            form_id=form_id,
+            candidates=candidates_by_form[form_id],
+        )
+        for form_id in EXPECTED_FORMS
+    ]
     canonical = _canonical_sections(ordered)
     if tuple(section.get("configForm") for section in canonical) != EXPECTED_FORMS:
         raise ValueError("authoritative_section_form_order_mismatch")
