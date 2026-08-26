@@ -58,6 +58,11 @@ class DSpaceContractSnapshot(Base):
     resolution_surface: Mapped[str | None] = mapped_column(String(80))
     resolution_source_hash: Mapped[str | None] = mapped_column(String(64))
     resolution_reconciliation_hash: Mapped[str | None] = mapped_column(String(64))
+    resolution_inherited_from_snapshot_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("dspace_contract_snapshots.snapshot_id", ondelete="SET NULL"),
+        index=True,
+    )
     resolved_by: Mapped[str | None] = mapped_column(String(120))
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     resolution_note: Mapped[str | None] = mapped_column(Text)
