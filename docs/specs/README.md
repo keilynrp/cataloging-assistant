@@ -30,10 +30,13 @@ The existence of a specification does **not** by itself mean that the vertical i
 | VERTICAL-020 | [Secure remote evidence fetch](VERTICAL-020-secure-remote-evidence-fetch.md) | See specification |
 | VERTICAL-021 | [Provider-independent LLM-assisted extraction](VERTICAL-021-provider-independent-llm-assisted-extraction.md) | See specification |
 | **VERTICAL-022** | **[DSpace contract drift detection](VERTICAL-022-dspace-contract-drift-detection.md)** | **Accepted / Operationalized** |
+| VERTICAL-023 | [Production readiness & operational health](VERTICAL-023-production-readiness-operational-health.md) | See specification |
 
 ## Current operational milestone
 
 VERTICAL-022 is the first vertical in this index whose operational acceptance is explicitly recorded as a separate repository artifact. Its acceptance establishes that the governed DSpace contract synchronization path is operational with a human-approved ACTIVE baseline, exact reconciliation, resolution inheritance, and a repository-managed scheduler wrapper that has passed a deployed smoke test.
+
+VERTICAL-023 is specified but is not yet accepted or operationalized. Its lifecycle status must remain `See specification` until health/readiness semantics, deployment smoke automation, and durable production acceptance evidence satisfy the specification.
 
 Evidence and operations documents:
 
