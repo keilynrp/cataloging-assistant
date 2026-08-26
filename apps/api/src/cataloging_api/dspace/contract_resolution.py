@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import string
 import uuid
 from collections import Counter
 from datetime import datetime, timezone
@@ -16,7 +17,6 @@ from cataloging_api.dspace.contract_store import DSpaceContractRawPage
 
 
 RESOLVABLE_SURFACE = "active_submission_sections"
-RESOLUTION_TYPE = "AUTHENTICATED_RECONCILIATION"
 EXPECTED_FORMS = ("traditionalpageone", "traditionalpagetwo")
 EXPECTED_FORM_BINDING_COUNTS = {"traditionalpageone": 44, "traditionalpagetwo": 12}
 EXPECTED_BINDING_COUNT = len(FIELDS)
@@ -40,6 +40,10 @@ def _json_hash(value: Any) -> str:
         separators=(",", ":"),
     ).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
+
+
+def _is_sha256(value: str) -> bool:
+    return len(value) == 64 and all(character in string.hexdigits for character in value)
 
 
 def build_effective_canonical(
@@ -103,6 +107,27 @@ def validate_reconciled_overlay(
     if not metadata.issubset(registry):
         raise ContractResolutionError("resolved_binding_metadata_not_in_registry")
 
+    # The authenticated reconciliation established render-order identity 56/56.
+    # Enforce the dimensions represented in the runtime master contract so a
+    # payload cannot pass merely by having the right counts.
+    ordered = sorted(bindings, key=lambda item: tuple(item.get("position") or []))
+    if len(ordered) != len(FIELDS):
+        raise ContractResolutionError("resolved_binding_order_mismatch")
+    for index, (binding, expected) in enumerate(zip(ordered, FIELDS, strict=True)):
+        expected_form = "traditionalpageone" if index < 44 else "traditionalpagetwo"
+        if binding.get("form") != expected_form:
+            raise ContractResolutionError("resolved_binding_form_order_mismatch")
+        if binding.get("metadata") != expected.metadata_field:
+            raise ContractResolutionError("resolved_binding_metadata_mismatch")
+        if binding.get("label") != expected.ui_label:
+            raise ContractResolutionError("resolved_binding_label_mismatch")
+        if bool(binding.get("required", False)) != expected.required:
+            raise ContractResolutionError("resolved_binding_required_mismatch")
+        if bool(binding.get("repeatable", False)) != expected.repeatable:
+            raise ContractResolutionError("resolved_binding_repeatable_mismatch")
+        if binding.get("controlledVocabulary") != expected.vocabulary_id:
+            raise ContractResolutionError("resolved_binding_vocabulary_mismatch")
+
 
 def _raw_page_is_204_observation(page: DSpaceContractRawPage) -> bool:
     observation = page.raw_payload.get("_observation")
@@ -126,6 +151,15 @@ async def resolve_authoritative_evidence(
     resolved_by: str,
     resolution_note: str,
 ) -> DSpaceContractSnapshot:
+    for value in (
+        expected_snapshot_hash,
+        expected_effective_hash,
+        source_export_hash,
+        reconciliation_hash,
+    ):
+        if not _is_sha256(value):
+            raise ContractResolutionError("invalid_sha256")
+
     result = await session.execute(
         select(DSpaceContractSnapshot)
         .where(DSpaceContractSnapshot.snapshot_id == snapshot_id)
