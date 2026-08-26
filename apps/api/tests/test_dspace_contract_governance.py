@@ -19,6 +19,7 @@ def _snapshot(
     approved_hash: str | None = None,
     fields: int = 56,
     bindings: int = 56,
+    created_at: datetime | None = None,
 ):
     return SimpleNamespace(
         snapshot_id=uuid.uuid4(),
@@ -31,7 +32,7 @@ def _snapshot(
             "bindings": [{"bindingKey": str(i)} for i in range(bindings)],
         },
         warnings=[],
-        created_at=datetime(2026, 8, 26, tzinfo=timezone.utc),
+        created_at=created_at or datetime(2026, 8, 26, tzinfo=timezone.utc),
     )
 
 
@@ -44,6 +45,13 @@ def test_without_active_snapshot_health_requires_baseline() -> None:
     assert health.form_binding_count is None
 
 
+def test_incomplete_first_check_does_not_claim_last_verified() -> None:
+    latest = _snapshot(status="REVIEW_REQUIRED", complete=False)
+    health = derive_contract_health(active=None, latest=latest)
+    assert health.status == "BASELINE_REQUIRED"
+    assert health.last_verified_at is None
+
+
 def test_active_snapshot_health_reports_synced_contract_counts() -> None:
     active = _snapshot(status="ACTIVE", approved_hash="a" * 64, fields=54, bindings=56)
     health = derive_contract_health(active=active, latest=active)
@@ -51,6 +59,24 @@ def test_active_snapshot_health_reports_synced_contract_counts() -> None:
     assert health.active_hash == "a" * 64
     assert health.metadata_field_count == 54
     assert health.form_binding_count == 56
+
+
+def test_incomplete_latest_check_keeps_previous_verified_time() -> None:
+    active_time = datetime(2026, 8, 25, tzinfo=timezone.utc)
+    active = _snapshot(
+        status="ACTIVE",
+        approved_hash="a" * 64,
+        created_at=active_time,
+    )
+    latest = _snapshot(
+        status="REVIEW_REQUIRED",
+        complete=False,
+        semantic_hash="b" * 64,
+        created_at=datetime(2026, 8, 26, tzinfo=timezone.utc),
+    )
+    health = derive_contract_health(active=active, latest=latest)
+    assert health.status == "REVIEW_REQUIRED"
+    assert health.last_verified_at == active_time
 
 
 def test_high_drift_health_requires_review_without_replacing_active() -> None:
