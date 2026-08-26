@@ -24,11 +24,7 @@ class DiscoverPage:
 
 @dataclass(frozen=True)
 class HalCollectionPage:
-    """One immutable observation page from a DSpace HAL collection.
-
-    ``raw_payload`` is intentionally preserved so VERTICAL-022 can persist the
-    exact HAL+JSON evidence before a checkpoint advances.
-    """
+    """One immutable observation page from a DSpace HAL collection."""
 
     items: list[dict[str, Any]]
     page: int
@@ -79,7 +75,9 @@ class DSpaceClient:
 
             if response.status_code == 404:
                 raise DSpaceError(
-                    "not_found", f"DSpace resource not found: {path}", status_code=404
+                    "not_found",
+                    f"DSpace resource not found: {path}",
+                    status_code=404,
                 )
             if response.status_code == 429 or response.status_code >= 500:
                 if attempt < self._max_retries:
@@ -111,26 +109,28 @@ class DSpaceClient:
         *,
         page: int,
         size: int,
+        extra_params: dict[str, Any] | None = None,
     ) -> HalCollectionPage:
-        payload = await self._get(path, params={"page": page, "size": size})
+        params = {"page": page, "size": size, **(extra_params or {})}
+        payload = await self._get(path, params=params)
         embedded = payload.get("_embedded")
         if not isinstance(embedded, dict) or relation not in embedded:
             raise DSpaceError("invalid_hal", f"Expected HAL relation {relation} at {path}")
         values = embedded[relation]
         if not isinstance(values, list) or any(not isinstance(value, dict) for value in values):
-            raise DSpaceError("invalid_hal", f"Expected object list for HAL relation {relation} at {path}")
+            raise DSpaceError(
+                "invalid_hal",
+                f"Expected object list for HAL relation {relation} at {path}",
+            )
         page_info = payload.get("page", {})
         if not isinstance(page_info, dict):
             raise DSpaceError("invalid_hal", f"Expected page metadata at {path}")
-
-        items = copy.deepcopy(values)
-        raw_payload = copy.deepcopy(payload)
         return HalCollectionPage(
-            items=items,
+            items=copy.deepcopy(values),
             page=int(page_info.get("number", page)),
             total_pages=int(page_info.get("totalPages", 0)),
-            total_elements=int(page_info.get("totalElements", len(items))),
-            raw_payload=raw_payload,
+            total_elements=int(page_info.get("totalElements", len(values))),
+            raw_payload=copy.deepcopy(payload),
         )
 
     async def get_root(self) -> dict[str, Any]:
@@ -147,31 +147,97 @@ class DSpaceClient:
         return _embedded_list(payload, "bundles")
 
     async def get_bundle_bitstreams(self, bundle_uuid: str) -> list[dict[str, Any]]:
-        payload = await self._get(f"/core/bundles/{bundle_uuid}/bitstreams", params={"size": 100})
+        payload = await self._get(
+            f"/core/bundles/{bundle_uuid}/bitstreams",
+            params={"size": 100},
+        )
         return _embedded_list(payload, "bitstreams")
 
-    async def get_metadata_schemas_page(self, *, page: int, size: int = 100) -> HalCollectionPage:
+    async def get_metadata_schemas_page(
+        self, *, page: int, size: int = 100
+    ) -> HalCollectionPage:
         return await self._get_collection_page(
-            "/core/metadataschemas", "metadataschemas", page=page, size=size
+            "/core/metadataschemas",
+            "metadataschemas",
+            page=page,
+            size=size,
         )
 
-    async def get_metadata_fields_page(self, *, page: int, size: int = 100) -> HalCollectionPage:
+    async def get_metadata_fields_page(
+        self, *, page: int, size: int = 100
+    ) -> HalCollectionPage:
         return await self._get_collection_page(
-            "/core/metadatafields", "metadatafields", page=page, size=size
+            "/core/metadatafields",
+            "metadatafields",
+            page=page,
+            size=size,
+        )
+
+    async def get_metadata_fields_by_schema_page(
+        self,
+        schema_prefix: str,
+        *,
+        page: int,
+        size: int = 100,
+    ) -> HalCollectionPage:
+        return await self._get_collection_page(
+            "/core/metadatafields/search/bySchema",
+            "metadatafields",
+            page=page,
+            size=size,
+            extra_params={"schema": schema_prefix},
         )
 
     async def get_submission_definitions_page(
         self, *, page: int, size: int = 100
     ) -> HalCollectionPage:
         return await self._get_collection_page(
-            "/config/submissiondefinitions", "submissiondefinitions", page=page, size=size
+            "/config/submissiondefinitions",
+            "submissiondefinitions",
+            page=page,
+            size=size,
         )
 
     async def get_submission_sections_page(
         self, *, page: int, size: int = 100
     ) -> HalCollectionPage:
         return await self._get_collection_page(
-            "/config/submissionsections", "submissionsections", page=page, size=size
+            "/config/submissionsections",
+            "submissionsections",
+            page=page,
+            size=size,
+        )
+
+    async def get_submission_forms_page(
+        self, *, page: int, size: int = 100
+    ) -> HalCollectionPage:
+        return await self._get_collection_page(
+            "/config/submissionforms",
+            "submissionforms",
+            page=page,
+            size=size,
+        )
+
+    async def get_submission_definition_for_collection(
+        self, collection_uuid: str
+    ) -> dict[str, Any]:
+        return await self._get(
+            "/config/submissiondefinitions/search/findByCollection",
+            params={"uuid": collection_uuid},
+        )
+
+    async def get_submission_definition_sections_page(
+        self,
+        definition_name: str,
+        *,
+        page: int,
+        size: int = 100,
+    ) -> HalCollectionPage:
+        return await self._get_collection_page(
+            f"/config/submissiondefinitions/{definition_name}/sections",
+            "submissionsections",
+            page=page,
+            size=size,
         )
 
     async def discover_items(self, collection_uuid: str, *, page: int, size: int) -> DiscoverPage:

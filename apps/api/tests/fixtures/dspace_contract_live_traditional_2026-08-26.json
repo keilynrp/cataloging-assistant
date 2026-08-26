@@ -1,0 +1,32 @@
+{
+  "collectionUuid": "e9a8f44f-a8d3-4d22-b02a-cf590285bac6",
+  "activeDefinition": "traditional",
+  "activeSectionsObservable": false,
+  "activeSectionsWarning": "ACTIVE_SUBMISSION_SECTIONS_UNRESOLVED_HTTP_204",
+  "sourceExportSemanticHash": "8260b2023b7b417f3056d3724664869f96cb613371c673517d6b7400af2a0b1c",
+  "normalizedTraditionalContractHash": "5b549a16307354b84b9327325532755877a622e323573616e92c8a0dee93ea92",
+  "counts": {
+    "schemas": 18,
+    "metadataFields": 292,
+    "globalConfiguredBindings": 179,
+    "traditionalPageOneBindings": 44,
+    "traditionalPageTwoBindings": 12,
+    "traditionalUniqueBindings": 56,
+    "traditionalUniqueMetadataFields": 54
+  },
+  "reconciliation": {
+    "bindingIdentity": "56/56",
+    "metadataField": "56/56",
+    "uiLabel": "56/56",
+    "required": "56/56",
+    "repeatable": "56/56",
+    "inputType": "56/56",
+    "controlledVocabulary": "56/56",
+    "closedVocabulary": "56/56",
+    "formOrder": "56/56",
+    "renderOrder": "56/56",
+    "registryPresence": "54/54",
+    "registryFieldId": "54/54",
+    "registryScopeNote": "54/54"
+  }
+}
