@@ -11,7 +11,11 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from cataloging_api.cataloging_contract import FIELDS
+from cataloging_api.cataloging_contract import (
+    FIELDS,
+    live_dspace_label,
+    live_dspace_selector_label,
+)
 from cataloging_api.dspace.contract_snapshot_store import DSpaceContractSnapshot
 from cataloging_api.dspace.contract_store import DSpaceContractRawPage
 
@@ -108,8 +112,8 @@ def validate_reconciled_overlay(
         raise ContractResolutionError("resolved_binding_metadata_not_in_registry")
 
     # The authenticated reconciliation established render-order identity 56/56.
-    # Enforce the dimensions represented in the runtime master contract so a
-    # payload cannot pass merely by having the right counts.
+    # Validate DSpace's raw widget label and selector label independently from the
+    # assistant-facing ui_label so selectableMetadata fields are not conflated.
     ordered = sorted(bindings, key=lambda item: tuple(item.get("position") or []))
     if len(ordered) != len(FIELDS):
         raise ContractResolutionError("resolved_binding_order_mismatch")
@@ -119,8 +123,10 @@ def validate_reconciled_overlay(
             raise ContractResolutionError("resolved_binding_form_order_mismatch")
         if binding.get("metadata") != expected.metadata_field:
             raise ContractResolutionError("resolved_binding_metadata_mismatch")
-        if binding.get("label") != expected.ui_label:
+        if binding.get("label") != live_dspace_label(expected):
             raise ContractResolutionError("resolved_binding_label_mismatch")
+        if binding.get("selectorLabel") != live_dspace_selector_label(expected):
+            raise ContractResolutionError("resolved_binding_selector_label_mismatch")
         if bool(binding.get("required", False)) != expected.required:
             raise ContractResolutionError("resolved_binding_required_mismatch")
         if bool(binding.get("repeatable", False)) != expected.repeatable:
