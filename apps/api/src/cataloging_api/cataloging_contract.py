@@ -43,8 +43,15 @@ FIELDS: Final = (
         "dc.title.alternative",
         "Variante de título",
         "Variante de título",
+        repeatable=True,
     ),
-    CatalogField("title-subtitle", "dc.title.subtitle", "Subtítulo", "Subtítulo"),
+    CatalogField(
+        "title-subtitle",
+        "dc.title.subtitle",
+        "Subtítulo",
+        "Subtítulo",
+        repeatable=True,
+    ),
     CatalogField("journal-title", "dc.relation.ispartof", "Título de revista", "Título de revista"),
     CatalogField(
         "book-title",
@@ -89,33 +96,86 @@ FIELDS: Final = (
         "Edicion(No)/Periodicdad",
         "Edición / número / periodicidad",
     ),
-    CatalogField("issn", "dc.identifier.issn", "Identificador — ISSN", "Identificador — ISSN"),
+    CatalogField(
+        "issn",
+        "dc.identifier.issn",
+        "Identificador — ISSN",
+        "Identificador — ISSN",
+        repeatable=True,
+    ),
     CatalogField(
         "identifier-other",
         "dc.identifier.other",
         "Identificador — Otro",
         "Identificador — Otro",
+        repeatable=True,
     ),
-    CatalogField("ismn", "dc.identifier.ismn", "Identificador — ISMN", "Identificador — ISMN"),
+    CatalogField(
+        "ismn",
+        "dc.identifier.ismn",
+        "Identificador — ISMN",
+        "Identificador — ISMN",
+        repeatable=True,
+    ),
     CatalogField(
         "govdoc",
         "dc.identifier.govdoc",
         "Identificador — Documento gubernamental",
         "Identificador — Documento gubernamental",
+        repeatable=True,
     ),
-    CatalogField("uri", "dc.identifier.uri", "Identificador — URI", "Identificador — URI"),
-    CatalogField("isbn", "dc.identifier.isbn", "Identificador — ISBN", "Identificador — ISBN"),
-    CatalogField("eissn", "dc.identifier.eissn", "Identificador — eISSN", "Identificador — eISSN"),
-    CatalogField("eisbn", "dc.identifier.eisbn", "Identificador — eISBN", "Identificador — eISBN"),
+    CatalogField(
+        "uri",
+        "dc.identifier.uri",
+        "Identificador — URI",
+        "Identificador — URI",
+        repeatable=True,
+    ),
+    CatalogField(
+        "isbn",
+        "dc.identifier.isbn",
+        "Identificador — ISBN",
+        "Identificador — ISBN",
+        repeatable=True,
+    ),
+    CatalogField(
+        "eissn",
+        "dc.identifier.eissn",
+        "Identificador — eISSN",
+        "Identificador — eISSN",
+        repeatable=True,
+    ),
+    CatalogField(
+        "eisbn",
+        "dc.identifier.eisbn",
+        "Identificador — eISBN",
+        "Identificador — eISBN",
+        repeatable=True,
+    ),
     CatalogField(
         "handle",
         "dc.identifier.handle",
         "Identificador — Handle",
         "Identificador — Handle",
+        repeatable=True,
     ),
-    CatalogField("doi", "dc.identifier.doi", "Identificador — DOI", "Identificador — DOI"),
+    CatalogField(
+        "doi",
+        "dc.identifier.doi",
+        "Identificador — DOI",
+        "Identificador — DOI",
+        repeatable=True,
+    ),
     CatalogField("source", "dc.source", "Fuente", "Fuente"),
-    CatalogField("type", "dc.type", "Type", "Tipo", controlled=True, vocabulary_id="common_types"),
+    CatalogField(
+        "type",
+        "dc.type",
+        "Type",
+        "Tipo",
+        repeatable=True,
+        controlled=True,
+        vocabulary_id="common_types",
+    ),
     CatalogField(
         "language-usage",
         "dc.description.languageUsage",
@@ -189,6 +249,7 @@ FIELDS: Final = (
         "dc.subject.selfDenomination",
         "Autodenominación",
         "Autodenominación",
+        repeatable=True,
         controlled=True,
         vocabulary_id="selfDenominationPairs",
     ),
@@ -197,6 +258,7 @@ FIELDS: Final = (
         "dc.language.iso6391",
         "ISO 639-1",
         "ISO 639-1",
+        repeatable=True,
         controlled=True,
         vocabulary_id="iso6391Pairs",
     ),
@@ -278,6 +340,7 @@ FIELDS: Final = (
         "dc.audience.educationLevel",
         "Nivel educativo",
         "Nivel educativo",
+        repeatable=True,
         controlled=True,
         vocabulary_id="educationLevelPairs",
     ),
@@ -322,6 +385,43 @@ FIELDS: Final = (
 assert len(FIELDS) == 56
 
 FIELD_BY_BINDING: Final = {field.binding_id: field for field in FIELDS}
+
+# DSpace exposes the identifier widget as one shared field label plus a per-option
+# selector label. Keep the assistant-facing ui_label intact while preserving the
+# exact live widget representation for contract reconciliation.
+LIVE_DSPACE_LABEL_OVERRIDES: Final = {
+    "issn": "Identificador",
+    "identifier-other": "Identificador",
+    "ismn": "Identificador",
+    "govdoc": "Identificador",
+    "uri": "Identificador",
+    "isbn": "Identificador",
+    "eissn": "Identificador",
+    "eisbn": "Identificador",
+    "handle": "Identificador",
+    "doi": "Identificador",
+}
+LIVE_DSPACE_SELECTOR_LABELS: Final = {
+    "issn": "ISSN",
+    "identifier-other": "Other",
+    "ismn": "ISMN",
+    "govdoc": "Gov't Doc #",
+    "uri": "URI",
+    "isbn": "ISBN",
+    "eissn": "eISSN",
+    "eisbn": "eISBN",
+    "handle": "Handle",
+    "doi": "DOI",
+}
+
+
+def live_dspace_label(field: CatalogField) -> str:
+    return LIVE_DSPACE_LABEL_OVERRIDES.get(field.binding_id, field.ui_label)
+
+
+def live_dspace_selector_label(field: CatalogField) -> str | None:
+    return LIVE_DSPACE_SELECTOR_LABELS.get(field.binding_id)
+
 
 # Runtime subsets are derived from the master contract to avoid drift across services.
 DRAFTABLE_LINGUISTIC_FIELDS: Final = tuple(
