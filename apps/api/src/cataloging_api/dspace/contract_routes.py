@@ -3,6 +3,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from cataloging_api.config import get_settings
@@ -70,6 +71,9 @@ async def approve_contract_snapshot(
         if code in {"snapshot_hash_mismatch", "active_snapshot_audit_mismatch"}:
             raise HTTPException(409, code) from exc
         raise HTTPException(422, code) from exc
+    except IntegrityError as exc:
+        await session.rollback()
+        raise HTTPException(409, "active_snapshot_conflict") from exc
 
     return {
         "snapshot_id": snapshot.snapshot_id,
