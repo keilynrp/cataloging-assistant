@@ -1,0 +1,130 @@
+import uuid
+from datetime import datetime, timezone
+from types import SimpleNamespace
+
+import pytest
+
+from cataloging_api.dspace.contract_governance import (
+    ContractGovernanceError,
+    derive_contract_health,
+    validate_approval_transition,
+)
+
+
+def _snapshot(
+    *,
+    status: str,
+    complete: bool = True,
+    semantic_hash: str = "a" * 64,
+    approved_hash: str | None = None,
+    fields: int = 56,
+    bindings: int = 56,
+):
+    return SimpleNamespace(
+        snapshot_id=uuid.uuid4(),
+        status=status,
+        semantic_hash=semantic_hash,
+        complete=complete,
+        approved_hash=approved_hash,
+        canonical_json={
+            "fields": [{"metadata": f"dc.test.{i}"} for i in range(fields)],
+            "bindings": [{"bindingKey": str(i)} for i in range(bindings)],
+        },
+        warnings=[],
+        created_at=datetime(2026, 8, 26, tzinfo=timezone.utc),
+    )
+
+
+def test_without_active_snapshot_health_requires_baseline() -> None:
+    latest = _snapshot(status="BASELINE_REVIEW_REQUIRED")
+    health = derive_contract_health(active=None, latest=latest)
+    assert health.status == "BASELINE_REQUIRED"
+    assert health.active_hash is None
+    assert health.metadata_field_count is None
+    assert health.form_binding_count is None
+
+
+def test_active_snapshot_health_reports_synced_contract_counts() -> None:
+    active = _snapshot(status="ACTIVE", approved_hash="a" * 64, fields=54, bindings=56)
+    health = derive_contract_health(active=active, latest=active)
+    assert health.status == "SYNCED"
+    assert health.active_hash == "a" * 64
+    assert health.metadata_field_count == 54
+    assert health.form_binding_count == 56
+
+
+def test_high_drift_health_requires_review_without_replacing_active() -> None:
+    active = _snapshot(status="ACTIVE", approved_hash="a" * 64)
+    latest = _snapshot(status="REVIEW_REQUIRED", semantic_hash="b" * 64)
+    health = derive_contract_health(active=active, latest=latest)
+    assert health.status == "REVIEW_REQUIRED"
+    assert health.active_snapshot_id == active.snapshot_id
+    assert health.latest_snapshot_id == latest.snapshot_id
+
+
+def test_first_complete_candidate_can_be_approved_only_as_baseline() -> None:
+    candidate = _snapshot(status="BASELINE_REVIEW_REQUIRED")
+    assert (
+        validate_approval_transition(
+            candidate=candidate,
+            active=None,
+            expected_hash=candidate.semantic_hash,
+        )
+        == "baseline"
+    )
+
+
+def test_incomplete_snapshot_cannot_be_approved() -> None:
+    candidate = _snapshot(status="BASELINE_REVIEW_REQUIRED", complete=False)
+    with pytest.raises(ContractGovernanceError, match="incomplete_snapshot_cannot_be_approved"):
+        validate_approval_transition(
+            candidate=candidate,
+            active=None,
+            expected_hash=candidate.semantic_hash,
+        )
+
+
+def test_hash_mismatch_blocks_approval() -> None:
+    candidate = _snapshot(status="BASELINE_REVIEW_REQUIRED")
+    with pytest.raises(ContractGovernanceError, match="snapshot_hash_mismatch"):
+        validate_approval_transition(
+            candidate=candidate,
+            active=None,
+            expected_hash="b" * 64,
+        )
+
+
+def test_non_reviewed_snapshot_cannot_replace_active_baseline() -> None:
+    active = _snapshot(status="ACTIVE", approved_hash="a" * 64)
+    candidate = _snapshot(status="NO_CHANGE", semantic_hash="b" * 64)
+    with pytest.raises(ContractGovernanceError, match="reviewed_snapshot_required"):
+        validate_approval_transition(
+            candidate=candidate,
+            active=active,
+            expected_hash=candidate.semantic_hash,
+        )
+
+
+def test_reviewed_drift_can_be_explicitly_promoted() -> None:
+    active = _snapshot(status="ACTIVE", approved_hash="a" * 64)
+    candidate = _snapshot(status="REVIEW_REQUIRED", semantic_hash="b" * 64)
+    assert (
+        validate_approval_transition(
+            candidate=candidate,
+            active=active,
+            expected_hash=candidate.semantic_hash,
+        )
+        == "promotion"
+    )
+
+
+def test_reapproving_same_active_hash_is_idempotent() -> None:
+    candidate = _snapshot(status="ACTIVE", approved_hash="a" * 64)
+    assert (
+        validate_approval_transition(
+            candidate=candidate,
+            active=candidate,
+            expected_hash=candidate.semantic_hash,
+        )
+        == "idempotent"
+    )
