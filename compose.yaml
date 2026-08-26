@@ -2,15 +2,13 @@ services:
   postgres:
     image: postgres:17-alpine
     environment:
-      POSTGRES_DB: cataloging
-      POSTGRES_USER: cataloging
-      POSTGRES_PASSWORD: cataloging
-    ports:
-      - "5433:5432"
+      POSTGRES_DB: ${POSTGRES_DB:-cataloging}
+      POSTGRES_USER: ${POSTGRES_USER:-cataloging}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cataloging}
     volumes:
       - cataloging_postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U cataloging -d cataloging"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 3s
       timeout: 3s
       retries: 20
@@ -20,7 +18,7 @@ services:
       context: ./apps/api
     env_file: .env
     environment:
-      DATABASE_URL: postgresql+psycopg://cataloging:cataloging@postgres:5432/cataloging
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://cataloging:cataloging@postgres:5432/cataloging}
     ports:
       - "8000:8000"
     depends_on:
@@ -30,10 +28,12 @@ services:
   web:
     build:
       context: ./apps/web
+      args:
+        NEXT_PUBLIC_CATALOG_API_URL: ${NEXT_PUBLIC_CATALOG_API_URL:-http://localhost:8000}
     environment:
-      CATALOG_API_URL: http://api:8000
+      CATALOG_API_URL: ${CATALOG_API_URL:-http://api:8000}
       CATALOG_REVIEW_TOKEN: ${CATALOG_REVIEW_TOKEN}
-      NEXT_PUBLIC_CATALOG_API_URL: http://localhost:8000
+      NEXT_PUBLIC_CATALOG_API_URL: ${NEXT_PUBLIC_CATALOG_API_URL:-http://localhost:8000}
     ports:
       - "3000:3000"
     depends_on:
