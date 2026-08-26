@@ -48,6 +48,20 @@ class DSpaceContractSnapshot(Base):
     complete: Mapped[bool] = mapped_column(Boolean, nullable=False)
     canonical_json: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
     warnings: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
+
+    # Governed overlay for a surface that is provably unobservable through the
+    # live REST representation. The observed canonical payload above remains
+    # immutable; these columns record the independently reconciled effective
+    # contract and its provenance.
+    effective_hash: Mapped[str | None] = mapped_column(String(64), index=True)
+    effective_canonical_json: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    resolution_surface: Mapped[str | None] = mapped_column(String(80))
+    resolution_source_hash: Mapped[str | None] = mapped_column(String(64))
+    resolution_reconciliation_hash: Mapped[str | None] = mapped_column(String(64))
+    resolved_by: Mapped[str | None] = mapped_column(String(120))
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    resolution_note: Mapped[str | None] = mapped_column(Text)
+
     approved_by: Mapped[str | None] = mapped_column(String(120))
     approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     approval_note: Mapped[str | None] = mapped_column(Text)
