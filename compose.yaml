@@ -31,6 +31,8 @@ services:
       args:
         NEXT_PUBLIC_CATALOG_API_URL: ${NEXT_PUBLIC_CATALOG_API_URL:-http://localhost:8000}
     environment:
+      HOSTNAME: 0.0.0.0
+      PORT: "3000"
       CATALOG_API_URL: ${CATALOG_API_URL:-http://api:8000}
       CATALOG_REVIEW_TOKEN: ${CATALOG_REVIEW_TOKEN}
       NEXT_PUBLIC_CATALOG_API_URL: ${NEXT_PUBLIC_CATALOG_API_URL:-http://localhost:8000}
