@@ -55,13 +55,20 @@ def derive_contract_health(
         operational = "SYNCED"
 
     canonical = (active.canonical_json if active is not None else None) or {}
+    if latest is not None and latest.complete:
+        last_verified_at = latest.created_at
+    elif active is not None:
+        last_verified_at = active.created_at
+    else:
+        last_verified_at = None
+
     return ContractHealth(
         status=operational,
         active_snapshot_id=active.snapshot_id if active is not None else None,
         active_hash=active.semantic_hash if active is not None else None,
         latest_snapshot_id=latest.snapshot_id if latest is not None else None,
         latest_status=latest.status if latest is not None else None,
-        last_verified_at=latest.created_at if latest is not None else None,
+        last_verified_at=last_verified_at,
         metadata_field_count=(len(canonical.get("fields", [])) if active is not None else None),
         form_binding_count=(len(canonical.get("bindings", [])) if active is not None else None),
         warning_count=len((latest.warnings if latest is not None else None) or []),
