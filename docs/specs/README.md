@@ -30,22 +30,23 @@ The existence of a specification does **not** by itself mean that the vertical i
 | VERTICAL-020 | [Secure remote evidence fetch](VERTICAL-020-secure-remote-evidence-fetch.md) | See specification |
 | VERTICAL-021 | [Provider-independent LLM-assisted extraction](VERTICAL-021-provider-independent-llm-assisted-extraction.md) | See specification |
 | **VERTICAL-022** | **[DSpace contract drift detection](VERTICAL-022-dspace-contract-drift-detection.md)** | **Accepted / Operationalized** |
-| VERTICAL-023 | [Production readiness & operational health](VERTICAL-023-production-readiness-operational-health.md) | See specification |
+| **VERTICAL-023** | **[Production readiness & operational health](VERTICAL-023-production-readiness-operational-health.md)** | **Accepted / Operationalized** |
 
 ## Current operational milestone
 
-VERTICAL-022 is the first vertical in this index whose operational acceptance is explicitly recorded as a separate repository artifact. Its acceptance establishes that the governed DSpace contract synchronization path is operational with a human-approved ACTIVE baseline, exact reconciliation, resolution inheritance, and a repository-managed scheduler wrapper that has passed a deployed smoke test.
+VERTICAL-022 established the governed DSpace contract synchronization path as operational with a human-approved ACTIVE baseline, exact reconciliation, resolution inheritance, and a repository-managed scheduler wrapper that passed a deployed smoke test.
 
-VERTICAL-023 is specified but is not yet accepted or operationalized. Its lifecycle status must remain `See specification` until health/readiness semantics, deployment smoke automation, and durable production acceptance evidence satisfy the specification.
+VERTICAL-023 is now also accepted and operationalized. Its durable acceptance evidence verifies production commit identity, API liveness, PostgreSQL-backed readiness, internal frontend reachability, public frontend/API reachability, a governed production smoke result of `PASS` with exit code `0`, and read-only observation of VERTICAL-022 state.
 
 Evidence and operations documents:
 
-- [Operational acceptance](../vertical-022-operational-acceptance.md)
-- [Activation runbook](../vertical-022-activation-runbook.md)
-- [Live contract reconciliation](../vertical-022-live-contract-reconciliation.md)
-- [Scheduled synchronization](../vertical-022-scheduled-sync.md)
+- [VERTICAL-023 operational acceptance](../vertical-023-operational-acceptance.md)
+- [VERTICAL-022 operational acceptance](../vertical-022-operational-acceptance.md)
+- [VERTICAL-022 activation runbook](../vertical-022-activation-runbook.md)
+- [VERTICAL-022 live contract reconciliation](../vertical-022-live-contract-reconciliation.md)
+- [VERTICAL-022 scheduled synchronization](../vertical-022-scheduled-sync.md)
 
-The lifecycle designation above does not remove VERTICAL-022 from governance. Material contract drift, failed reconciliation, authentication/network failure, or other stop conditions documented in the runbook still require human review; the scheduler must never approve or promote a baseline automatically.
+These lifecycle designations do not remove either vertical from governance. Material DSpace contract drift, failed reconciliation, readiness failure, public/internal reachability failure, deployment-identity mismatch, or other documented stop conditions still require human review. Automated operational checks must not approve or promote a DSpace baseline.
 
 ## Maintaining this index
 
