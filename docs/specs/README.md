@@ -31,25 +31,28 @@ The existence of a specification does **not** by itself mean that the vertical i
 | VERTICAL-021 | [Provider-independent LLM-assisted extraction](VERTICAL-021-provider-independent-llm-assisted-extraction.md) | See specification |
 | **VERTICAL-022** | **[DSpace contract drift detection](VERTICAL-022-dspace-contract-drift-detection.md)** | **Accepted / Operationalized** |
 | **VERTICAL-023** | **[Production readiness & operational health](VERTICAL-023-production-readiness-operational-health.md)** | **Accepted / Operationalized** |
-| VERTICAL-024 | [Operational recovery & restart hardening](VERTICAL-024-operational-recovery-restart-hardening.md) | See specification |
+| **VERTICAL-024** | **[Operational recovery & restart hardening](VERTICAL-024-operational-recovery-restart-hardening.md)** | **Accepted / Operationalized** |
 
 ## Current operational milestone
 
 VERTICAL-022 established the governed DSpace contract synchronization path as operational with a human-approved ACTIVE baseline, exact reconciliation, resolution inheritance, and a repository-managed scheduler wrapper that passed a deployed smoke test.
 
-VERTICAL-023 is now also accepted and operationalized. Its durable acceptance evidence verifies production commit identity, API liveness, PostgreSQL-backed readiness, internal frontend reachability, public frontend/API reachability, a governed production smoke result of `PASS` with exit code `0`, and read-only observation of VERTICAL-022 state.
+VERTICAL-023 established production liveness/readiness and a governed deployment smoke that verifies PostgreSQL-backed API readiness, internal frontend reachability, public frontend/API reachability, and read-only VERTICAL-022 observation.
 
-VERTICAL-024 is specified but not yet implemented or operationalized. It addresses the residual recovery risk discovered during VERTICAL-023-C: Catalog Assistant must recover predictably after Docker daemon restart without manual stack restoration while preserving VERTICAL-023 health/readiness semantics and VERTICAL-022/DSpace governance.
+VERTICAL-024 is now accepted and operationalized. Its production recovery evidence demonstrates that `postgres`, `api`, and `web` use the governed `restart: unless-stopped` policy and recover automatically after a controlled Docker daemon restart without manual stack-start or redeploy intervention. PostgreSQL returned healthy, API liveness/readiness returned LIVE/READY with `DATABASE_OK`, and the final governed smoke returned `RESULT PASS` with exit code `0`.
 
 Evidence and operations documents:
 
+- [VERTICAL-024 operational recovery acceptance](../vertical-024-operational-acceptance.md)
 - [VERTICAL-023 operational acceptance](../vertical-023-operational-acceptance.md)
 - [VERTICAL-022 operational acceptance](../vertical-022-operational-acceptance.md)
 - [VERTICAL-022 activation runbook](../vertical-022-activation-runbook.md)
 - [VERTICAL-022 live contract reconciliation](../vertical-022-live-contract-reconciliation.md)
 - [VERTICAL-022 scheduled synchronization](../vertical-022-scheduled-sync.md)
 
-These lifecycle designations do not remove either accepted vertical from governance. Material DSpace contract drift, failed reconciliation, readiness failure, public/internal reachability failure, deployment-identity mismatch, failed automatic recovery, or other documented stop conditions still require human review. Automated operational checks must not approve or promote a DSpace baseline.
+These lifecycle designations do not remove the accepted verticals from governance. Material DSpace contract drift, failed reconciliation, readiness failure, public/internal reachability failure, deployment-identity mismatch, failed automatic recovery, or other documented stop conditions still require human review. Automated operational checks must not approve or promote a DSpace baseline.
+
+VERTICAL-024 acceptance covers controlled Docker daemon restart recovery. Full host-reboot recovery remains `NOT TESTED` and is not claimed by this lifecycle status.
 
 ## Maintaining this index
 
