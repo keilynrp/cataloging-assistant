@@ -177,6 +177,36 @@ def _empty_counts() -> defaultdict[str, int]:
     return defaultdict(int)
 
 
+def _abstention_matches_candidate(abstention: dict[str, Any], candidate: dict[str, Any]) -> bool:
+    binding = abstention.get("binding_id")
+    if binding not in {None, "*"} and candidate.get("binding_id") != binding:
+        return False
+    opportunity_id = abstention.get("opportunity_id")
+    if opportunity_id is not None and candidate.get("opportunity_id") != opportunity_id:
+        return False
+    source_refs = set(abstention.get("source_refs", []))
+    if source_refs and source_refs.isdisjoint(candidate.get("source_refs", [])):
+        return False
+    return True
+
+
+def _pertinent_gold(
+    expected: list[dict[str, Any]], candidate: dict[str, Any]
+) -> tuple[int, dict[str, Any]] | None:
+    severity_rank = {"minor": 0, "major": 1, "critical": 2}
+    pertinent = [
+        (index, gold)
+        for index, gold in enumerate(expected)
+        if gold.get("binding_id") == candidate.get("binding_id")
+    ]
+    if not pertinent:
+        return None
+    return max(
+        pertinent,
+        key=lambda item: (severity_rank.get(item[1].get("severity", "major"), 1), -item[0]),
+    )
+
+
 def _compare_provisional(summary: dict[str, Any]) -> dict[str, Any]:
     comparisons = {}
     for metric, (operator, target) in PROVISIONAL_TARGETS.items():
@@ -205,7 +235,10 @@ def _summarize(counts: dict[str, int], case_results: list[dict[str, Any]]) -> di
         "fp": counts.get("fp", 0),
         "fn": counts.get("fn", 0),
         "micro_precision": _ratio(counts.get("tp", 0), counts.get("tp", 0) + counts.get("fp", 0)),
-        "micro_recall": _ratio(counts.get("tp", 0), counts.get("tp", 0) + counts.get("fn", 0)),
+        "micro_recall": _ratio(
+            counts.get("recall_tp", 0),
+            counts.get("recall_tp", 0) + counts.get("recall_fn", 0),
+        ),
         "macro_precision": _mean(result.get("precision") for result in case_results),
         "macro_recall": _mean(result.get("recall") for result in case_results),
         "binding_accuracy": _ratio(
@@ -307,12 +340,11 @@ def _score_case_internal(
     abstentions = list(expected_doc.get("expected_abstentions", []))
     failed_abstentions: dict[int, int] = {}
     for a_idx, abstention in enumerate(abstentions):
-        binding = abstention.get("binding_id")
         violation = next(
             (
                 p_idx
                 for p_idx, candidate in enumerate(proposed)
-                if binding in {None, "*"} or candidate.get("binding_id") == binding
+                if _abstention_matches_candidate(abstention, candidate)
             ),
             None,
         )
@@ -324,6 +356,9 @@ def _score_case_internal(
         p_idx for p_idx, candidate in enumerate(proposed) if candidate.get("value") in prohibited
     }
     unsupported_indices.update(failed_abstentions.values())
+    unsupported_indices.update(
+        p_idx for p_idx, _candidate in enumerate(proposed) if p_idx not in matched_proposed
+    )
 
     controlled_opportunities = 0
     controlled_correct = 0
@@ -363,12 +398,18 @@ def _score_case_internal(
         )
     for p_idx in range(len(proposed)):
         if p_idx not in used_proposed and p_idx not in matched_proposed:
+            pertinent = _pertinent_gold(expected, proposed[p_idx])
             errors.append(
                 _error(
                     "UNSUPPORTED_VALUE",
                     "authoritative_match",
-                    proposed[p_idx].get("severity", expected_doc.get("severity", "major")),
+                    (
+                        pertinent[1].get("severity", "major")
+                        if pertinent is not None
+                        else proposed[p_idx].get("severity", expected_doc.get("severity", "major"))
+                    ),
                     p_idx,
+                    pertinent[0] if pertinent is not None else None,
                 )
             )
     if expected_doc.get("recall_applicable", True):
@@ -493,6 +534,8 @@ def _score_case_internal(
         tp=tp,
         fp=fp,
         fn=fn,
+        recall_tp=tp if expected_doc.get("recall_applicable", True) else 0,
+        recall_fn=fn,
         binding_correct=sum(match.binding_ok for match in binding_matches),
         binding_evaluable=len(binding_matches),
         intent_correct=sum(match.intent_ok for match in intent_matches),
@@ -521,6 +564,8 @@ def _score_case_internal(
             target = dimensions[dimension][value]
             target["n_cases"] = 1
             target["tp"] += int(match.authoritative)
+            if expected_doc.get("recall_applicable", True):
+                target["recall_tp"] += int(match.authoritative)
             if match.authoritative or (match.intent_ok and match.grounding_ok):
                 target["binding_evaluable"] += 1
                 target["binding_correct"] += int(match.binding_ok)
@@ -539,6 +584,7 @@ def _score_case_internal(
             target["n_cases"] = 1
             if expected_doc.get("recall_applicable", True) and e_idx not in authoritative_expected:
                 target["fn"] += 1
+                target["recall_fn"] += 1
             if _controlled_vocabulary(gold) is not None:
                 target["controlled_vocab_opportunities"] += 1
                 target["controlled_vocab_correct"] += int(e_idx not in controlled_errors)
@@ -604,6 +650,8 @@ def _counts_from_result(result: dict[str, Any]) -> defaultdict[str, int]:
         tp=result["tp"],
         fp=result["fp"],
         fn=result["fn"],
+        recall_tp=metrics["micro_recall"]["numerator"],
+        recall_fn=(metrics["micro_recall"]["denominator"] - metrics["micro_recall"]["numerator"]),
         binding_correct=metrics["binding_accuracy"]["numerator"],
         binding_evaluable=metrics["binding_accuracy"]["denominator"],
         grounding_correct=metrics["grounding_accuracy"]["numerator"],
@@ -682,9 +730,19 @@ def score_run(
     reviews_by_binding: dict[str, list[dict[str, Any]]] = defaultdict(list)
     critical_opportunities = defaultdict(int)
     stratum_a_opportunities = 0
+    controlled_vocabularies: dict[tuple[str, str, str], dict[str, Any]] = {}
 
     for case in sorted(cases, key=lambda item: item["case_id"]):
         result, dimensions = _score_case_internal(case["expected"], case["proposed"])
+        for gold in case["expected"].get("expected_candidates", []):
+            vocabulary = _controlled_vocabulary(gold)
+            if vocabulary is not None:
+                key = (
+                    str(vocabulary["vocabulary_id"]),
+                    str(vocabulary["version"]),
+                    str(vocabulary["hash"]),
+                )
+                controlled_vocabularies[key] = vocabulary
         scored.append({"case_id": case["case_id"], **result})
         case_counts = _counts_from_result(result)
         _add_counts(overall_counts, case_counts)
@@ -797,6 +855,9 @@ def score_run(
             "scorer_version": SCORER_VERSION,
             "matching_algorithm_version": MATCHING_ALGORITHM_VERSION,
             "grounding_policy_version": GROUNDING_POLICY_VERSION,
+            "controlled_vocabularies": [
+                controlled_vocabularies[key] for key in sorted(controlled_vocabularies)
+            ],
             "status": "COMPLETE" if not missing else "INCOMPLETE",
             "missing_required_fields": missing,
         },

@@ -93,6 +93,29 @@ def test_empty_denominators_are_explicitly_not_evaluable() -> None:
     assert result["metrics"]["intent_accuracy"]["status"] == "NOT_EVALUABLE"
 
 
+def test_recall_applicability_excludes_positive_cases_from_recall_denominators() -> None:
+    open_gold = _gold()
+    open_gold["recall_applicable"] = False
+    open_result = score_case(open_gold, {"candidates": [_candidate()]})
+
+    assert open_result["tp"] == 1
+    assert open_result["recall"] is None
+    assert open_result["metrics"]["micro_recall"]["status"] == "NOT_EVALUABLE"
+
+    mixed = score_run(
+        [
+            _case("applicable", _gold(), [_candidate()]),
+            _case("not-applicable", open_gold, [_candidate()]),
+        ]
+    )
+    assert mixed["overall"]["micro_recall"] == {
+        "value": 1.0,
+        "numerator": 1,
+        "denominator": 1,
+        "status": "EVALUABLE",
+    }
+
+
 def test_wrong_intent_is_independent_from_binding_and_grounding() -> None:
     gold = _gold()
     result = score_case(
@@ -142,6 +165,19 @@ def test_full_and_selective_abstention_are_first_class_metrics() -> None:
     assert failing["false_proposal_rate_on_abstention"] == 1.0
     assert any(error["code"] == "FALSE_PROPOSAL_ON_ABSTENTION" for error in failing["errors"])
 
+    source_scoped = _gold("linguistic-family")
+    source_scoped["expected_abstentions"] = [
+        {
+            "binding_id": "linguistic-family",
+            "source_refs": ["source-2"],
+            "reason": "CONFLICTING_EVIDENCE",
+        }
+    ]
+    passing = score_case(source_scoped, {"candidates": [_candidate()]})
+    assert passing["true_abstention_rate"] == 1.0
+    assert passing["false_proposal_rate_on_abstention"] == 0.0
+    assert passing["hallucination_rate"] == 0.0
+
 
 def test_controlled_vocabulary_uses_frozen_metadata_and_exact_match() -> None:
     gold = _gold(binding="linguistic-group", value="Purépecha")
@@ -175,6 +211,20 @@ def test_controlled_vocabulary_uses_frozen_metadata_and_exact_match() -> None:
     )
     assert normalized_but_not_exact["tp"] == 1
     assert normalized_but_not_exact["controlled_vocab_exact_match"] == 0.0
+
+
+def test_unsupported_same_binding_value_uses_gold_severity_and_counts_hallucination() -> None:
+    result = score_case(_gold(), {"candidates": [_candidate(value="Inventada")]})
+
+    assert result["hallucination_rate"] == 1.0
+    unsupported = next(error for error in result["errors"] if error["code"] == "UNSUPPORTED_VALUE")
+    assert unsupported == {
+        "code": "UNSUPPORTED_VALUE",
+        "origin": "authoritative_match",
+        "severity": "critical",
+        "proposed_index": 0,
+        "expected_index": 0,
+    }
 
 
 def test_structural_diagnostics_preserve_cardinality_duplicates_order_and_source_refs() -> None:
@@ -330,8 +380,14 @@ def test_materialized_adjudicated_reviews_feed_human_burden() -> None:
 
 
 def test_run_is_stable_under_case_reordering_and_does_not_invent_provenance() -> None:
+    controlled_gold = _gold()
+    controlled_gold["expected_candidates"][0]["controlled_vocabulary"] = {
+        "vocabulary_id": "linguistic-families",
+        "version": "2026-08",
+        "hash": "sha256:frozen",
+    }
     cases = [
-        _case("z-case", _gold(), [_candidate()]),
+        _case("z-case", controlled_gold, [_candidate()]),
         _case(
             "a-case",
             _gold(binding="registered-language", value="Español"),
@@ -347,6 +403,13 @@ def test_run_is_stable_under_case_reordering_and_does_not_invent_provenance() ->
     assert first["evaluation_run_id"] is None
     assert first["provenance"]["status"] == "INCOMPLETE"
     assert "evaluation_run_id" in first["provenance"]["missing_required_fields"]
+    assert first["provenance"]["controlled_vocabularies"] == [
+        {
+            "vocabulary_id": "linguistic-families",
+            "version": "2026-08",
+            "hash": "sha256:frozen",
+        }
+    ]
 
 
 def test_complete_versioned_provenance_is_preserved() -> None:

@@ -257,6 +257,9 @@ def test_materialized_seed_fixtures_score_end_to_end() -> None:
         per_case = score_case(expected, proposed)
         assert per_case["tp"] == 1
         assert per_case["fp"] == 0
+        assert per_case["hallucination_rate"] == 0.0
+        if expected["expected_abstentions"]:
+            assert per_case["false_proposal_rate_on_abstention"] == 0.0
 
         cases.append(
             {
