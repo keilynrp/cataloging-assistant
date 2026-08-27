@@ -414,6 +414,71 @@ def test_public_redirect_to_final_bad_gateway_is_fail(tmp_path: Path) -> None:
     assert result.returncode != 0
 
 
+class _RedirectToFinalRedirectHandler(http.server.BaseHTTPRequestHandler):
+    """A real HTTP server: /redirect-to-3xx -> 302 -> /final-3xx (301, no
+    further Location header, so curl cannot follow it any further).
+
+    Used with the REAL system curl to prove that a FINAL status code that is
+    still 3xx (i.e. the redirect chain terminates on a redirect response
+    rather than resolving to a 2xx) is treated as a failure, not a pass.
+    """
+
+    def log_message(self, *args: object) -> None:  # noqa: D401 -- silence server logs
+        pass
+
+    def do_GET(self) -> None:  # noqa: N802 -- required BaseHTTPRequestHandler name
+        if self.path == "/redirect-to-3xx":
+            self.send_response(302)
+            self.send_header("Location", "/final-3xx")
+            self.end_headers()
+        elif self.path == "/final-3xx":
+            self.send_response(301)
+            self.end_headers()
+        elif self.path == "/health":
+            self.send_response(200)
+            self.end_headers()
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+
+def test_public_final_redirect_status_is_fail(tmp_path: Path) -> None:
+    server = http.server.HTTPServer(("127.0.0.1", 0), _RedirectToFinalRedirectHandler)
+    port = server.server_address[1]
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        bin_dir = tmp_path / "bin"
+        bin_dir.mkdir()
+        _write_fake(bin_dir, "docker", _FAKE_DOCKER)
+        # Deliberately do NOT fake `curl` here -- the real system curl must
+        # actually follow the redirect and report the final status code.
+
+        env = dict(os.environ)
+        env["PATH"] = f"{bin_dir}:{env['PATH']}"
+        env["FAKE_DOCKER_ARGS_FILE"] = str(tmp_path / "docker-args.txt")
+        env["SMOKE_PUBLIC_FRONTEND_URL"] = f"http://127.0.0.1:{port}/redirect-to-3xx"
+        env["SMOKE_PUBLIC_API_URL"] = f"http://127.0.0.1:{port}/health"
+        env["SMOKE_CONNECT_TIMEOUT_SECONDS"] = "3"
+        env["SMOKE_HTTP_TIMEOUT_SECONDS"] = "3"
+
+        result = subprocess.run(
+            ["bash", str(SCRIPT_PATH)],
+            capture_output=True,
+            text=True,
+            env=env,
+            timeout=30,
+        )
+    finally:
+        server.shutdown()
+        server.server_close()
+
+    assert "FAIL public_frontend PUBLIC_FRONTEND_UNREACHABLE_301" in result.stdout, result.stdout
+    assert "PASS public_api" in result.stdout
+    assert "RESULT FAIL" in result.stdout
+    assert result.returncode != 0
+
+
 def test_script_follows_redirects_with_a_bounded_count_and_no_tls_bypass() -> None:
     content = SCRIPT_PATH.read_text()
     code_lines = "\n".join(

@@ -268,7 +268,7 @@ public_http_check() {
   fi
   local code="$OUT"
   case "$code" in
-    2?? | 3??)
+    2??)
       record "$name" PASS "$ok_code"
       ;;
     502 | 503)
