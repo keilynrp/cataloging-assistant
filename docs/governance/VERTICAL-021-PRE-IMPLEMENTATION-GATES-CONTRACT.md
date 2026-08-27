@@ -105,37 +105,36 @@ The ADR does not authorize DSpace writes, browsing, crawling, OCR, model tool us
 
 ### Gate D — Evaluation plan
 
-Status: **OPEN / BLOCKING**
+Status: **OPEN / BLOCKING — methodology materially prepared**
 
-A versioned evaluation plan must be approved before cataloging use.
+Authoritative readiness evidence:
 
-It must define:
+- `docs/evaluation/VERTICAL-021-EVALUATION-PLAN.md`
+- `docs/evaluation/VERTICAL-021-GOLDEN-SET-CONTRACT.md`
+- `docs/evaluation/VERTICAL-021-SCORER-CONTRACT.md`
+- `docs/evaluation/VERTICAL-021-HUMAN-ADJUDICATION-PROTOCOL.md`
+- `docs/evaluation/VERTICAL-021-GATE-D-READINESS-CONTRACT.md`
 
-- fixture corpus;
-- expected field/binding outcomes;
-- contradictory-evidence cases;
-- multilingual/multientity cases;
-- closed-vocabulary cases;
-- prompt-injection fixtures;
-- grounding/source-attribution fixtures;
-- inferred-vs-generated classification cases;
-- hallucination fixtures;
-- stale-session cases;
-- provider failure/schema failure cases.
+Current state:
 
-Required metric definitions must include at least:
+```text
+METHODOLOGY=ACCEPTED
+SYNTHETIC_GOLDEN_SET=MATERIALIZED
+STRATUM_A_SYNTHETIC_SAMPLE_FLOOR=MET
+SCORER=MATERIALIZED_PARTIAL
+REAL_ADJUDICATED_CASES_PRESENT=YES
+REAL_STRATUM_A_COVERAGE=INCOMPLETE
+THRESHOLDS=PROVISIONAL
+GATE_D=OPEN
+```
 
-- proposal precision;
-- recall where meaningful;
-- hallucination rate;
-- binding accuracy;
-- grounding/source-attribution accuracy;
-- controlled-vocabulary exact-match rate;
-- human-review-required rate.
+The evaluation methodology, synthetic Golden Set, schemas, scorer foundation and human-adjudication process are already materialized.
 
-Quality evaluation must remain separate from functional/security tests.
+Gate D remains open because final qualification thresholds are still provisional and the scorer does not yet implement the complete authoritative metric/report contract. Human empirical coverage is also incomplete and must not be overstated.
 
-Gate D is not closed merely because a provider returns syntactically valid JSON.
+The readiness contract separates pre-implementation methodology readiness (D1) from later post-implementation model qualification (D2) to avoid a circular dependency. Closing D1 does not qualify or enable any provider.
+
+Quality evaluation remains separate from functional/security tests, and syntactically valid provider output can never close this gate by itself.
 
 ## Cross-gate non-negotiable invariants
 
