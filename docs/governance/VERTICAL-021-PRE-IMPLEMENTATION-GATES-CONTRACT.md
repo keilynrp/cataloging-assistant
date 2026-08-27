@@ -80,31 +80,28 @@ The UI and adapter cannot override this decision.
 
 ### Gate C — Architecture Decision Record
 
-Status: **OPEN / BLOCKING**
+Status: **PASS / CLOSED — 2026-08-27**
 
-A VERTICAL-021-specific ADR must be merged before implementation.
+Authoritative evidence:
 
-It must cover at minimum:
+- `docs/adr/ADR-017-provider-independent-llm-evidence-extraction.md`
 
-- provider-neutral adapter boundary;
-- provider configuration boundary;
-- exact immutable input manifest;
-- request/config hashing;
-- structured-output/schema boundary;
-- evidence-state derivation;
-- server-side binding authority;
-- data-egress enforcement point;
-- prompt-injection threat model;
-- secrets boundary;
-- inference-run persistence;
-- transactional candidate persistence;
-- failure taxonomy;
-- staleness/concurrency;
-- deterministic-baseline preservation;
-- agent capability boundary;
-- rollback.
+Closure state:
 
-The ADR must not authorize DSpace writes, browsing, crawling, OCR, tool use, or model-initiated fetch.
+```text
+ADR_017=ACCEPTED
+PROVIDER_BOUNDARY=DEFINED
+INPUT_MANIFEST=DEFINED
+DATA_EGRESS_ENFORCEMENT_POINT=DEFINED
+PROMPT_INJECTION_BOUNDARY=DEFINED
+PERSISTENCE_ATOMICITY=DEFINED
+ROLLBACK=DEFINED
+GATE_C=PASS
+```
+
+ADR-017 covers the provider-neutral adapter boundary, credential/capability separation, exact immutable input manifest and request hashing, structured-output/schema boundary, server-side binding/evidence-state authority, data-egress enforcement point, prompt-injection threat model, secrets boundary, inference-run persistence, transactional candidate persistence, staleness/concurrency, deterministic-baseline preservation, agent capability boundary and rollback.
+
+The ADR does not authorize DSpace writes, browsing, crawling, OCR, model tool use, model-initiated fetch or real-provider traffic.
 
 ### Gate D — Evaluation plan
 
@@ -237,7 +234,7 @@ This pre-implementation contract is complete when:
 VERTICAL-020_DEPENDENCY=RESOLVED
 GATE_A=PASS
 GATE_B=PASS
-GATE_C=OPEN
+GATE_C=PASS
 GATE_D=OPEN
 VERTICAL-021_IMPLEMENTATION=BLOCKED
 ```
