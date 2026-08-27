@@ -210,6 +210,20 @@ def test_script_probes_web_from_another_service_not_localhost() -> None:
     assert "127.0.0.1:3000" not in content
 
 
+def test_run_capture_closes_stdin_from_devnull() -> None:
+    """Structural companion to the hang-regression test below.
+
+    Production evidence (VERTICAL-023-B, surfaced during VERTICAL-023-C)
+    showed run_capture() blocking inside `docker compose exec -T ...`
+    because it inherited the smoke script's own stdin. run_capture must
+    always redirect the wrapped command's stdin from /dev/null instead.
+    """
+    content = SCRIPT_PATH.read_text()
+    match = re.search(r"run_capture\(\) \{.*?\n\}", content, re.DOTALL)
+    assert match, "run_capture() function not found"
+    assert "</dev/null" in match.group(0)
+
+
 # --- behavioral checks (required tests 1-10) ---
 
 
@@ -325,6 +339,103 @@ def test_10_hung_internal_probe_terminates_within_a_bounded_interval(tmp_path: P
     assert result.returncode != 0
     assert "FAIL web_internal WEB_INTERNAL_UNREACHABLE" in result.stdout
     assert "RESULT FAIL" in result.stdout
+
+
+_FAKE_DOCKER_STDIN_GUARD = r"""#!/usr/bin/env python3
+import json
+import os
+import sys
+
+argv = sys.argv[1:]
+
+if argv[:2] == ["compose", "ps"]:
+    service = argv[2]
+    print(json.dumps({"State": "running", "Service": service}))
+    sys.exit(0)
+
+if argv[:3] == ["compose", "exec", "-T"]:
+    # Regression guard for VERTICAL-023-B: a real blocking read of stdin.
+    # If run_capture ever stops closing stdin (</dev/null), this read
+    # blocks forever on the caller's still-open stdin -- reproducing the
+    # exact production hang -- instead of seeing immediate EOF. The test
+    # driving this fake bounds that with an external subprocess timeout.
+    os.read(0, 1)
+
+    url = next((a for a in argv if a.startswith("http://")), "")
+    if url.endswith("/health"):
+        print("HTTP_STATUS=200")
+        print("BODY_STATUS=LIVE")
+    elif url.endswith("/ready"):
+        print("HTTP_STATUS=200")
+        print("BODY_STATUS=READY")
+    elif "dspace-contract/status" in url:
+        print("HTTP_STATUS=200")
+        print("BODY_STATUS=ACTIVE")
+    elif ":3000" in url:
+        print("HTTP_STATUS=200")
+    else:
+        sys.exit(1)
+    sys.exit(0)
+
+sys.exit(1)
+"""
+
+_FAKE_CURL_ALWAYS_OK = r"""#!/usr/bin/env python3
+import sys
+
+sys.stdout.write("200")
+sys.exit(0)
+"""
+
+
+def test_11_run_capture_does_not_inherit_open_stdin_into_compose_exec(tmp_path: Path) -> None:
+    """VERTICAL-023-B/C regression guard: run_capture must not let `docker
+    compose exec -T ...` block on the smoke script's own inherited stdin.
+
+    The fake `docker` used here performs a genuine blocking `os.read(0, 1)`
+    inside its `compose exec -T` branch: it hangs forever if stdin is still
+    open with no data and no EOF, and returns immediately if stdin is
+    /dev/null. The smoke script's own stdin is deliberately wired to the
+    read end of a pipe whose write end is kept open (never closed), which
+    reproduces the exact shape observed in production -- a live process
+    substitution / orchestrator holding the script's stdin open. If
+    run_capture ever regresses to inheriting stdin instead of closing it,
+    this test hangs until the bounded subprocess timeout below fires.
+    """
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    _write_fake(bin_dir, "docker", _FAKE_DOCKER_STDIN_GUARD)
+    _write_fake(bin_dir, "curl", _FAKE_CURL_ALWAYS_OK)
+
+    env = dict(os.environ)
+    env["PATH"] = f"{bin_dir}:{env['PATH']}"
+    env.update(DEFAULT_ENV)
+
+    read_fd, write_fd = os.pipe()
+    try:
+        result = subprocess.run(
+            ["bash", str(SCRIPT_PATH)],
+            capture_output=True,
+            text=True,
+            env=env,
+            stdin=read_fd,
+            timeout=15,
+        )
+    except subprocess.TimeoutExpired:
+        pytest.fail(
+            "production-smoke.sh hung: run_capture appears to have "
+            "inherited an open stdin into `docker compose exec -T`"
+        )
+    finally:
+        os.close(read_fd)
+        os.close(write_fd)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "PASS compose_services" in result.stdout
+    assert "PASS api_liveness" in result.stdout
+    assert "PASS api_readiness" in result.stdout
+    assert "PASS web_internal" in result.stdout
+    assert "RESULT PASS" in result.stdout
 
 
 def test_public_urls_are_overridable_and_actually_used(tmp_path: Path) -> None:

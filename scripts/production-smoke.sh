@@ -99,10 +99,15 @@ record() {
 
 # Runs "$@", capturing combined stdout+stderr into OUT and the exit code into
 # RC, without ever tripping `set -e`. Callers branch on RC explicitly so a
-# single failed probe never aborts the rest of the smoke sequence.
+# single failed probe never aborts the rest of the smoke sequence. Stdin is
+# explicitly closed (</dev/null) rather than inherited: in production this
+# script's own stdin is not guaranteed to be closed/EOF, and an inherited,
+# still-open stdin can make `docker compose exec` (run here without -T's
+# stdin already detached at the shell level) block indefinitely inside this
+# command substitution, hanging the smoke run after `compose_services`.
 run_capture() {
   set +e
-  OUT="$("$@" 2>&1)"
+  OUT="$("$@" </dev/null 2>&1)"
   RC=$?
   set -e
 }
