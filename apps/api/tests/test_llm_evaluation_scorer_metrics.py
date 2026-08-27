@@ -4,6 +4,8 @@ import json
 from copy import deepcopy
 from pathlib import Path
 
+import pytest
+
 from cataloging_api.evaluation.scorer import score_case, score_run
 
 GOLDEN_ROOT = Path(__file__).parent / "golden" / "llm-evidence"
@@ -70,6 +72,28 @@ def _case(
         "expected": expected,
         "proposed": {"candidates": candidates},
         "human_reviews": reviews or [],
+    }
+
+
+def _adjudication(
+    case_id: str,
+    binding_id: str,
+    decision: str,
+    *,
+    adjudication_id: str | None = None,
+) -> dict:
+    return {
+        "adjudication_status": "FINAL",
+        "adjudication_id": adjudication_id or f"adjudication-{case_id}-{binding_id}",
+        "case_id": case_id,
+        "binding_id": binding_id,
+        "final_decision": decision,
+        "evidence_snapshot_sha256": "sha256:evidence",
+        "input_golden_set_version": "gold-1",
+        "catalog_contract_version": "contract-1",
+        "catalog_contract_sha256": "sha256:contract",
+        "resulting_gold_version": "gold-1-adjudicated",
+        "input_review_ids": [f"{case_id}-review-a", f"{case_id}-review-b"],
     }
 
 
@@ -342,61 +366,81 @@ def test_micro_success_cannot_hide_unevaluable_critical_binding() -> None:
 
 
 def test_human_review_burden_is_annotated_not_inferred() -> None:
-    review_metadata = {
-        "binding_id": "linguistic-family",
-        "evidence_snapshot_sha256": "sha256:evidence",
-        "golden_set_version": "gold-1",
-        "catalog_contract_version": "contract-1",
-    }
-    reviews = [
-        {**review_metadata, "review_id": "review-1", "decision": "ACCEPT_AS_IS"},
-        {
-            **review_metadata,
-            "review_id": "review-2",
-            "decision": "RESEARCH_REQUIRED",
-        },
-    ]
-    reviewed = _case("reviewed", _gold(), [_candidate()], reviews=reviews)
-    unreviewed = _case(
-        "unreviewed",
+    reviewed_family = _case(
+        "reviewed-family",
+        _gold(),
+        [_candidate()],
+        reviews=[_adjudication("reviewed-family", "linguistic-family", "ACCEPT_AS_IS")],
+    )
+    reviewed_group = _case(
+        "reviewed-group",
         _gold(binding="linguistic-group", value="Purépecha"),
         [_candidate(binding="linguistic-group", value="Purépecha")],
         binding="linguistic-group",
         stratum="B",
+        reviews=[_adjudication("reviewed-group", "linguistic-group", "RESEARCH_REQUIRED")],
     )
-    result = score_run([reviewed, unreviewed])
+    result = score_run([reviewed_family, reviewed_group])
 
     burden = result["overall"]["human_review_burden"]
     assert burden["total"] == 2
     assert burden["proportions"]["ACCEPT_AS_IS"] == 0.5
     assert burden["proportions"]["RESEARCH_REQUIRED"] == 0.5
-    assert result["by_binding"]["linguistic-family"]["human_review_burden"]["total"] == 2
-    assert result["by_binding"]["linguistic-group"]["human_review_burden"]["status"] == (
-        "NOT_EVALUABLE"
-    )
+    assert result["by_binding"]["linguistic-family"]["human_review_burden"]["total"] == 1
+    assert result["by_binding"]["linguistic-group"]["human_review_burden"]["total"] == 1
 
 
 def test_materialized_adjudicated_reviews_feed_human_burden() -> None:
-    review_root = GOLDEN_ROOT / "human-review" / "reviews"
-    filenames = [
-        "real-evidence-candidate-003.registered-language.cataloger-a.rereview-v3.json",
-        "real-evidence-candidate-003.registered-language.cataloger-b.rereview-v3.json",
-    ]
-    reviews = [
-        json.loads((review_root / filename).read_text(encoding="utf-8")) for filename in filenames
-    ]
+    adjudication_path = (
+        GOLDEN_ROOT
+        / "human-review"
+        / "adjudications"
+        / "real-evidence-candidate-003.registered-language.rereview-v3.adjudication.json"
+    )
+    adjudication = json.loads(adjudication_path.read_text(encoding="utf-8"))
     case = _case(
         "real-evidence-candidate-003-registered-language-rereview-v3",
         _gold(binding="registered-language", value="Español"),
         [_candidate(binding="registered-language", value="Español")],
         binding="registered-language",
-        reviews=reviews,
+        reviews=[adjudication],
     )
 
     burden = score_run([case])["overall"]["human_review_burden"]
     assert burden["status"] == "EVALUABLE"
-    assert burden["total"] == 2
-    assert burden["counts"]["ACCEPT_AS_IS"] == 2
+    assert burden["total"] == 1
+    assert burden["counts"]["ACCEPT_AS_IS"] == 1
+
+
+def test_human_review_burden_rejects_raw_or_cross_case_reviews() -> None:
+    raw_review = {
+        "review_id": "review-1",
+        "case_id": "case",
+        "binding_id": "linguistic-family",
+        "decision": "ACCEPT_AS_IS",
+        "evidence_snapshot_sha256": "sha256:evidence",
+        "golden_set_version": "gold-1",
+        "catalog_contract_version": "contract-1",
+    }
+    with pytest.raises(ValueError, match="FINAL adjudication"):
+        score_run([_case("case", _gold(), [_candidate()], reviews=[raw_review])])
+
+    cross_case = _adjudication("different-case", "linguistic-family", "REJECT")
+    with pytest.raises(ValueError, match="does not match case"):
+        score_run([_case("case", _gold(), [_candidate()], reviews=[cross_case])])
+
+    duplicated = _adjudication("case", "linguistic-family", "ACCEPT_AS_IS")
+    with pytest.raises(ValueError, match="duplicate adjudication_id"):
+        score_run(
+            [
+                _case(
+                    "case",
+                    _gold(),
+                    [_candidate()],
+                    reviews=[duplicated, deepcopy(duplicated)],
+                )
+            ]
+        )
 
 
 def test_run_is_stable_under_case_reordering_and_does_not_invent_provenance() -> None:
@@ -452,3 +496,232 @@ def test_complete_versioned_provenance_is_preserved() -> None:
     assert result["catalog_contract_version"] == "contract-1"
     assert result["provenance"]["status"] == "COMPLETE"
     assert result["provenance"]["missing_required_fields"] == []
+
+
+def test_authoritative_matching_is_maximum_and_candidate_order_independent() -> None:
+    first = _gold(value="x")["expected_candidates"][0]
+    first["accepted_values"] = ["x", "y"]
+    second = {**first, "accepted_values": ["x"]}
+    gold = {
+        "expected_candidates": [first, second],
+        "expected_abstentions": [],
+        "recall_applicable": True,
+    }
+    candidates = [_candidate(value="x"), _candidate(value="y")]
+
+    forward = score_case(gold, {"candidates": candidates})
+    reverse = score_case(gold, {"candidates": list(reversed(candidates))})
+    reordered_gold = {
+        **gold,
+        "expected_candidates": list(reversed(gold["expected_candidates"])),
+    }
+    gold_reverse = score_case(reordered_gold, {"candidates": candidates})
+
+    assert (forward["tp"], forward["fp"], forward["fn"]) == (2, 0, 0)
+    assert (reverse["tp"], reverse["fp"], reverse["fn"]) == (2, 0, 0)
+    assert (gold_reverse["tp"], gold_reverse["fp"], gold_reverse["fn"]) == (2, 0, 0)
+    assert forward["metrics"] == reverse["metrics"]
+    assert forward["metrics"] == gold_reverse["metrics"]
+
+
+def test_opportunity_scoped_abstention_cannot_also_be_authoritative() -> None:
+    gold = _gold(value="x")
+    expected = gold["expected_candidates"][0]
+    expected["opportunity_id"] = "allowed"
+    expected["source_refs_allowed"] = ["source-1", "source-2"]
+    gold["expected_abstentions"] = [
+        {
+            "binding_id": "linguistic-family",
+            "opportunity_id": "blocked",
+            "source_refs": ["source-2"],
+            "severity": "critical",
+        }
+    ]
+    proposal = _candidate(value="x")
+    proposal["opportunity_id"] = "blocked"
+    proposal["source_refs"] = ["source-2"]
+
+    result = score_case(gold, {"candidates": [proposal]})
+
+    assert (result["tp"], result["fp"], result["fn"]) == (0, 1, 1)
+    assert result["hallucination_rate"] == 1.0
+    false_proposal = next(
+        error for error in result["errors"] if error["code"] == "FALSE_PROPOSAL_ON_ABSTENTION"
+    )
+    assert false_proposal["severity"] == "critical"
+    assert false_proposal["expected_index"] == 0
+    assert false_proposal["expected_kind"] == "abstention"
+    assert false_proposal["abstention_index"] == 0
+
+
+def test_all_critical_bindings_and_strata_are_explicitly_visible() -> None:
+    result = score_run([_case("only", _gold(), [_candidate()], opportunities=20)])
+
+    assert set(result["by_risk_stratum"]) >= {"A", "B", "C"}
+    assert set(result["by_binding"]) >= {
+        "linguistic-family",
+        "linguistic-branch",
+        "linguistic-group",
+        "linguistic-variant",
+        "registered-language",
+    }
+    assert result["by_risk_stratum"]["B"]["micro_precision"]["status"] == ("NOT_EVALUABLE")
+    assert result["by_binding"]["linguistic-group"]["micro_recall"]["status"] == ("NOT_EVALUABLE")
+
+
+def test_multi_binding_case_does_not_copy_total_opportunities_to_every_binding() -> None:
+    bindings = [
+        "linguistic-family",
+        "linguistic-branch",
+        "linguistic-group",
+        "linguistic-variant",
+        "registered-language",
+    ]
+    case = {
+        "case_id": "multi",
+        "manifest": {
+            "risk_stratum": "A",
+            "bindings_under_test": bindings,
+            "opportunity_count": 20,
+        },
+        "expected": {
+            "expected_candidates": [],
+            "expected_abstentions": [],
+            "recall_applicable": False,
+        },
+        "proposed": {"candidates": []},
+    }
+
+    result = score_run([case])
+
+    assert result["sample_sufficiency"]["status"] == "INSUFFICIENT_SAMPLE"
+    assert result["sample_sufficiency"]["stratum_a_opportunities"] == 0
+    assert set(result["sample_sufficiency"]["critical_binding_opportunities"].values()) == {0}
+
+
+def test_report_contains_macro_averages_by_binding_and_stratum() -> None:
+    cases = [_case(f"a-{index}", _gold(), [_candidate()]) for index in range(9)]
+    cases.append(
+        _case(
+            "b-fail",
+            _gold(binding="linguistic-group", value="Purépecha"),
+            [_candidate(binding="linguistic-group", value="Unsupported")],
+            binding="linguistic-group",
+            stratum="B",
+        )
+    )
+
+    overall = score_run(cases)["overall"]
+
+    assert overall["macro_precision_by_case"]["value"] == 0.9
+    assert overall["macro_precision_by_binding"]["value"] == 0.5
+    assert overall["macro_precision_by_risk_stratum"]["value"] == 0.5
+
+
+def test_diagnostic_matching_uses_intent_to_select_pertinent_gold() -> None:
+    first = _gold(value="x")["expected_candidates"][0]
+    first["candidate_intent"] = "GENERATED_CONTENT"
+    first["severity"] = "minor"
+    second = {**first, "candidate_intent": "INFERRED_VALUE", "severity": "critical"}
+    gold = {
+        "expected_candidates": [first, second],
+        "expected_abstentions": [],
+        "recall_applicable": True,
+    }
+
+    result = score_case(
+        gold,
+        {"candidates": [_candidate(binding="linguistic-group", value="x")]},
+    )
+
+    wrong_binding = next(error for error in result["errors"] if error["code"] == "WRONG_BINDING")
+    assert wrong_binding["expected_index"] == 1
+    assert wrong_binding["severity"] == "critical"
+    assert not any(error["code"] == "WRONG_INTENT" for error in result["errors"])
+
+
+def test_manifest_controlled_vocabulary_is_used_and_incomplete_identity_is_explicit() -> None:
+    controlled_case = _case("controlled", _gold(), [_candidate()])
+    controlled_case["manifest"].update(
+        {
+            "controlled_vocabulary_id": "linguistic-families",
+            "controlled_vocabulary_version": "2026-08",
+            "controlled_vocabulary_hash": "sha256:frozen",
+        }
+    )
+    controlled = score_run([controlled_case])
+    assert controlled["overall"]["controlled_vocab_exact_match"]["value"] == 1.0
+    assert controlled["provenance"]["controlled_vocabularies"] == [
+        {
+            "vocabulary_id": "linguistic-families",
+            "version": "2026-08",
+            "hash": "sha256:frozen",
+        }
+    ]
+
+    incomplete_gold = _gold()
+    incomplete_gold["expected_candidates"][0]["controlled_vocabulary"] = {
+        "vocabulary_id": "linguistic-families",
+        "version": "2026-08",
+    }
+    metadata = {
+        "evaluation_run_id": "run",
+        "golden_set_version": "gold",
+        "golden_set_hash": "sha256:gold",
+        "catalog_contract_version": "contract",
+        "catalog_contract_hash": "sha256:contract",
+        "config_hash": "sha256:config",
+        "input_manifest_hashes": ["sha256:input"],
+        "output_hashes": ["sha256:output"],
+        "run_timestamp": "2026-08-27T00:00:00Z",
+        "environment_runtime_id": "python-3.12",
+    }
+    incomplete = score_run([_case("incomplete", incomplete_gold, [_candidate()])], metadata)
+    assert incomplete["provenance"]["status"] == "INCOMPLETE"
+    assert "controlled_vocabulary_identity" in incomplete["provenance"]["missing_required_fields"]
+    assert any(error["code"] == "SCHEMA_INVALID" for error in incomplete["cases"][0]["errors"])
+
+
+def test_supported_values_do_not_become_hallucinations_when_diagnostics_are_exhausted() -> None:
+    proposals = [
+        _candidate(binding="linguistic-group"),
+        _candidate(binding="registered-language"),
+    ]
+
+    result = score_case(_gold(), {"candidates": proposals})
+
+    assert result["hallucination_rate"] == 0.0
+    assert not any(error["code"] == "UNSUPPORTED_VALUE" for error in result["errors"])
+
+
+def test_invalid_source_ref_is_independent_of_value_matching() -> None:
+    proposal = _candidate(value="Invented")
+    proposal["source_refs"] = ["source-outside-manifest"]
+
+    result = score_case(_gold(), {"candidates": [proposal]})
+
+    assert result["hallucination_rate"] == 1.0
+    assert {error["code"] for error in result["errors"]} >= {
+        "UNSUPPORTED_VALUE",
+        "INVALID_SOURCE_REF",
+    }
+
+
+def test_empty_provenance_values_are_not_complete() -> None:
+    metadata = {
+        "evaluation_run_id": "",
+        "golden_set_version": "",
+        "golden_set_hash": "",
+        "catalog_contract_version": "",
+        "catalog_contract_hash": "",
+        "config_hash": "",
+        "input_manifest_hashes": [],
+        "output_hashes": [],
+        "run_timestamp": "",
+        "environment_runtime_id": "",
+    }
+
+    result = score_run([_case("case", _gold(), [_candidate()])], metadata)
+
+    assert result["provenance"]["status"] == "INCOMPLETE"
+    assert set(result["provenance"]["missing_required_fields"]) >= set(metadata)

@@ -28,8 +28,19 @@ returns `null` plus `status=NOT_EVALUABLE`; it no longer fabricates a perfect sc
 - annotated human-review burden;
 - stable error code/origin/severity/index fields;
 - deterministic scorer/matching/grounding versions;
+- maximum-cardinality authoritative matching with canonical tie-breaking;
+- selective abstention identity across binding, `opportunity_id` and `source_refs`;
+- explicit macro averages by case, binding and risk stratum;
+- explicit empty buckets for all three strata and five critical bindings;
 - explicit incomplete provenance when metadata is absent;
+- frozen controlled-vocabulary identity sourced from expected gold or the case manifest;
+- human-review burden sourced only from versioned `FINAL` adjudications joined to the case;
 - informational `PROVISIONAL_TARGETS` comparison.
+
+`SCORER_VERSION=0.3.0` uses
+`MATCHING_ALGORITHM_VERSION=deterministic-maximum-bipartite-v3`. Incomplete or conflicting
+controlled-vocabulary identity makes provenance incomplete and emits a schema diagnostic;
+empty strings and empty hash collections cannot satisfy required run provenance.
 
 ## Governance boundary
 

@@ -42,7 +42,28 @@
           },
           "recall_applicable": {"type": "boolean"},
           "opportunity_count": {"type": "integer", "minimum": 0},
+          "opportunity_count_by_binding": {
+            "type": "object",
+            "additionalProperties": {"type": "integer", "minimum": 0}
+          },
+          "controlled_vocabulary_id": {"type": "string", "minLength": 1},
+          "controlled_vocabulary_version": {"type": "string", "minLength": 1},
+          "controlled_vocabulary_hash": {"type": "string", "minLength": 1},
           "severity": {"enum": ["critical", "major", "minor"]}
+        },
+        "dependentRequired": {
+          "controlled_vocabulary_id": [
+            "controlled_vocabulary_version",
+            "controlled_vocabulary_hash"
+          ],
+          "controlled_vocabulary_version": [
+            "controlled_vocabulary_id",
+            "controlled_vocabulary_hash"
+          ],
+          "controlled_vocabulary_hash": [
+            "controlled_vocabulary_id",
+            "controlled_vocabulary_version"
+          ]
         },
         "additionalProperties": true
       }
