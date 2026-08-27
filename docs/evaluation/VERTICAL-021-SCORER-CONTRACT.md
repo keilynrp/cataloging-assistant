@@ -46,6 +46,25 @@ Cada ejecución produce un reporte machine-readable y un resumen humano. Como m�
 
 El reporte no contiene secretos ni raw credentials.
 
+### 3.1 Compatibilidad y estados no evaluables
+
+La implementación offline conserva `score_case(expected_doc, proposed_doc)` y amplía
+`score_run(cases, run_metadata=None)` sin exigir metadatos inventados a los callers existentes.
+
+Cada tasa autoritativa se representa además como un objeto con:
+
+- `value`;
+- `numerator`;
+- `denominator`;
+- `status=EVALUABLE|NOT_EVALUABLE`.
+
+Un denominador vacío produce `value=null` y `status=NOT_EVALUABLE`; nunca se sustituye por
+`0`, `1`, `PASS` o `FAIL`. La comparación con `PROVISIONAL_TARGETS` es exclusivamente
+`INFORMATIONAL_NON_GATING` y el reporte conserva `gate_assessment=ASSESSMENT_ONLY`.
+
+La ausencia de provenance requerida tampoco se rellena con valores fabricados: el reporte
+declara `provenance.status=INCOMPLETE` y enumera `missing_required_fields`.
+
 ## 4. Dos superficies de matching
 
 El scorer mantiene dos superficies distintas y nunca las confunde.

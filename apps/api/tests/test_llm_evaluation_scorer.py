@@ -270,5 +270,5 @@ def test_materialized_seed_fixtures_score_end_to_end() -> None:
     run = score_run(cases)
     assert run["overall"]["tp"] == len(manifest["cases"])
     assert run["overall"]["fp"] == 0
-    assert run["sample_sufficiency"]["status"] == "INSUFFICIENT_SAMPLE"
+    assert run["sample_sufficiency"]["status"] == "SUFFICIENT"
     assert run["gate_assessment"] == "ASSESSMENT_ONLY"

@@ -101,12 +101,17 @@ Existing tests include:
 The scorer already evaluates:
 
 - authoritative TP/FP/FN;
-- micro precision;
-- micro recall;
+- micro/macro precision and recall with explicit non-evaluable denominators;
 - exact binding diagnostics;
 - grounding diagnostics;
+- intent accuracy;
+- controlled-vocabulary exact-match against frozen gold metadata;
 - hallucination annotations;
-- abstention-related false proposals as part of hallucination;
+- full and selective abstention metrics;
+- human-review burden from supplied versioned annotations;
+- breakdowns by binding, stratum, intent, language and document type;
+- stable error provenance/severity/indexes;
+- deterministic provenance status and input-order stability;
 - Stratum A sample sufficiency.
 
 It deliberately returns:
@@ -162,21 +167,28 @@ Current targets include:
 
 They have not yet been ratified as the final model-qualification thresholds.
 
-### D-BLOCKER-002 — Scorer does not yet implement every declared Gate-D metric
+### D-BLOCKER-002 — Gate semantics remain coupled to threshold ratification
 
-The current scorer does not yet provide the complete report contract required by the evaluation documents.
+The offline scorer now materializes the D1 metric/report surface required for evidence-based
+threshold review, including:
 
-At minimum, the authoritative scorer still needs explicit reproducible outputs for:
+- explicit micro/macro metric objects and non-evaluable denominators;
+- breakdowns by binding, risk stratum, intent, language and document type;
+- controlled-vocabulary exact-match and intent accuracy;
+- full/selective abstention metrics;
+- annotated human-review-burden aggregation;
+- stable error provenance/severity/indexes;
+- deterministic run provenance and input-order stability;
+- informational comparison against `PROVISIONAL_TARGETS`.
 
-- macro metrics by binding/stratum where applicable;
-- controlled-vocabulary exact-match rate;
-- intent classification accuracy;
-- true-abstention / false-proposal metrics as first-class metrics;
-- human-review-burden aggregation from adjudicated review data;
-- per-binding/stratum threshold assessment;
-- approved-threshold PASS/FAIL semantics.
+The scorer deliberately does not implement approved-threshold `PASS|FAIL` semantics while
+D-BLOCKER-001 remains open. Implementing that decision before ratification would convert
+provisional targets into an unauthorized gate. Therefore it continues to emit:
 
-A metric described in documentation but not implemented in the scorer is not considered executable Gate-D evidence.
+```text
+threshold_profile=PROVISIONAL_TARGETS
+gate_assessment=ASSESSMENT_ONLY
+```
 
 ### D-BLOCKER-003 — Human empirical coverage is incomplete
 
@@ -257,7 +269,8 @@ SCORER_CONTRACT=METHOD_READY_BUT_STATUS_STALE
 HUMAN_ADJUDICATION_PROTOCOL=METHOD_READY_BUT_STATUS_STALE
 SYNTHETIC_GOLDEN_SET=MATERIALIZED
 STRATUM_A_SAMPLE_FLOOR_SYNTHETIC=MET
-SCORER=MATERIALIZED_PARTIAL
+SCORER=MATERIALIZED_D1_METRIC_SURFACE
+SCORER_GATE_SEMANTICS=DEFERRED_UNTIL_THRESHOLDS_RATIFIED
 REAL_ADJUDICATED_CASES_PRESENT=YES
 REAL_STRATUM_A_COVERAGE=INCOMPLETE
 THRESHOLDS=PROVISIONAL
@@ -270,9 +283,9 @@ GATE_D=OPEN
 
 The only work authorized by this readiness contract is evaluation infrastructure/governance work:
 
-1. ratify final qualification thresholds;
-2. complete the missing scorer metrics/reporting;
-3. add/update deterministic scorer tests;
+1. review the materialized metric/report surface;
+2. ratify final qualification thresholds;
+3. implement the approved threshold profile and its `PASS|FAIL` semantics;
 4. reconcile evaluation-document lifecycle statuses;
 5. preserve the synthetic/real evidence distinction;
 6. record a durable Gate D1 acceptance artifact.
@@ -321,4 +334,6 @@ VERTICAL_021_IMPLEMENTATION=BLOCKED
 
 **Gate D is materially prepared but not yet closable.**
 
-The next implementation-safe unit of work is to complete the offline scorer and ratify thresholds, then perform a separate Gate D1 acceptance review.
+The next implementation-safe unit of work is to review observed scorer outputs and ratify
+thresholds. Approved gate semantics must be implemented only after that governance decision,
+followed by a separate Gate D1 acceptance review.
