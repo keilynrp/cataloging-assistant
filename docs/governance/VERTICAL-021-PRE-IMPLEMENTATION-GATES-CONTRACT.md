@@ -55,35 +55,28 @@ All LLM interactions remain `FUTURE_CONTRACT` until VERTICAL-021 is implemented 
 
 ### Gate B — Provider / data-egress policy
 
-Status: **OPEN / BLOCKING**
+Status: **PASS / CLOSED — 2026-08-27**
 
-Before any real external provider call, a versioned and approved policy must define and make runtime-evaluable:
+Authoritative evidence:
 
-- eligible/prohibited evidence categories;
-- provider/deployment allowlist;
-- processing purpose;
-- prompt/output retention;
-- training/improvement use policy;
-- region/residency requirements where applicable;
-- logging/telemetry/redaction;
-- prohibited fields/data classes;
-- payload and fragment limits;
-- treatment of personal/sensitive/restricted content;
-- private/on-prem deployment rules when applicable;
-- policy version;
-- persisted provider-neutral policy decision.
+- `docs/governance/VERTICAL-021-DATA-EGRESS-POLICY-v1.md`
 
-Mandatory runtime behavior:
+Closure state:
 
 ```text
-ALLOW         -> provider call may proceed
-DENY          -> fail closed, zero provider traffic
-INDETERMINATE -> fail closed, zero provider traffic
+DATA_EGRESS_POLICY=APPROVED
+POLICY_VERSION=1.0.0
+PROVIDER_ALLOWLIST_EMPTY=YES
+RUNTIME_ENFORCEMENT_IMPLEMENTED=NO
+REAL_PROVIDER_TRAFFIC_AUTHORIZED=NO
+GATE_B=PASS
 ```
 
-The UI and adapter cannot override this decision.
+The policy defines a provider-neutral `ALLOW / DENY / INDETERMINATE` decision model, explicit data classifications, fail-closed treatment of private/sensitive/unknown content, retention/training/region/logging requirements, payload ceilings, purpose limitation and an immutable provider-neutral decision record.
 
-A real-provider smoke is forbidden before this gate is closed and the enforcement point exists.
+The provider/deployment allowlist is intentionally empty. Therefore all real external-provider traffic remains denied until a later reviewed policy amendment and implementation contract authorize a specific deployment and runtime enforcement exists.
+
+The UI and adapter cannot override this decision.
 
 ### Gate C — Architecture Decision Record
 
@@ -243,7 +236,7 @@ This pre-implementation contract is complete when:
 ```text
 VERTICAL-020_DEPENDENCY=RESOLVED
 GATE_A=PASS
-GATE_B=OPEN
+GATE_B=PASS
 GATE_C=OPEN
 GATE_D=OPEN
 VERTICAL-021_IMPLEMENTATION=BLOCKED
