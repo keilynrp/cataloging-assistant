@@ -1,6 +1,6 @@
 # ADR-017: Provider-independent LLM-assisted evidence extraction
 
-**Estado:** PROPOSED — decisión arquitectónica; no autoriza implementación productiva.
+**Estado:** ACEPTADA — 27 de agosto de 2026. Gate C de VERTICAL-021 cerrado. Esta ADR no autoriza por sí sola implementación productiva ni tráfico real a proveedores.
 
 ## Contexto
 
@@ -20,7 +20,7 @@ El flujo gobernado será conceptualmente:
 
 `SOURCE SNAPSHOT -> DETERMINISTIC EXTRACTION -> OPTIONAL LLM RUN -> CANDIDATES -> BACKEND VALIDATION -> HUMAN REVIEW -> LOCAL DRAFT`
 
-La capacidad queda deshabilitada por defecto y no podrá exponerse como `CURRENT_RUNTIME` hasta cerrar los gates definidos en VERTICAL-021.
+La capacidad queda deshabilitada por defecto y no podrá exponerse como `CURRENT_RUNTIME` hasta completar los gates restantes de VERTICAL-021 y su posterior Implementation Contract.
 
 ## 1. Provider boundary
 
@@ -216,9 +216,18 @@ El proveedor nunca constituye autoridad de vocabulario.
 
 ## 8. Data egress fail-closed
 
-Antes de habilitar cualquier adapter real deberá existir una **política de data egress versionada, aprobada y evaluable por runtime**.
+La política canónica aprobada para este boundary es:
 
-La política deberá cubrir, como mínimo:
+`docs/governance/VERTICAL-021-DATA-EGRESS-POLICY-v1.md`
+
+Policy ID: `vertical-021-data-egress-v1`  
+Policy version: `1.0.0`
+
+La policy ya está aprobada como requisito de gobernanza de Gate B, pero su enforcement runtime todavía no existe. Además, la allowlist de provider/deployment permanece vacía, por lo que **todo tráfico real a proveedor sigue denegado**.
+
+Antes de habilitar cualquier adapter real, la implementación deberá materializar un enforcement point server-side que evalúe esta policy antes de inicializar tráfico externo.
+
+La política cubre, como mínimo:
 
 - categorías de evidencia permitidas y prohibidas;
 - proveedores/deployments autorizados;
@@ -334,14 +343,15 @@ PDF/HTML/texto remoto sólo llegan al modelo después de haber sido procesados p
 
 La capacidad futura deberá respetar `UX-DECISION-001` y la arquitectura de tres paneles.
 
-Mientras Gate A permanezca abierto, cualquier affordance LLM se clasifica como `FUTURE_CONTRACT`.
+Gate A está cerrado mediante:
 
-Para aparecer como `CURRENT_RUNTIME` será obligatorio completar:
+- `docs/ux/reviews/UX-ALIGNMENT-001-evidence-workspace-v02.md` -> `ACCEPTED_FOR_FREEZE`;
+- `docs/ux/UX-CONTRACT-FREEZE-001-evidence-workspace-v02.md` -> `FROZEN / ACCEPTED`;
+- Lovable UX-PROMPT-002 commit `7100f3116b4dba4c2273d8e19a1a2c13c783b0eb`.
 
-1. `UX-PROMPT-002` ejecutado;
-2. `UX-ALIGNMENT-001` completado contra artefacto real;
-3. resultado `ACCEPTED_FOR_FREEZE`;
-4. UX Contract Freeze registrado.
+Este cierre congela la topología y semántica del Evidence Workspace, pero no convierte todavía controles LLM en `CURRENT_RUNTIME`.
+
+Hasta que VERTICAL-021 sea implementada y aceptada bajo sus gates restantes, cualquier affordance LLM sigue clasificándose como `FUTURE_CONTRACT`.
 
 ## 16. Testing y evaluación
 
@@ -436,13 +446,17 @@ Rechazada. Un prompt no es una frontera de seguridad suficiente. Evidence Worksp
 
 ## Gates antes de implementación
 
-La implementación productiva no debe comenzar hasta cerrar explícitamente:
+Estado al aceptar esta ADR:
 
-- **Gate A — UX:** `UX-PROMPT-002` + `UX-ALIGNMENT-001` + `ACCEPTED_FOR_FREEZE` + UX Contract Freeze.
-- **Gate B — Data policy:** política de egress aprobada/versionada y modelo de capability `evidence_inference` definido y enforceable sobre la infraestructura de credenciales de ADR-011.
-- **Gate C — Arquitectura:** esta ADR aceptada.
-- **Gate D — Evaluation:** fixtures/métricas aprobados para calidad semántica.
+- **Gate A — UX: PASS.** Evidence Workspace v0.2 está `ACCEPTED_FOR_FREEZE` y su UX Contract Freeze está registrado.
+- **Gate B — Data policy: PASS.** `VERTICAL-021-DATA-EGRESS-POLICY-v1.md` está aprobada, con allowlist de provider/deployment vacía y tráfico real todavía denegado.
+- **Gate C — Arquitectura: PASS.** Esta ADR queda aceptada.
+- **Gate D — Evaluation: OPEN / BLOCKING.** Fixtures, métricas y umbrales de calidad semántica aún deben aprobarse.
+
+La implementación productiva continúa bloqueada mientras Gate D permanezca abierto y hasta que exista un Implementation Contract separado.
 
 ## Resultado
 
-ADR-017 fija el límite arquitectónico para cualquier implementación futura de VERTICAL-021. Reutiliza la infraestructura de proveedores/credenciales de ADR-011, pero no hereda autorización de agente, tool-calling ni permiso de egress. No habilita proveedor, endpoint, migración, UI, OCR, tool use, escritura DSpace ni nuevas capacidades mutables del agente.
+ADR-017 fija el límite arquitectónico para cualquier implementación futura de VERTICAL-021. Reutiliza la infraestructura de proveedores/credenciales de ADR-011, pero no hereda autorización de agente, tool-calling ni permiso de egress.
+
+La aceptación de esta ADR cierra Gate C, pero **no** habilita proveedor, endpoint, migración, UI, OCR, tool use, escritura DSpace, nuevas capacidades mutables del agente ni tráfico LLM productivo.
