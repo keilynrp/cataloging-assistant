@@ -31,28 +31,27 @@ This contract does **not** authorize:
 
 ### Gate A — UX
 
-Status: **OPEN / BLOCKING**
+Status: **PASS / CLOSED — 2026-08-27**
 
 Authoritative evidence:
 
-`docs/ux/reviews/UX-ALIGNMENT-001-evidence-workspace-v02.md`
+- `docs/ux/reviews/UX-ALIGNMENT-001-evidence-workspace-v02.md`
+- `docs/ux/UX-CONTRACT-FREEZE-001-evidence-workspace-v02.md`
 
-Current repository state:
+Closure evidence:
 
 ```text
-Status: PRE-EXECUTION TEMPLATE
-Current verdict: BLOCKED — AWAITING LOVABLE v0.2 EXECUTION
+UX-PROMPT-002_EXECUTED=YES
+LOVABLE_COMMIT=7100f3116b4dba4c2273d8e19a1a2c13c783b0eb
+HUMAN_AUDIT_APPROVAL=YES
+UX-ALIGNMENT-001=ACCEPTED_FOR_FREEZE
+UX_CONTRACT_FREEZE=RECORDED
+GATE_A=PASS
 ```
 
-Required closure:
+The accepted three-pane topology and semantic presentation contract are now frozen for this increment.
 
-1. execute the governed Evidence Navigator v0.2 reconciliation;
-2. complete `UX-ALIGNMENT-001` against the actual artifact;
-3. obtain verdict `ACCEPTED_FOR_FREEZE`;
-4. record the corresponding UX Contract Freeze;
-5. keep all LLM interactions as `FUTURE_CONTRACT` until this gate closes.
-
-The accepted three-pane topology in `UX-DECISION-001` is necessary but not sufficient to close Gate A.
+All LLM interactions remain `FUTURE_CONTRACT` until VERTICAL-021 is implemented and accepted under its remaining gates.
 
 ### Gate B — Provider / data-egress policy
 
@@ -243,7 +242,7 @@ This pre-implementation contract is complete when:
 
 ```text
 VERTICAL-020_DEPENDENCY=RESOLVED
-GATE_A=OPEN
+GATE_A=PASS
 GATE_B=OPEN
 GATE_C=OPEN
 GATE_D=OPEN
