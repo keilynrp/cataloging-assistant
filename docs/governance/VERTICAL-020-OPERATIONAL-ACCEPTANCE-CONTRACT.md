@@ -1,6 +1,6 @@
 # VERTICAL-020 — Operational Acceptance Contract
 
-Status: **Acceptance contract only — production feature remains disabled**
+Status: **Fulfilled — Phase A/B completed; production remote fetch accepted and enabled**
 
 Parent specification: `docs/specs/VERTICAL-020-secure-remote-evidence-fetch.md`
 
@@ -9,6 +9,33 @@ Architecture decision: `docs/adr/ADR-016-secure-remote-evidence-fetch.md`
 Baseline: `main` @ `a57711864810536f5cda30a0f7342a0d5e8416d7`
 
 Related issue: #64
+
+## Fulfillment note
+
+This contract was fulfilled on **2026-08-27**.
+
+Durable acceptance evidence is recorded in
+`docs/vertical-020-operational-acceptance.md`.
+
+The historical baseline and pre-acceptance statements below are retained as
+the contract under which verification was executed. They describe the state
+at contract creation, not the current production lifecycle.
+
+Current accepted state:
+
+```text
+IMPLEMENTED / MERGED
+DEPLOYED
+FEATURE_ENABLED
+PHASE_A=PASS
+PHASE_B=PASS
+OPERATIONAL_ACCEPTANCE=GRANTED
+CANONICAL_INDEX=Accepted / Operationalized
+```
+
+VERTICAL-021's VERTICAL-020 dependency gate is therefore resolved by option 1
+of this contract. VERTICAL-021 itself remains architecture-only until its own
+implementation is separately authorized.
 
 ## Purpose
 
