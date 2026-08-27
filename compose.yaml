@@ -1,6 +1,7 @@
 services:
   postgres:
     image: postgres:17-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-cataloging}
       POSTGRES_USER: ${POSTGRES_USER:-cataloging}
@@ -16,6 +17,7 @@ services:
   api:
     build:
       context: ./apps/api
+    restart: unless-stopped
     env_file: .env
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg://cataloging:cataloging@postgres:5432/cataloging}
@@ -30,6 +32,7 @@ services:
       context: ./apps/web
       args:
         NEXT_PUBLIC_CATALOG_API_URL: ${NEXT_PUBLIC_CATALOG_API_URL:-http://localhost:8000}
+    restart: unless-stopped
     environment:
       HOSTNAME: 0.0.0.0
       PORT: "3000"
