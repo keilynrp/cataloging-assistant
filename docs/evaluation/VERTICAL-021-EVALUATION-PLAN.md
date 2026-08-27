@@ -1,6 +1,6 @@
 # VERTICAL-021 Evaluation Plan — LLM-assisted evidence extraction
 
-**Estado:** PROPOSED — Gate D artifact. No autoriza implementación productiva.
+**Estado:** METHODOLOGY ACCEPTED / GATE D OPEN — artefacto metodológico vigente. No autoriza implementación productiva ni uso de proveedor real.
 
 Baseline: `main` @ `4cf1134e25075fecc4eb5e5e7357771b6bae27b9`.
 
@@ -398,6 +398,8 @@ Las evaluaciones con proveedor real:
 La ejecución del semantic quality harness no mezcla sus casos con contract/security para calcular métricas semánticas.
 
 ## 11. Gate D — criterios de cierre
+
+La preparación actual se registra en `docs/evaluation/VERTICAL-021-GATE-D-READINESS-CONTRACT.md`. La metodología se considera aceptada, pero Gate D permanece abierto hasta completar los bloqueadores allí enumerados.
 
 Gate D puede declararse **CLOSED** sólo cuando:
 

@@ -1,6 +1,6 @@
 # VERTICAL-021 Human Adjudication Protocol
 
-**Estado:** PREPARATORY — Gate D human-review artifact. No contiene evidencia real adjudicada y no autoriza implementación productiva.
+**Estado:** METHODOLOGY ACCEPTED / GATE D OPEN — protocolo vigente. Existen artefactos reales de revisión/adjudicación a nivel de caso, pero la cobertura empírica de Estrato A sigue incompleta; no autoriza implementación productiva.
 
 Baseline: `main` @ `f9f0d1c4db21ecfe4605ed77279ad3d48719dd4e`.
 
