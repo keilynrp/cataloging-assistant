@@ -2,8 +2,16 @@
 
 ## Estado
 
-**Implementado en rama `feat/secure-remote-evidence-fetch`; pendiente de
-revisión y merge.**
+**Implementado y fusionado en `main` mediante PR #5 (2026-08-16).**
+
+La implementación continúa presente en el `main` actual. Este estado describe
+implementación/integración de código, no aceptación operacional. El índice
+canónico `docs/specs/README.md` debe permanecer en `See specification` hasta
+que exista evidencia durable de aceptación conforme al issue #64.
+
+La feature flag `EVIDENCE_REMOTE_FETCH_ENABLED` permanece `false` por defecto;
+su eventual habilitación productiva requiere una decisión y aceptación
+gobernadas separadas.
 
 ## Objetivo
 
