@@ -2,16 +2,22 @@
 
 ## Estado
 
-**Implementado y fusionado en `main` mediante PR #5 (2026-08-16).**
+**Accepted / Operationalized — 2026-08-27.**
 
-La implementación continúa presente en el `main` actual. Este estado describe
-implementación/integración de código, no aceptación operacional. El índice
-canónico `docs/specs/README.md` debe permanecer en `See specification` hasta
-que exista evidencia durable de aceptación conforme al issue #64.
+Implementado y fusionado en `main` mediante PR #5 (2026-08-16), desplegado y
+aceptado operacionalmente tras las fases gobernadas A/B del issue #64.
 
-La feature flag `EVIDENCE_REMOTE_FETCH_ENABLED` permanece `false` por defecto;
-su eventual habilitación productiva requiere una decisión y aceptación
-gobernadas separadas.
+La evidencia durable de aceptación se conserva en
+`docs/vertical-020-operational-acceptance.md`.
+
+La feature flag conserva `false` como valor por defecto en código, pero el
+entorno productivo aceptado opera actualmente con
+`EVIDENCE_REMOTE_FETCH_ENABLED=true` mediante configuración gobernada de
+Dokploy.
+
+La aceptación no amplía el alcance de ADR-016 ni elimina sus riesgos
+residuales: en particular, no se afirma inmunidad completa frente a DNS
+rebinding y el connection pinning TCP permanece fuera de alcance.
 
 ## Objetivo
 

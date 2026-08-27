@@ -27,13 +27,15 @@ The existence of a specification does **not** by itself mean that the vertical i
 | VERTICAL-017 | [Ingesta de evidencia externa](VERTICAL-017-ingesta-evidencia-externa.md) | See specification |
 | VERTICAL-018 | [Contrato maestro runtime](VERTICAL-018-contrato-maestro-runtime.md) | See specification |
 | VERTICAL-019 | [Golden set PDF evidence](VERTICAL-019-golden-set-pdf-evidence.md) | See specification |
-| VERTICAL-020 | [Secure remote evidence fetch](VERTICAL-020-secure-remote-evidence-fetch.md) | See specification |
+| **VERTICAL-020** | **[Secure remote evidence fetch](VERTICAL-020-secure-remote-evidence-fetch.md)** | **Accepted / Operationalized** |
 | VERTICAL-021 | [Provider-independent LLM-assisted extraction](VERTICAL-021-provider-independent-llm-assisted-extraction.md) | See specification |
 | **VERTICAL-022** | **[DSpace contract drift detection](VERTICAL-022-dspace-contract-drift-detection.md)** | **Accepted / Operationalized** |
 | **VERTICAL-023** | **[Production readiness & operational health](VERTICAL-023-production-readiness-operational-health.md)** | **Accepted / Operationalized** |
 | **VERTICAL-024** | **[Operational recovery & restart hardening](VERTICAL-024-operational-recovery-restart-hardening.md)** | **Accepted / Operationalized** |
 
 ## Current operational milestone
+
+VERTICAL-020 is now accepted and operationalized. Production acceptance verified governed enablement of remote evidence fetch, successful persisted public HTML retrieval with full provenance, deterministic extraction, rejection of loopback/cloud-metadata/non-http(s)/userinfo/disallowed-MIME/final-non-2xx inputs, preservation of DSpace read-only behavior, and final production smoke `RESULT PASS` with exit code `0`. Stale-session, redirect-to-private, mixed-DNS, redirect-loop/limit, streaming-size and remote-PDF edge cases remain automated-only evidence where live reproduction would require artificial or unsafe production conditions. DNS rebinding without TCP connection pinning remains an explicit residual risk under ADR-016.
 
 VERTICAL-022 established the governed DSpace contract synchronization path as operational with a human-approved ACTIVE baseline, exact reconciliation, resolution inheritance, and a repository-managed scheduler wrapper that passed a deployed smoke test.
 
@@ -43,6 +45,8 @@ VERTICAL-024 is now accepted and operationalized. Its production recovery eviden
 
 Evidence and operations documents:
 
+- [VERTICAL-020 operational acceptance](../vertical-020-operational-acceptance.md)
+- [VERTICAL-020 Phase A disabled-mode verification](../vertical-020-phase-a-disabled-mode-verification.md)
 - [VERTICAL-024 operational recovery acceptance](../vertical-024-operational-acceptance.md)
 - [VERTICAL-023 operational acceptance](../vertical-023-operational-acceptance.md)
 - [VERTICAL-022 operational acceptance](../vertical-022-operational-acceptance.md)
