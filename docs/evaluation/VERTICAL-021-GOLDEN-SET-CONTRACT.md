@@ -1,6 +1,6 @@
 # VERTICAL-021 Golden Set Contract — LLM-assisted evidence extraction
 
-**Estado:** PROPOSED — diseño de fixtures/anotaciones para Gate D. No autoriza runtime LLM ni uso de proveedor real.
+**Estado:** METHODOLOGY ACCEPTED / GATE D OPEN — contrato vigente del Golden Set semántico. No autoriza runtime LLM ni uso de proveedor real.
 
 Baseline: `main` @ `476bf5a974ba23c5fcf0c96dc8e69c1a7548ff02`.
 
