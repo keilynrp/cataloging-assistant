@@ -1,6 +1,6 @@
 # VERTICAL-021 Scorer Contract — semantic evaluation harness
 
-**Estado:** PROPOSED — contrato del scorer/harness para Gate D. No autoriza integración productiva ni proveedor real.
+**Estado:** METHODOLOGY ACCEPTED / GATE D OPEN — contrato vigente del scorer/harness. La implementación actual es parcial respecto al contrato completo; no autoriza integración productiva ni proveedor real.
 
 Baseline: `main` @ `476bf5a974ba23c5fcf0c96dc8e69c1a7548ff02`.
 
