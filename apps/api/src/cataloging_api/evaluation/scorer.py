@@ -294,7 +294,7 @@ def _score_case_internal(
         if p_idx in used_proposed:
             continue
         for e_idx, gold in enumerate(expected):
-            if e_idx in used_expected or e_idx in diagnostic_expected:
+            if e_idx in diagnostic_expected:
                 continue
             if not _value_matches(gold, candidate):
                 continue

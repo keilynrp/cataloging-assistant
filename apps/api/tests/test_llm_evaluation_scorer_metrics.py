@@ -139,6 +139,26 @@ def test_wrong_intent_is_independent_from_binding_and_grounding() -> None:
     assert "BAD_GROUNDING" not in {error["code"] for error in result["errors"]}
 
 
+def test_diagnostic_matching_remains_available_after_authoritative_match() -> None:
+    result = score_case(
+        _gold(),
+        {
+            "candidates": [
+                _candidate(),
+                _candidate(binding="linguistic-branch"),
+            ]
+        },
+    )
+
+    assert result["tp"] == 1
+    assert result["fp"] == 1
+    assert result["binding_accuracy"] == 0.5
+    wrong_binding = next(error for error in result["errors"] if error["code"] == "WRONG_BINDING")
+    assert wrong_binding["proposed_index"] == 1
+    assert wrong_binding["expected_index"] == 0
+    assert not any(error["code"] == "UNSUPPORTED_VALUE" for error in result["errors"])
+
+
 def test_full_and_selective_abstention_are_first_class_metrics() -> None:
     full = {
         "expected_candidates": [],
