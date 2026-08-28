@@ -255,6 +255,7 @@ class WeeklyDSpaceReportService:
         page_number = 0
         while True:
             page = await self._client.get_items_page(page=page_number, size=self._page_size)
+            _require_requested_page(page, requested_page=page_number, endpoint="/core/items")
             source_ref = await self._record_page(
                 page,
                 surface="weekly_core_items",
@@ -287,6 +288,7 @@ class WeeklyDSpaceReportService:
         page_number = 0
         while True:
             page = await loader(page=page_number, size=self._page_size)
+            _require_requested_page(page, requested_page=page_number, endpoint=endpoint)
             page_ref = await self._record_page(
                 page,
                 surface=f"weekly_{source_surface.replace('/', '_')}",
@@ -590,14 +592,33 @@ def _same_origin(candidate: str, configured_base: str) -> bool:
         return (
             left.scheme.casefold(),
             left.hostname.casefold() if left.hostname else None,
-            left.port,
+            _effective_port(left.scheme, left.port),
         ) == (
             right.scheme.casefold(),
             right.hostname.casefold() if right.hostname else None,
-            right.port,
+            _effective_port(right.scheme, right.port),
         )
     except ValueError:
         return False
+
+
+def _effective_port(scheme: str, port: int | None) -> int | None:
+    if port is not None:
+        return port
+    return {"http": 80, "https": 443}.get(scheme.casefold())
+
+
+def _require_requested_page(
+    page: HalCollectionPage,
+    *,
+    requested_page: int,
+    endpoint: str,
+) -> None:
+    if page.page != requested_page:
+        raise DSpaceError(
+            "invalid_hal",
+            f"DSpace returned page {page.page} for requested page {requested_page} at {endpoint}",
+        )
 
 
 def _item_uuid(item: dict[str, Any] | None) -> str | None:
