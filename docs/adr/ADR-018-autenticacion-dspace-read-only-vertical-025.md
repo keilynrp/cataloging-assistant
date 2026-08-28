@@ -1,7 +1,6 @@
 # ADR-018: Autenticación DSpace read-only para VERTICAL-025
 
-**Estado:** Propuesta el 28 de agosto de 2026. Debe cambiarse a Aceptada en un
-commit revisado antes de habilitar la implementación dependiente.
+**Estado:** Aceptada el 28 de agosto de 2026.
 
 ## Contexto
 
