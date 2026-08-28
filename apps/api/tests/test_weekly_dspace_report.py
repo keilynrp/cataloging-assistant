@@ -6,6 +6,7 @@ import inspect
 import io
 import json
 import re
+import uuid
 import zipfile
 from dataclasses import replace
 from datetime import date
@@ -18,13 +19,17 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from pypdf import PdfReader
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from cataloging_api import config as config_module
-from cataloging_api.db.session import get_session
+from cataloging_api.db.session import engine, get_session
 from cataloging_api.dspace.client import DSpaceClient, DSpaceError, HalCollectionPage
+from cataloging_api.dspace.contract_store import DSpaceContractRawPage, DSpaceContractSyncRun
 from cataloging_api.reports import routes as report_routes
 from cataloging_api.reports.exporters import export_csv, export_pdf, export_xlsx
 from cataloging_api.reports.weekly_dspace import (
+    DatabaseRawEvidenceRecorder,
     REPORT_TIMEZONE_NAME,
     VISIBLE_HEADERS,
     WeeklyDSpaceReportService,
@@ -188,6 +193,41 @@ async def test_bounds_are_inclusive_and_timestamp_uses_mexico_city_before_date()
     )
     assert [row.identifier for row in report.rows] == ["123456789/100", "123456789/101"]
     assert report.rows[1].catalog_date_source == "dc.date.accessioned"
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_database_evidence_adapter_persists_every_report_reference_immutably() -> None:
+    connection = await engine.connect()
+    transaction = await connection.begin()
+    session = AsyncSession(bind=connection, expire_on_commit=False)
+    try:
+        report = await WeeklyDSpaceReportService(
+            FixtureClient(),  # type: ignore[arg-type]
+            DatabaseRawEvidenceRecorder(session),
+            ui_base_url="http://dspace-ui.test",
+        ).generate(from_date=date(2026, 8, 24), to_date=date(2026, 8, 26))
+
+        run_id = uuid.UUID(report.evidence_run_id)
+        run = await session.get(DSpaceContractSyncRun, run_id)
+        pages = list(
+            await session.scalars(
+                select(DSpaceContractRawPage).where(
+                    DSpaceContractRawPage.run_id == run_id
+                )
+            )
+        )
+        expected_refs = {
+            f"dspace_contract_raw_pages:{page.page_id}:{page.raw_hash}" for page in pages
+        }
+        assert run is not None and run.status == "COMPLETE"
+        assert len(pages) == 4
+        assert all(set(row.raw_source_refs).issubset(expected_refs) for row in report.rows)
+        assert all(page.raw_payload for page in pages)
+    finally:
+        await session.close()
+        await transaction.rollback()
+        await connection.close()
 
 
 def test_workspace_last_modified_is_never_used_as_historical_primary_date() -> None:
