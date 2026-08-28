@@ -114,6 +114,31 @@ YCT20260824  -> 2026-08-24
 
 No usar `WorkspaceItem.lastModified` como fecha histórica: durante la validación se observó que esa propiedad podía reflejar el momento de serialización/consulta y no el momento real de catalogación.
 
+### Timezone y límites del periodo
+
+El contrato inicial fija:
+
+```text
+REPORT_TIMEZONE = America/Mexico_City
+```
+
+Los parámetros `from` y `to` representan fechas calendario en `REPORT_TIMEZONE` y ambos límites son **inclusivos**:
+
+```text
+from <= catalog_date <= to
+```
+
+La fecha terminal `YYYYMMDD` de `dcterms.provenance` ya es una fecha operacional sin hora y no requiere conversión de timezone.
+
+Cuando se utilice un fallback con timestamp (`dc.date.accessioned` o `item.lastModified`), la implementación debe:
+
+1. interpretar el timestamp como instante con su offset explícito;
+2. convertirlo a `REPORT_TIMEZONE`;
+3. derivar la fecha calendario local;
+4. aplicar los límites inclusivos anteriores.
+
+No se permite derivar la fecha mediante el timezone local del proceso, del contenedor o del host. Un deployment puede hacer configurable `REPORT_TIMEZONE`, pero cambiar su valor respecto de `America/Mexico_City` requiere evidencia y revisión explícita porque puede cambiar la pertenencia de registros cerca de medianoche.
+
 ## Mapeo de campos
 
 ### Título
@@ -288,6 +313,27 @@ No modificar silenciosamente el valor almacenado en DSpace ni el metadata normal
 - wrap de texto;
 - Unicode preservado.
 
+### Seguridad de celdas en CSV/XLSX
+
+Los metadatos DSpace deben exportarse como **texto literal**, nunca como fórmulas ejecutables.
+
+Para cualquier celda derivada de metadata DSpace cuyo primer carácter no-whitespace sea uno de:
+
+```text
+= + - @
+```
+
+la serialización debe neutralizar interpretación de fórmula.
+
+Reglas mínimas:
+
+- XLSX: escribir metadata con una API de celda de texto explícita (`write_string` o equivalente) y deshabilitar interpretación automática de fórmulas; solo la columna URL interna puede usar hipervínculo explícito;
+- CSV: aplicar un prefijo de seguridad `U+0027 APOSTROPHE` antes de valores peligrosos, **después** de la normalización Unicode, y no convertir ese prefijo sintético a `U+2019`;
+- el prefijo de seguridad es una transformación del formato de exportación, no una modificación del valor DSpace ni del índice normalizado;
+- añadir tests para `=SUM(...)`, `+cmd`, `-1+2` y `@example`.
+
+La semántica de contenido entre formatos debe permanecer equivalente aunque CSV requiera este escape de compatibilidad.
+
 ### PDF
 
 - tabla legible en orientación horizontal;
@@ -329,6 +375,22 @@ unavailable
 ```
 
 Estos campos sirven para tests, diagnóstico y trazabilidad; no amplían el contrato visible.
+
+### Evidencia DSpace obligatoria
+
+Cumpliendo `AGENTS.md`, toda fila normalizada debe ser reconstruible contra la observación exacta de DSpace que la originó.
+
+Reglas:
+
+1. Toda respuesta HAL+JSON usada para producir filas del reporte debe preservarse en bruto de forma inmutable antes de descartar la respuesta o derivar únicamente campos normalizados.
+2. Si una fila procede de datos ya sincronizados por VERTICAL-001 u otra superficie que ya conserva raw HAL+JSON, VERTICAL-025 puede reutilizar esas referencias en lugar de duplicar payloads.
+3. Si `workspaceitems` o `workflowitems` se consultan en vivo y no están representados en el índice local, sus payloads raw y los payloads relacionados usados (por ejemplo, el Item asociado) deben persistirse mediante el mecanismo de evidencia existente o un mecanismo compatible con las invariantes del repositorio.
+4. Cada fila o ejecución debe poder conservar `raw_source_refs[]` suficientes para reconstruir el valor visible, el estado y los fallbacks aplicados.
+5. La preservación de raw evidence no convierte el payload HAL+JSON en parte de la descarga CSV/XLSX/PDF.
+6. No registrar credenciales, cookies CSRF ni JWT dentro del raw evidence.
+7. Si una observación necesaria no puede preservarse de acuerdo con estas reglas, esa ruta no puede considerarse auditable ni aceptada.
+
+La implementation debe preferir reutilizar la infraestructura de evidencia/raw payloads ya existente en el proyecto antes de introducir persistencia paralela.
 
 ## API / superficie de aplicación propuesta
 
@@ -398,6 +460,9 @@ El reporte no introduce nuevas reglas de readiness, recovery o auto-healing.
 - NFC produce salida estable;
 - variantes de apóstrofo -> U+2019;
 - CSV abre como UTF-8 BOM;
+- metadata que comienza con `= + - @` se neutraliza como fórmula en CSV/XLSX;
+- timestamp fallback se convierte a `America/Mexico_City` antes de derivar fecha;
+- `from` y `to` son inclusivos;
 - orden determinista.
 
 ### Tests con fixtures DSpace
@@ -411,7 +476,10 @@ Fixtures deben cubrir:
 - item con mojibake/diacríticos;
 - item no YCT;
 - withdrawn item;
-- workflow vacío.
+- workflow vacío;
+- payload raw preservado/referenciado para archived/workspace/workflow;
+- timestamp cerca de medianoche con offset;
+- metadata potencialmente interpretable como fórmula.
 
 La suite no debe requerir la instancia DSpace real.
 
@@ -444,6 +512,9 @@ No se requiere dashboard.
 13. La lógica temporal no usa `WorkspaceItem.lastModified` como fuente histórica primaria.
 14. La implementación no modifica semantics de VERTICAL-001/018/022.
 15. CSV, XLSX y PDF representan el mismo conjunto y orden de registros.
+16. Toda fila es trazable a raw HAL+JSON preservado o a una referencia raw ya existente.
+17. Los fallbacks con timestamp se convierten a `America/Mexico_City` y `from/to` son inclusivos.
+18. Metadata que comienza con `= + - @` no puede ejecutarse como fórmula al abrir CSV/XLSX en un consumidor compatible con Excel.
 
 ## Stop conditions
 
