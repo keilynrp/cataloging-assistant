@@ -32,6 +32,7 @@ The existence of a specification does **not** by itself mean that the vertical i
 | **VERTICAL-022** | **[DSpace contract drift detection](VERTICAL-022-dspace-contract-drift-detection.md)** | **Accepted / Operationalized** |
 | **VERTICAL-023** | **[Production readiness & operational health](VERTICAL-023-production-readiness-operational-health.md)** | **Accepted / Operationalized** |
 | **VERTICAL-024** | **[Operational recovery & restart hardening](VERTICAL-024-operational-recovery-restart-hardening.md)** | **Accepted / Operationalized** |
+| VERTICAL-025 | [Weekly DSpace operational report](VERTICAL-025-weekly-dspace-operational-report.md) | See specification |
 
 ## Current operational milestone
 
