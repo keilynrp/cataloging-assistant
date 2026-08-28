@@ -29,9 +29,9 @@ from cataloging_api.dspace.contract_store import DSpaceContractRawPage, DSpaceCo
 from cataloging_api.reports import routes as report_routes
 from cataloging_api.reports.exporters import export_csv, export_pdf, export_xlsx
 from cataloging_api.reports.weekly_dspace import (
-    DatabaseRawEvidenceRecorder,
     REPORT_TIMEZONE_NAME,
     VISIBLE_HEADERS,
+    DatabaseRawEvidenceRecorder,
     WeeklyDSpaceReportService,
     WeeklyReport,
     WeeklyReportRow,
