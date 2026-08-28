@@ -18,6 +18,10 @@ class Settings(BaseSettings):
         default="http://132.248.101.240:4000",
         validation_alias="DSpace_UI_BASE_URL",
     )
+    dspace_workflow_ui_url: str = Field(
+        default="",
+        validation_alias="DSpace_WORKFLOW_UI_URL",
+    )
     dspace_pilot_collection_uuid: str = Field(
         default="e9a8f44f-a8d3-4d22-b02a-cf590285bac6",
         validation_alias="DSpace_PILOT_COLLECTION_UUID",
