@@ -159,6 +159,40 @@ class DSpaceClient:
     async def get_item(self, item_uuid: str) -> dict[str, Any]:
         return await self._get(f"/core/items/{item_uuid}")
 
+    async def get_items_page(self, *, page: int, size: int = 100) -> HalCollectionPage:
+        return await self._get_collection_page(
+            "/core/items",
+            "items",
+            page=page,
+            size=size,
+        )
+
+    async def get_workspace_items_page(
+        self, *, page: int, size: int = 100
+    ) -> HalCollectionPage:
+        return await self._get_collection_page(
+            "/submission/workspaceitems",
+            "workspaceitems",
+            page=page,
+            size=size,
+        )
+
+    async def get_workspace_item_item(self, workspace_item_id: str | int) -> dict[str, Any]:
+        return await self._get(f"/submission/workspaceitems/{workspace_item_id}/item")
+
+    async def get_workflow_items_page(
+        self, *, page: int, size: int = 100
+    ) -> HalCollectionPage:
+        return await self._get_collection_page(
+            "/workflow/workflowitems",
+            "workflowitems",
+            page=page,
+            size=size,
+        )
+
+    async def get_workflow_item_item(self, workflow_item_id: str | int) -> dict[str, Any]:
+        return await self._get(f"/workflow/workflowitems/{workflow_item_id}/item")
+
     async def get_item_bundles(self, item_uuid: str) -> list[dict[str, Any]]:
         payload = await self._get(f"/core/items/{item_uuid}/bundles", params={"size": 100})
         return _embedded_list(payload, "bundles")
