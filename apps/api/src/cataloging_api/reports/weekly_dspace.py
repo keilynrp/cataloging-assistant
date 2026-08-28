@@ -304,7 +304,9 @@ class WeeklyDSpaceReportService:
                 item_ref: str | None = None
                 try:
                     item = await item_loader(str(submission_id))
-                except DSpaceError:
+                except DSpaceError as exc:
+                    if exc.status_code != 404:
+                        raise
                     item = None
                 if item is not None:
                     item_ref = await self._evidence.record(

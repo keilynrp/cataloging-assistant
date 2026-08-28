@@ -112,6 +112,16 @@ class FixtureClient:
         raise AssertionError("empty workflow must not resolve an item")
 
 
+class AssociatedItemFailureClient(FixtureClient):
+    def __init__(self, error: DSpaceError) -> None:
+        super().__init__()
+        self.error = error
+
+    async def get_workspace_item_item(self, item_id: str | int) -> dict[str, Any]:
+        self.item_requests.append(("workspace", str(item_id)))
+        raise self.error
+
+
 async def _fixture_report(
     *, from_date: date = date(2026, 8, 24), to_date: date = date(2026, 8, 26)
 ) -> tuple[WeeklyReport, MemoryEvidence, FixtureClient]:
@@ -183,6 +193,38 @@ async def test_fixture_report_fulfils_filter_mapping_time_and_evidence_contract(
     raw_evidence = json.dumps(evidence.records, ensure_ascii=False)
     for secret in ("reader@example.org", "secret-password", "Bearer token", "csrf-cookie"):
         assert secret not in raw_evidence
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        DSpaceError("authentication_failed", "DSpace rejected credentials", status_code=401),
+        DSpaceError("timeout", "DSpace associated item timed out"),
+        DSpaceError("invalid_hal", "DSpace associated item returned invalid HAL"),
+    ],
+    ids=["401", "timeout", "invalid-hal"],
+)
+@pytest.mark.asyncio
+async def test_non_404_associated_item_failures_interrupt_without_partial_report(
+    error: DSpaceError,
+) -> None:
+    evidence = MemoryEvidence()
+    client = AssociatedItemFailureClient(error)
+
+    with pytest.raises(DSpaceError) as raised:
+        await WeeklyDSpaceReportService(
+            client,  # type: ignore[arg-type]
+            evidence,
+            ui_base_url="http://dspace-ui.test",
+        ).generate(from_date=date(2026, 8, 24), to_date=date(2026, 8, 26))
+
+    assert raised.value is error
+    assert evidence.completed is False
+    assert evidence.failure == (True, error.code, str(error))
+    assert [record["surface"] for record in evidence.records] == [
+        "weekly_core_items",
+        "weekly_submission_workspaceitems",
+    ]
 
 
 @pytest.mark.asyncio
