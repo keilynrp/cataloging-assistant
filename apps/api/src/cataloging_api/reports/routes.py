@@ -31,8 +31,8 @@ class ReportFormat(enum.StrEnum):
 async def download_weekly_dspace_report(
     file_format: ReportFormat,
     session: SessionDep,
-    from_date: date = Query(alias="from"),
-    to_date: date = Query(alias="to"),
+    from_date: Annotated[date, Query(alias="from")],
+    to_date: Annotated[date, Query(alias="to")],
 ) -> Response:
     if from_date > to_date:
         raise HTTPException(status_code=422, detail="invalid_report_range")
@@ -58,7 +58,8 @@ async def download_weekly_dspace_report(
             )
             report = await service.generate(from_date=from_date, to_date=to_date)
     except DSpaceError as exc:
-        raise HTTPException(status_code=502, detail=f"dspace_report_unavailable:{exc.code}") from exc
+        detail = f"dspace_report_unavailable:{exc.code}"
+        raise HTTPException(status_code=502, detail=detail) from exc
 
     if file_format is ReportFormat.csv:
         content = export_csv(report)

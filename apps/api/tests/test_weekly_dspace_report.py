@@ -5,6 +5,7 @@ import csv
 import inspect
 import io
 import json
+import re
 import zipfile
 from dataclasses import replace
 from datetime import date
@@ -152,7 +153,7 @@ async def test_fixture_report_fulfils_filter_mapping_time_and_evidence_contract(
 
     associated_item = report.rows[2]
     assert associated_item.title == "Título del Item asociado"
-    assert associated_item.responsibility == "Pérez, María"
+    assert associated_item.responsibility == "P’erez, María"
     assert associated_item.catalog_date == date(2026, 8, 25)
     assert associated_item.catalog_date_source == "item.lastModified"
     assert associated_item.internal_url == "http://dspace-ui.test/workspaceitems/55/edit"
@@ -311,7 +312,12 @@ async def test_csv_xlsx_and_pdf_preserve_canonical_dataset_order() -> None:
 
     pdf = PdfReader(io.BytesIO(export_pdf(report)))
     pdf_text = "\n".join(page.extract_text() or "" for page in pdf.pages)
-    positions = [pdf_text.index(identifier) for identifier in expected_ids]
+    id_matches = [
+        re.search(rf"(?m)^{re.escape(identifier)}$", pdf_text)
+        for identifier in expected_ids
+    ]
+    assert all(match is not None for match in id_matches)
+    positions = [match.start() for match in id_matches if match is not None]
     assert positions == sorted(positions)
     assert "P’urhépecha" in pdf_text
 
