@@ -54,6 +54,7 @@ async def download_weekly_dspace_report(
                 client,
                 DatabaseRawEvidenceRecorder(session),
                 ui_base_url=settings.dspace_ui_base_url,
+                workflow_ui_url=settings.dspace_workflow_ui_url or None,
                 page_size=settings.dspace_page_size,
             )
             report = await service.generate(from_date=from_date, to_date=to_date)

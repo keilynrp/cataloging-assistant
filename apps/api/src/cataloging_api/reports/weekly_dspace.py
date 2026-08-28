@@ -188,11 +188,13 @@ class WeeklyDSpaceReportService:
         evidence: RawEvidenceRecorder,
         *,
         ui_base_url: str,
+        workflow_ui_url: str | None = None,
         page_size: int = 100,
     ) -> None:
         self._client = client
         self._evidence = evidence
         self._ui_base_url = ui_base_url.rstrip("/")
+        self._workflow_ui_url = (workflow_ui_url or self._ui_base_url).rstrip("/")
         self._page_size = page_size
 
     async def generate(self, *, from_date: date, to_date: date) -> WeeklyReport:
@@ -321,6 +323,7 @@ class WeeklyDSpaceReportService:
                     source_surface=source_surface,
                     status=status,
                     ui_base_url=self._ui_base_url,
+                    workflow_ui_url=self._workflow_ui_url,
                     raw_source_refs=refs,
                 )
                 if row is not None and from_date <= row.catalog_date <= to_date:
@@ -401,6 +404,7 @@ def build_submission_row(
     status: str,
     ui_base_url: str,
     raw_source_refs: Sequence[str],
+    workflow_ui_url: str | None = None,
 ) -> WeeklyReportRow | None:
     submission_id = submission.get("id")
     if submission_id is None:
@@ -423,7 +427,7 @@ def build_submission_row(
     if source_surface == "submission/workspaceitems":
         internal_url = f"{ui_base_url.rstrip('/')}/workspaceitems/{quote(str(submission_id))}/edit"
     else:
-        internal_url = f"{ui_base_url.rstrip('/')}/workflow"
+        internal_url = (workflow_ui_url or ui_base_url).rstrip("/")
     return _make_row(
         identifier=normalize_report_text(submission_id),
         title=_first_value(metadata, "dc.title"),

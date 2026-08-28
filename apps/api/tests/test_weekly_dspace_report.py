@@ -252,6 +252,31 @@ def test_workspace_last_modified_is_never_used_as_historical_primary_date() -> N
     assert row is None
 
 
+def test_workflow_uses_configured_general_view_without_claiming_a_direct_item_route() -> None:
+    workflow = {"id": 71, "sections": {}}
+    item = {
+        "uuid": "60000000-0000-4000-8000-000000000071",
+        "lastModified": "2026-08-24T12:00:00Z",
+        "metadata": {
+            "dc.title": [{"value": "En revisión"}],
+            "dcterms.provenance": [{"value": "YCT-20260824"}],
+        },
+    }
+    row = build_submission_row(
+        workflow,
+        item=item,
+        source_surface="workflow/workflowitems",
+        status="En flujo de trabajo",
+        ui_base_url="http://dspace-ui.test",
+        workflow_ui_url="http://dspace-ui.test/mydspace/workflow",
+        raw_source_refs=("raw:workflow", "raw:item"),
+    )
+    assert row is not None
+    assert row.status == "En flujo de trabajo"
+    assert row.internal_url == "http://dspace-ui.test/mydspace/workflow"
+    assert "/workflowitems/71" not in row.internal_url
+
+
 def test_responsibility_fallback_and_blank_are_deterministic() -> None:
     base = {
         "uuid": "40000000-0000-4000-8000-000000000001",
