@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+import httpx
+
 from cataloging_api.dspace.client import DSpaceClient, DSpaceError
 
 
@@ -12,7 +14,15 @@ class ReadAuthenticatedDSpaceClient(DSpaceClient):
         if not username or not password:
             raise DSpaceError("credentials_required", "DSpace read credentials are required")
 
-        status_response = await self._client.get("/authn/status")
+        try:
+            status_response = await self._client.get("/authn/status")
+        except httpx.TimeoutException as exc:
+            raise DSpaceError("timeout", "DSpace timed out at /authn/status") from exc
+        except httpx.HTTPError as exc:
+            raise DSpaceError(
+                "network_error",
+                "DSpace request failed at /authn/status",
+            ) from exc
         if status_response.status_code >= 400:
             raise DSpaceError(
                 "auth_status_failed",
@@ -24,14 +34,22 @@ class ReadAuthenticatedDSpaceClient(DSpaceClient):
         if not xsrf:
             raise DSpaceError("csrf_missing", "DSpace did not return DSPACE-XSRF-COOKIE")
 
-        response = await self._client.post(
-            "/authn/login",
-            data={"user": username, "password": password},
-            headers={
-                "X-XSRF-TOKEN": xsrf,
-                "Content-Type": "application/x-www-form-urlencoded",
-            },
-        )
+        try:
+            response = await self._client.post(
+                "/authn/login",
+                data={"user": username, "password": password},
+                headers={
+                    "X-XSRF-TOKEN": xsrf,
+                    "Content-Type": "application/x-www-form-urlencoded",
+                },
+            )
+        except httpx.TimeoutException as exc:
+            raise DSpaceError("timeout", "DSpace timed out at /authn/login") from exc
+        except httpx.HTTPError as exc:
+            raise DSpaceError(
+                "network_error",
+                "DSpace request failed at /authn/login",
+            ) from exc
         if response.status_code != 200:
             raise DSpaceError(
                 "authentication_failed",
@@ -49,5 +67,8 @@ class ReadAuthenticatedDSpaceClient(DSpaceClient):
 
         status = await self._get("/authn/status")
         if status.get("authenticated") is not True:
-            raise DSpaceError("authentication_not_confirmed", "DSpace did not confirm authentication")
+            raise DSpaceError(
+                "authentication_not_confirmed",
+                "DSpace did not confirm authentication",
+            )
         return status

@@ -419,7 +419,10 @@ def build_submission_row(
             endpoint=f"/{source_surface}/{submission_id}/item",
         )
         if item is not None
-        else _metadata_from_sections(submission.get("sections"))
+        else _metadata_from_sections(
+            submission.get("sections"),
+            endpoint=f"/{source_surface}/{submission_id}",
+        )
     )
     provenance = _yct_provenance(metadata)
     if provenance is None:
@@ -533,20 +536,30 @@ def _require_submission_id(value: object, *, endpoint: str) -> str | int:
     return value
 
 
-def _metadata_from_sections(value: object) -> dict[str, list[dict[str, Any]]]:
+def _metadata_from_sections(
+    value: object,
+    *,
+    endpoint: str,
+) -> dict[str, list[dict[str, Any]]]:
+    if not isinstance(value, (dict, list)):
+        raise DSpaceError("invalid_hal", f"Expected sections object at {endpoint}")
     result: dict[str, list[dict[str, Any]]] = {}
 
     def visit(node: object) -> None:
         if isinstance(node, dict):
             for key, child in node.items():
-                if (
-                    isinstance(key, str)
-                    and (key.startswith("dc.") or key.startswith("dcterms."))
-                    and isinstance(child, list)
-                ):
-                    result.setdefault(key, []).extend(
-                        entry for entry in child if isinstance(entry, dict)
-                    )
+                is_metadata_key = isinstance(key, str) and (
+                    key.startswith("dc.") or key.startswith("dcterms.")
+                )
+                if is_metadata_key:
+                    if not isinstance(child, list) or any(
+                        not isinstance(entry, dict) for entry in child
+                    ):
+                        raise DSpaceError(
+                            "invalid_hal",
+                            f"Expected metadata list in sections at {endpoint}",
+                        )
+                    result.setdefault(key, []).extend(child)
                 else:
                     visit(child)
         elif isinstance(node, list):
@@ -653,6 +666,27 @@ def _require_requested_page(
     requested_page: int,
     endpoint: str,
 ) -> None:
+    raw_page = page.raw_payload.get("page")
+    required_fields = ("number", "totalPages", "totalElements")
+    if not isinstance(raw_page, dict) or any(field not in raw_page for field in required_fields):
+        raise DSpaceError("invalid_hal", f"Expected pagination metadata at {endpoint}")
+    raw_values = tuple(raw_page[field] for field in required_fields)
+    if any(isinstance(value, bool) or not isinstance(value, int) for value in raw_values):
+        raise DSpaceError("invalid_hal", f"Expected integer pagination at {endpoint}")
+    raw_number, raw_total_pages, raw_total_elements = raw_values
+    if (
+        raw_number < 0
+        or raw_total_pages < 0
+        or raw_total_elements < 0
+        or (raw_total_elements > 0 and raw_total_pages <= raw_number)
+    ):
+        raise DSpaceError("invalid_hal", f"Invalid pagination values at {endpoint}")
+    if (
+        raw_number != page.page
+        or raw_total_pages != page.total_pages
+        or raw_total_elements != page.total_elements
+    ):
+        raise DSpaceError("invalid_hal", f"Inconsistent pagination metadata at {endpoint}")
     if page.page != requested_page:
         raise DSpaceError(
             "invalid_hal",
