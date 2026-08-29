@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 
-import { PUBLIC_API_URL } from "@/lib/api";
-
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const FORMATS = [
   { value: "csv", label: "Descargar CSV" },
@@ -34,7 +32,7 @@ export function WeeklyReportForm() {
     try {
       const query = new URLSearchParams({ from: fromDate, to: toDate });
       const response = await fetch(
-        `${PUBLIC_API_URL}/api/reports/dspace-weekly.${format}?${query.toString()}`,
+        `/api/reports/dspace-weekly/${format}?${query.toString()}`,
         { cache: "no-store" },
       );
       if (!response.ok) {

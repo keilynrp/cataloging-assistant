@@ -23,6 +23,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from cataloging_api import config as config_module
+from cataloging_api.api import routes as api_routes
 from cataloging_api.db.session import engine, get_session
 from cataloging_api.dspace.client import DSpaceClient, DSpaceError, HalCollectionPage
 from cataloging_api.dspace.contract_store import DSpaceContractRawPage, DSpaceContractSyncRun
@@ -261,6 +262,58 @@ async def test_submission_without_id_is_invalid_hal_and_never_returns_partial_re
     assert evidence.completed is False
     assert evidence.failure == (True, "invalid_hal", str(raised.value))
     assert all(request_surface != surface for request_surface, _ in client.item_requests)
+
+
+@pytest.mark.parametrize("metadata_kind", ["missing", "null", "list"])
+@pytest.mark.asyncio
+async def test_invalid_associated_item_metadata_interrupts_after_preserving_raw_payload(
+    metadata_kind: str,
+) -> None:
+    evidence = MemoryEvidence()
+    client = FixtureClient()
+    if metadata_kind == "missing":
+        client.workspace_item.pop("metadata")
+    else:
+        client.workspace_item["metadata"] = None if metadata_kind == "null" else []
+
+    with pytest.raises(DSpaceError) as raised:
+        await WeeklyDSpaceReportService(
+            client,  # type: ignore[arg-type]
+            evidence,
+            ui_base_url="http://dspace-ui.test",
+        ).generate(from_date=date(2026, 8, 24), to_date=date(2026, 8, 26))
+
+    assert raised.value.code == "invalid_hal"
+    assert "Expected metadata object" in str(raised.value)
+    assert evidence.completed is False
+    assert evidence.failure == (True, "invalid_hal", str(raised.value))
+    assert evidence.records[-1]["surface"] == "weekly_submission_workspaceitems_item:55"
+    assert evidence.records[-1]["raw_payload"] == client.workspace_item
+
+
+@pytest.mark.parametrize("handle_kind", ["missing", "null"])
+@pytest.mark.asyncio
+async def test_yct_archived_item_without_handle_interrupts_report(handle_kind: str) -> None:
+    evidence = MemoryEvidence()
+    client = FixtureClient()
+    archived_item = client.archived["_embedded"]["items"][0]
+    if handle_kind == "missing":
+        archived_item.pop("handle")
+    else:
+        archived_item["handle"] = None
+
+    with pytest.raises(DSpaceError) as raised:
+        await WeeklyDSpaceReportService(
+            client,  # type: ignore[arg-type]
+            evidence,
+            ui_base_url="http://dspace-ui.test",
+        ).generate(from_date=date(2026, 8, 24), to_date=date(2026, 8, 26))
+
+    assert raised.value.code == "invalid_hal"
+    assert str(raised.value) == "Expected handle for archived DSpace item"
+    assert evidence.completed is False
+    assert evidence.failure == (True, "invalid_hal", str(raised.value))
+    assert [record["surface"] for record in evidence.records] == ["weekly_core_items"]
 
 
 @pytest.mark.asyncio
@@ -541,6 +594,47 @@ def test_new_dspace_report_surfaces_issue_only_get_requests() -> None:
     assert "._client.post" not in inspect.getsource(DSpaceClient)
 
 
+def test_route_rejects_unauthorized_caller_before_starting_dspace_client(monkeypatch) -> None:
+    app = FastAPI()
+    app.include_router(report_routes.router)
+
+    async def fake_session():
+        yield object()
+
+    app.dependency_overrides[get_session] = fake_session
+    settings = config_module.get_settings().model_copy(
+        update={
+            "catalog_review_token": "review-secret",
+            "dspace_read_username": "reader@example.org",
+            "dspace_read_password": "secret-password",
+        }
+    )
+    monkeypatch.setattr(report_routes, "get_settings", lambda: settings)
+    monkeypatch.setattr(api_routes, "get_settings", lambda: settings)
+    started_clients: list[bool] = []
+
+    class UnexpectedDSpaceClient:
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            started_clients.append(True)
+            raise AssertionError("unauthorized caller must not start DSpace authentication")
+
+    monkeypatch.setattr(report_routes, "ReadAuthenticatedDSpaceClient", UnexpectedDSpaceClient)
+    client = TestClient(app)
+    report_url = "/api/reports/dspace-weekly.csv?from=2026-08-24&to=2026-08-24"
+
+    unauthorized = client.get(report_url)
+    assert unauthorized.status_code == 401
+    assert unauthorized.json() == {"detail": "Invalid review token"}
+
+    wrong_token = client.get(
+        report_url,
+        headers={"X-Catalog-Review-Token": "wrong-secret"},
+    )
+    assert wrong_token.status_code == 401
+    assert wrong_token.json() == {"detail": "Invalid review token"}
+    assert started_clients == []
+
+
 def test_route_rejects_invalid_range_and_missing_read_credentials(monkeypatch) -> None:
     app = FastAPI()
     app.include_router(report_routes.router)
@@ -550,20 +644,27 @@ def test_route_rejects_invalid_range_and_missing_read_credentials(monkeypatch) -
 
     app.dependency_overrides[get_session] = fake_session
     settings = config_module.get_settings().model_copy(
-        update={"dspace_read_username": "", "dspace_read_password": ""}
+        update={
+            "catalog_review_token": "review-secret",
+            "dspace_read_username": "",
+            "dspace_read_password": "",
+        }
     )
     monkeypatch.setattr(report_routes, "get_settings", lambda: settings)
+    monkeypatch.setattr(api_routes, "get_settings", lambda: settings)
     client = TestClient(app)
+    report_url = "/api/reports/dspace-weekly.csv?from=2026-08-24&to=2026-08-24"
+
+    headers = {"X-Catalog-Review-Token": "review-secret"}
 
     invalid = client.get(
-        "/api/reports/dspace-weekly.csv?from=2026-08-26&to=2026-08-24"
+        "/api/reports/dspace-weekly.csv?from=2026-08-26&to=2026-08-24",
+        headers=headers,
     )
     assert invalid.status_code == 422
     assert invalid.json() == {"detail": "invalid_report_range"}
 
-    unavailable = client.get(
-        "/api/reports/dspace-weekly.csv?from=2026-08-24&to=2026-08-24"
-    )
+    unavailable = client.get(report_url, headers=headers)
     assert unavailable.status_code == 503
     assert unavailable.json() == {"detail": "dspace_read_credentials_required"}
 
