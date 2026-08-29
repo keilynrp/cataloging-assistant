@@ -297,12 +297,7 @@ class WeeklyDSpaceReportService:
                 endpoint=endpoint,
             )
             for submission in page.items:
-                submission_id = submission.get("id")
-                if submission_id is None:
-                    raise DSpaceError(
-                        "invalid_hal",
-                        f"Expected submission id in DSpace response at {endpoint}",
-                    )
+                submission_id = _require_submission_id(submission.get("id"), endpoint=endpoint)
                 item: dict[str, Any] | None = None
                 item_ref: str | None = None
                 try:
@@ -373,10 +368,14 @@ def build_archived_row(
 ) -> WeeklyReportRow | None:
     if raw_item.get("inArchive") is not True and raw_item.get("withdrawn") is not True:
         return None
-    metadata = _coerce_metadata(raw_item.get("metadata"))
+    metadata = _require_metadata(raw_item.get("metadata"), endpoint="/core/items")
     provenance = _yct_provenance(metadata)
     if provenance is None:
         return None
+    raw_handle = raw_item.get("handle")
+    handle = normalize_report_text(raw_handle)
+    if not isinstance(raw_handle, str) or not handle:
+        raise DSpaceError("invalid_hal", "Expected handle for archived DSpace item")
     catalog_date, date_source = _catalog_date(
         provenance,
         accessioned=_first_value(metadata, "dc.date.accessioned"),
@@ -385,7 +384,6 @@ def build_archived_row(
     if catalog_date is None or date_source is None:
         return None
 
-    handle = normalize_report_text(raw_item.get("handle"))
     return _make_row(
         identifier=handle,
         title=_first_value(metadata, "dc.title") or normalize_report_text(raw_item.get("name")),
@@ -411,11 +409,15 @@ def build_submission_row(
     raw_source_refs: Sequence[str],
     workflow_ui_url: str | None = None,
 ) -> WeeklyReportRow | None:
-    submission_id = submission.get("id")
-    if submission_id is None:
-        return None
+    submission_id = _require_submission_id(
+        submission.get("id"),
+        endpoint=f"/{source_surface}",
+    )
     metadata = (
-        _coerce_metadata(item.get("metadata"))
+        _require_metadata(
+            item.get("metadata"),
+            endpoint=f"/{source_surface}/{submission_id}/item",
+        )
         if item is not None
         else _metadata_from_sections(submission.get("sections"))
     )
@@ -501,6 +503,34 @@ def _coerce_metadata(value: object) -> dict[str, list[dict[str, Any]]]:
             continue
         result[field] = [entry for entry in entries if isinstance(entry, dict)]
     return result
+
+
+def _require_metadata(
+    value: object,
+    *,
+    endpoint: str,
+) -> dict[str, list[dict[str, Any]]]:
+    if not isinstance(value, dict):
+        raise DSpaceError("invalid_hal", f"Expected metadata object at {endpoint}")
+    for field, entries in value.items():
+        if (
+            not isinstance(field, str)
+            or not isinstance(entries, list)
+            or any(not isinstance(entry, dict) for entry in entries)
+        ):
+            raise DSpaceError("invalid_hal", f"Expected metadata lists at {endpoint}")
+    return _coerce_metadata(value)
+
+
+def _require_submission_id(value: object, *, endpoint: str) -> str | int:
+    is_valid_integer = isinstance(value, int) and not isinstance(value, bool)
+    is_valid_string = isinstance(value, str) and bool(value.strip())
+    if not is_valid_integer and not is_valid_string:
+        raise DSpaceError(
+            "invalid_hal",
+            f"Expected submission id in DSpace response at {endpoint}",
+        )
+    return value
 
 
 def _metadata_from_sections(value: object) -> dict[str, list[dict[str, Any]]]:

@@ -7,6 +7,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from cataloging_api.api.routes import require_review_token
 from cataloging_api.config import get_settings
 from cataloging_api.db.session import get_session
 from cataloging_api.dspace.authenticated_client import ReadAuthenticatedDSpaceClient
@@ -27,7 +28,10 @@ class ReportFormat(enum.StrEnum):
     pdf = "pdf"
 
 
-@router.get("/api/reports/dspace-weekly.{file_format}")
+@router.get(
+    "/api/reports/dspace-weekly.{file_format}",
+    dependencies=[Depends(require_review_token)],
+)
 async def download_weekly_dspace_report(
     file_format: ReportFormat,
     session: SessionDep,
