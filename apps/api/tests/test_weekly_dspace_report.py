@@ -303,7 +303,7 @@ async def test_malformed_sections_metadata_interrupts_404_fallback(
     evidence = MemoryEvidence()
     client = FixtureClient()
     workspace_fallback = client.workspace["_embedded"]["workspaceitems"][1]
-    workspace_fallback["sections"]["page"]["dc.title"] = malformed_title
+    workspace_fallback["sections"]["traditional-page1"]["dc.title"] = malformed_title
 
     with pytest.raises(DSpaceError) as raised:
         await WeeklyDSpaceReportService(
