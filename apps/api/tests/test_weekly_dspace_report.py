@@ -264,6 +264,61 @@ async def test_submission_without_id_is_invalid_hal_and_never_returns_partial_re
     assert all(request_surface != surface for request_surface, _ in client.item_requests)
 
 
+@pytest.mark.asyncio
+async def test_missing_pagination_totals_interrupt_instead_of_truncating_report() -> None:
+    payload = _fixture("archived-page.json")
+    payload["page"].pop("totalPages")
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=payload)
+
+    evidence = MemoryEvidence()
+    async with DSpaceClient(
+        "http://dspace.test/server/api",
+        transport=httpx.MockTransport(handler),
+        max_retries=0,
+    ) as client:
+        with pytest.raises(DSpaceError) as raised:
+            await WeeklyDSpaceReportService(
+                client,
+                evidence,
+                ui_base_url="http://dspace-ui.test",
+            ).generate(from_date=date(2026, 8, 24), to_date=date(2026, 8, 26))
+
+    assert raised.value.code == "invalid_hal"
+    assert str(raised.value) == "Expected pagination metadata at /core/items"
+    assert evidence.completed is False
+    assert evidence.failure == (True, "invalid_hal", str(raised.value))
+
+
+@pytest.mark.parametrize(
+    "malformed_title",
+    ["Título no listado", [{"value": "Título"}, "entrada corrupta"]],
+    ids=["scalar", "mixed-list"],
+)
+@pytest.mark.asyncio
+async def test_malformed_sections_metadata_interrupts_404_fallback(
+    malformed_title: object,
+) -> None:
+    evidence = MemoryEvidence()
+    client = FixtureClient()
+    workspace_fallback = client.workspace["_embedded"]["workspaceitems"][1]
+    workspace_fallback["sections"]["page"]["dc.title"] = malformed_title
+
+    with pytest.raises(DSpaceError) as raised:
+        await WeeklyDSpaceReportService(
+            client,  # type: ignore[arg-type]
+            evidence,
+            ui_base_url="http://dspace-ui.test",
+        ).generate(from_date=date(2026, 8, 24), to_date=date(2026, 8, 26))
+
+    assert raised.value.code == "invalid_hal"
+    assert "Expected metadata list in sections" in str(raised.value)
+    assert evidence.completed is False
+    assert evidence.failure == (True, "invalid_hal", str(raised.value))
+    assert evidence.records[1]["raw_payload"] == client.workspace
+
+
 @pytest.mark.parametrize("metadata_kind", ["missing", "null", "list"])
 @pytest.mark.asyncio
 async def test_invalid_associated_item_metadata_interrupts_after_preserving_raw_payload(
