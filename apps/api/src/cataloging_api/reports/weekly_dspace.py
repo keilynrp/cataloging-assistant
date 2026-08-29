@@ -299,7 +299,10 @@ class WeeklyDSpaceReportService:
             for submission in page.items:
                 submission_id = submission.get("id")
                 if submission_id is None:
-                    continue
+                    raise DSpaceError(
+                        "invalid_hal",
+                        f"Expected submission id in DSpace response at {endpoint}",
+                    )
                 item: dict[str, Any] | None = None
                 item_ref: str | None = None
                 try:
