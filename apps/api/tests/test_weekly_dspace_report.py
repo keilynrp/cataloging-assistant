@@ -227,6 +227,42 @@ async def test_non_404_associated_item_failures_interrupt_without_partial_report
     ]
 
 
+@pytest.mark.parametrize(
+    ("surface", "missing_kind"),
+    [("workspace", "missing"), ("workflow", "null")],
+)
+@pytest.mark.asyncio
+async def test_submission_without_id_is_invalid_hal_and_never_returns_partial_report(
+    surface: str,
+    missing_kind: str,
+) -> None:
+    evidence = MemoryEvidence()
+    client = FixtureClient()
+    if surface == "workspace":
+        entry = client.workspace["_embedded"]["workspaceitems"][0]
+    else:
+        client.workflow = {
+            "_embedded": {"workflowitems": [{"id": None, "sections": {}}]},
+            "page": {"number": 0, "size": 100, "totalElements": 1, "totalPages": 1},
+        }
+        entry = client.workflow["_embedded"]["workflowitems"][0]
+    if missing_kind == "missing":
+        entry.pop("id")
+
+    with pytest.raises(DSpaceError) as raised:
+        await WeeklyDSpaceReportService(
+            client,  # type: ignore[arg-type]
+            evidence,
+            ui_base_url="http://dspace-ui.test",
+        ).generate(from_date=date(2026, 8, 24), to_date=date(2026, 8, 26))
+
+    assert raised.value.code == "invalid_hal"
+    assert "Expected submission id" in str(raised.value)
+    assert evidence.completed is False
+    assert evidence.failure == (True, "invalid_hal", str(raised.value))
+    assert all(request_surface != surface for request_surface, _ in client.item_requests)
+
+
 @pytest.mark.asyncio
 async def test_bounds_are_inclusive_and_timestamp_uses_mexico_city_before_date() -> None:
     report, _, _ = await _fixture_report(
