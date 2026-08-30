@@ -345,10 +345,48 @@ async def test_inconsistent_pagination_totals_interrupt_instead_of_truncating_re
     assert evidence.failure == (True, "invalid_hal", str(raised.value))
 
 
+@pytest.mark.asyncio
+async def test_pagination_totals_must_remain_stable_across_surface_pages() -> None:
+    class ChangingTotalsClient(FixtureClient):
+        async def get_items_page(self, *, page: int, size: int) -> HalCollectionPage:
+            assert size == 100
+            total_elements = 150 if page == 0 else 149
+            item_count = 100 if page == 0 else 49
+            payload = {
+                "_embedded": {"items": [{"metadata": {}} for _ in range(item_count)]},
+                "page": {
+                    "number": page,
+                    "size": size,
+                    "totalPages": 2,
+                    "totalElements": total_elements,
+                },
+            }
+            return _page(payload, "items")
+
+    evidence = MemoryEvidence()
+    with pytest.raises(DSpaceError) as raised:
+        await WeeklyDSpaceReportService(
+            ChangingTotalsClient(),  # type: ignore[arg-type]
+            evidence,
+            ui_base_url="http://dspace-ui.test",
+        ).generate(from_date=date(2026, 8, 24), to_date=date(2026, 8, 26))
+
+    assert raised.value.code == "invalid_hal"
+    assert str(raised.value) == "Pagination totals changed between pages at /core/items"
+    assert evidence.completed is False
+    assert evidence.failure == (True, "invalid_hal", str(raised.value))
+
+
 @pytest.mark.parametrize(
     "malformed_title",
-    ["Título no listado", [{"value": "Título"}, "entrada corrupta"]],
-    ids=["scalar", "mixed-list"],
+    [
+        "Título no listado",
+        [{"value": "Título"}, "entrada corrupta"],
+        [{}],
+        [{"value": None}],
+        [{"value": 7}],
+    ],
+    ids=["scalar", "mixed-list", "missing-value", "null-value", "non-string-value"],
 )
 @pytest.mark.asyncio
 async def test_malformed_sections_metadata_interrupts_404_fallback(
@@ -398,6 +436,30 @@ async def test_invalid_associated_item_metadata_interrupts_after_preserving_raw_
     assert evidence.failure == (True, "invalid_hal", str(raised.value))
     assert evidence.records[-1]["surface"] == "weekly_submission_workspaceitems_item:55"
     assert evidence.records[-1]["raw_payload"] == client.workspace_item
+
+
+@pytest.mark.parametrize(
+    "malformed_entry",
+    [{}, {"value": None}, {"value": 7}],
+    ids=["missing-value", "null-value", "non-string-value"],
+)
+@pytest.mark.asyncio
+async def test_metadata_entries_require_textual_values(malformed_entry: dict[str, object]) -> None:
+    evidence = MemoryEvidence()
+    client = FixtureClient()
+    client.archived["_embedded"]["items"][0]["metadata"]["dcterms.provenance"] = [malformed_entry]
+
+    with pytest.raises(DSpaceError) as raised:
+        await WeeklyDSpaceReportService(
+            client,  # type: ignore[arg-type]
+            evidence,
+            ui_base_url="http://dspace-ui.test",
+        ).generate(from_date=date(2026, 8, 24), to_date=date(2026, 8, 26))
+
+    assert raised.value.code == "invalid_hal"
+    assert str(raised.value) == "Expected metadata lists at /core/items"
+    assert evidence.completed is False
+    assert evidence.failure == (True, "invalid_hal", str(raised.value))
 
 
 @pytest.mark.parametrize("handle_kind", ["missing", "null"])
