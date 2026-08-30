@@ -79,6 +79,13 @@ La cookie debe cumplir simultáneamente:
   contenido;
 - rechazo fail-closed de cookie ausente, malformada, expirada o de otra versión.
 
+Las rutas browser-facing de Next.js quedan obligatoriamente bajo ese path y usan
+segmentos: `/api/reports/dspace-weekly/access`, `/csv`, `/xlsx` y `/pdf`. Las
+rutas FastAPI con sufijo (`/api/reports/dspace-weekly.csv`, `.xlsx`, `.pdf`) son
+upstreams server-to-server y nunca son el destino directo del navegador. Por
+tanto, el `Path` de la cookie cubre todos los exports web sin ampliarse a otros
+reportes.
+
 La cookie es una capacidad temporal de descarga, no una identidad. No contiene
 nombre de catalogador, rol, token DSpace, CSRF DSpace, JWT DSpace,
 `CATALOG_REPORT_ACCESS_TOKEN` ni `CATALOG_REVIEW_TOKEN`. No se persiste en
