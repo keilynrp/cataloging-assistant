@@ -27,32 +27,40 @@ generales ni cambios al lifecycle.
 
 ## Decisión
 
-La web puede establecer una autorización efímera y específica del reporte a
-partir del `CATALOG_REVIEW_TOKEN` existente. El mecanismo completo es:
+La web puede establecer una autorización efímera y específica del reporte con
+un secreto de despliegue nuevo y limitado, `CATALOG_REPORT_ACCESS_TOKEN`. El
+mecanismo completo es:
 
 1. La pantalla del reporte muestra inicialmente un formulario de acceso además
    de los controles congelados `from`, `to` y formato.
-2. El operador presenta `CATALOG_REVIEW_TOKEN` mediante un `POST` same-origin
-   sobre TLS a una ruta Next.js dedicada bajo
+2. El operador presenta `CATALOG_REPORT_ACCESS_TOKEN` mediante un `POST`
+   same-origin sobre TLS a una ruta Next.js dedicada bajo
    `/api/reports/dspace-weekly/access`.
 3. La ruta exige un encabezado `Origin` que coincida exactamente con el origen
    web configurado, rechaza cuerpos o tipos inesperados, y compara el valor con
    el secreto server-side usando comparación en tiempo constante. Un fallo
    devuelve un error genérico y no registra el valor recibido.
 4. Si la comparación es válida, Next.js emite una cookie de autorización
-   firmada y de vida corta. El valor de `CATALOG_REVIEW_TOKEN` no se copia a la
-   cookie ni a almacenamiento del navegador.
-5. El proxy de descarga verifica firma, versión y expiración de esa cookie antes
-   de inyectar server-side `X-Catalog-Review-Token` hacia FastAPI. Sin cookie
-   válida, no llama a FastAPI ni inicia autenticación DSpace.
+   firmada y de vida corta. El valor de `CATALOG_REPORT_ACCESS_TOKEN` no se copia
+   a la cookie ni a almacenamiento del navegador.
+5. Cada proxy de descarga exige Fetch Metadata `Sec-Fetch-Site: same-origin`,
+   valida que `Origin` coincida exactamente cuando el navegador lo envía, y
+   verifica firma, versión y expiración de la cookie antes de inyectar
+   server-side `X-Catalog-Review-Token` hacia FastAPI. Sin todas esas señales
+   válidas, no llama a FastAPI ni inicia autenticación DSpace.
 6. La cookie y su verificación se aplican sólo a las rutas de VERTICAL-025A. No
    conceden acceso a settings, evidencia, vocabularios, agentes ni otras APIs.
 
-`CATALOG_REVIEW_TOKEN` continúa siendo un secreto de despliegue y el único
-factor del piloto local. Esta excepción permite que un operador de confianza lo
-presente transitoriamente para obtener una sesión de reporte; no crea una
-credencial nueva ni autoriza exponerlo en bundles, variables `NEXT_PUBLIC_*`,
-HTML, URLs, logs, errores, localStorage o sessionStorage.
+`CATALOG_REPORT_ACCESS_TOKEN` es una capacidad distinta, sólo para desbloquear
+VERTICAL-025A. Debe tener al menos 32 bytes aleatorios, no puede ser igual a
+`CATALOG_REVIEW_TOKEN`, a una credencial DSpace ni a otro secreto del proyecto, y
+no es aceptado por ninguna ruta FastAPI. Puede presentarse transitoriamente para
+obtener una sesión de reporte, pero no se expone en bundles, variables
+`NEXT_PUBLIC_*`, HTML, URLs, logs, errores, localStorage o sessionStorage.
+
+`CATALOG_REVIEW_TOKEN` permanece exclusivamente server-side. El operador nunca
+lo recibe: Next.js sólo lo usa después de validar la cookie para satisfacer el
+gate independiente de FastAPI.
 
 ## Contrato de la cookie
 
@@ -65,16 +73,16 @@ La cookie debe cumplir simultáneamente:
 - expiración absoluta máxima de 10 minutos;
 - contenido mínimo no sensible: versión, instante de emisión, expiración y nonce;
 - firma HMAC-SHA-256 con una clave derivada server-side de
-  `CATALOG_REVIEW_TOKEN` y una etiqueta de dominio exclusiva de
+  `CATALOG_REPORT_ACCESS_TOKEN` y una etiqueta de dominio exclusiva de
   VERTICAL-025A;
 - validación de firma en tiempo constante antes de interpretar o confiar en el
   contenido;
 - rechazo fail-closed de cookie ausente, malformada, expirada o de otra versión.
 
 La cookie es una capacidad temporal de descarga, no una identidad. No contiene
-nombre de catalogador, rol, token DSpace, CSRF DSpace, JWT DSpace ni el propio
-`CATALOG_REVIEW_TOKEN`. No se persiste en PostgreSQL y no introduce una nueva
-arquitectura de sesiones.
+nombre de catalogador, rol, token DSpace, CSRF DSpace, JWT DSpace,
+`CATALOG_REPORT_ACCESS_TOKEN` ni `CATALOG_REVIEW_TOKEN`. No se persiste en
+PostgreSQL y no introduce una nueva arquitectura de sesiones.
 
 La ruta de acceso y las respuestas de descarga usan `Cache-Control: no-store`.
 El formulario usa un campo de tipo `password`, no repuebla el valor después del
@@ -83,16 +91,21 @@ request de acceso y en la configuración server-side ya existente.
 
 ## Fronteras de confianza
 
-Después de esta decisión existen dos verificaciones independientes:
+Después de esta decisión existen tres verificaciones independientes:
 
-1. **Next.js:** verifica que el caller posee una capacidad web efímera válida
+1. **Contexto del navegador:** cada descarga debe provenir de una navegación
+   same-origin demostrada mediante Fetch Metadata; un origen cross-origin o
+   same-site se rechaza incluso si logra provocar el envío de la cookie.
+2. **Next.js:** verifica que el caller posee una capacidad web efímera válida
    antes de reenviar la solicitud.
-2. **FastAPI:** sigue exigiendo `X-Catalog-Review-Token` antes de crear el cliente
+3. **FastAPI:** sigue exigiendo `X-Catalog-Review-Token` antes de crear el cliente
    DSpace.
 
-La cookie nunca sustituye el gate FastAPI. Next.js es el único componente que
-convierte una cookie válida en el header interno; el navegador no recibe ese
-header ni llama directamente a DSpace. CORS no se considera una autorización.
+La cookie nunca sustituye Fetch Metadata ni el gate FastAPI. Next.js es el único
+componente que convierte una cookie válida en el header interno; el navegador no
+recibe ese header ni llama directamente a DSpace. CORS no se considera una
+autorización. Las respuestas incluyen `Vary: Sec-Fetch-Site, Origin` además de
+`Cache-Control: no-store`.
 
 Las credenciales `DSPACE_READ_USERNAME` y `DSPACE_READ_PASSWORD`, así como CSRF,
 JWT y cookies de DSpace, permanecen server-side conforme a ADR-018. Esta ADR no
@@ -103,8 +116,10 @@ catalográfica `POST`, `PUT`, `PATCH` o `DELETE`.
 
 Esta decisión autoriza únicamente:
 
-- el `POST` same-origin que valida el secreto local y emite la cookie;
-- la verificación de esa cookie en las descargas CSV/XLSX/PDF de VERTICAL-025A;
+- el secreto de despliegue `CATALOG_REPORT_ACCESS_TOKEN`;
+- el `POST` same-origin que valida ese secreto y emite la cookie;
+- Fetch Metadata y la verificación de cookie en las descargas CSV/XLSX/PDF de
+  VERTICAL-025A;
 - un estado visual mínimo de acceso requerido, acceso inválido y sesión expirada.
 
 Quedan fuera de alcance:
@@ -117,15 +132,20 @@ Quedan fuera de alcance:
 - scheduling, dashboards, métricas, LLM o cambios de lifecycle;
 - cualquier escritura DSpace.
 
-Si la aplicación deja de ser un piloto de un solo operador de confianza, el
-`CATALOG_REVIEW_TOKEN` compartido debe sustituirse por identidad y autorización
+Si la aplicación deja de ser un piloto de un solo operador de confianza,
+`CATALOG_REPORT_ACCESS_TOKEN` debe sustituirse por identidad y autorización
 individual antes de ampliar acceso. Esta ADR no sirve como fundamento para esa
 evolución.
 
 ## Manejo de errores y abuso
 
-- Se exige que `CATALOG_REVIEW_TOKEN` esté configurado y tenga entropía adecuada;
-  de lo contrario la ruta de acceso y el proxy fallan con 503 antes de DSpace.
+- Se exige que `CATALOG_REPORT_ACCESS_TOKEN` tenga al menos 32 bytes aleatorios y
+  sea distinto de los demás secretos; también se exige el
+  `CATALOG_REVIEW_TOKEN` interno. Una configuración ausente, débil o reutilizada
+  hace que la ruta de acceso y el proxy fallen con 503 antes de DSpace.
+- Cada descarga exige `Sec-Fetch-Site: same-origin`; `same-site`, `cross-site`,
+  `none` o ausencia del encabezado fallan cerrados. Si `Origin` está presente,
+  también debe coincidir exactamente con el origen configurado.
 - Token incorrecto, cookie inválida y cookie expirada usan respuestas estables y
   no revelan qué parte falló.
 - Una solicitud no autorizada nunca llama a FastAPI, nunca abre una sesión DSpace
@@ -187,18 +207,21 @@ Descartada: incumple el contrato funcional congelado de #81.
 
 ### Costos y riesgos
 
-- el operador debe poseer el secreto compartido del piloto;
+- el operador debe poseer el secreto acotado del reporte;
 - durante el `POST` de acceso el secreto transita por el navegador y exige TLS;
 - un token compartido no da atribución individual ni revocación por usuario;
-- comprometer `CATALOG_REVIEW_TOKEN` obliga a rotarlo y expira implícitamente
-  todas las cookies firmadas con la clave anterior;
+- se añade un secreto de despliegue que debe generarse, distribuirse y rotarse;
+- comprometer `CATALOG_REPORT_ACCESS_TOKEN` obliga a rotarlo y expira
+  implícitamente todas las cookies firmadas con la clave anterior, pero no concede
+  acceso a otras APIs protegidas por `CATALOG_REVIEW_TOKEN`;
 - esta solución no debe generalizarse a otras capacidades.
 
 ## Relación con decisiones existentes
 
 Esta ADR complementa ADR-018 y sustituye, sólo para el formulario de acceso de
-VERTICAL-025A, la prohibición general de aceptar una credencial de aplicación
-desde navegador. No permite enviar ni aceptar credenciales DSpace desde cliente.
+VERTICAL-025A, la prohibición general de introducir una credencial nueva en
+frontend. Esa credencial queda limitada al reporte y no permite enviar ni aceptar
+credenciales DSpace o `CATALOG_REVIEW_TOKEN` desde cliente.
 
 Se preservan:
 
@@ -216,17 +239,22 @@ que la ADR figure como Aceptada en `main`.
 
 La implementación debe demostrar mediante tests:
 
-1. token ausente o incorrecto no emite cookie;
+1. `CATALOG_REPORT_ACCESS_TOKEN` ausente, débil, reutilizado o incorrecto no emite
+   cookie;
 2. comparación del token y de firmas no usa igualdad ingenua;
-3. `Origin` ausente o distinto se rechaza;
-4. cookie válida contiene sólo claims no sensibles y atributos obligatorios;
-5. cookie expirada, alterada, malformada o de versión desconocida se rechaza;
-6. una descarga sin autorización no llama a FastAPI ni autentica DSpace;
-7. una descarga autorizada inyecta el token sólo server-side;
-8. CSV, XLSX y PDF usan exactamente el mismo gate;
-9. token y cookie no aparecen en HTML, bundles, URLs, logs, outputs ni evidencia;
-10. FastAPI conserva su gate independiente;
-11. no existe tráfico DSpace de escritura y el único POST DSpace continúa siendo
+3. `Origin` ausente o distinto se rechaza al emitir la cookie;
+4. cada descarga rechaza Fetch Metadata ausente, `same-site` o `cross-site`, y
+   rechaza un `Origin` presente que no coincida;
+5. cookie válida contiene sólo claims no sensibles y atributos obligatorios;
+6. cookie expirada, alterada, malformada o de versión desconocida se rechaza;
+7. una descarga sin autorización no llama a FastAPI ni autentica DSpace;
+8. una descarga autorizada inyecta `CATALOG_REVIEW_TOKEN` sólo server-side;
+9. CSV, XLSX y PDF usan exactamente el mismo gate;
+10. ambos tokens y la cookie no aparecen en HTML, bundles, URLs, logs, outputs ni
+    evidencia;
+11. el token de acceso al reporte no autoriza ninguna ruta FastAPI y FastAPI
+    conserva su gate independiente;
+12. no existe tráfico DSpace de escritura y el único POST DSpace continúa siendo
     `/api/authn/login` conforme a ADR-018.
 
 El PR funcional debe rebasarse sobre el commit que acepte esta ADR, resolver el
