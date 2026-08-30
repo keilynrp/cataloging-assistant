@@ -53,9 +53,9 @@ mecanismo completo es:
 
 `CATALOG_REPORT_ACCESS_TOKEN` es una capacidad distinta, sólo para desbloquear
 VERTICAL-025A. Debe tener al menos 32 bytes aleatorios, no puede ser igual a
-`CATALOG_REVIEW_TOKEN`, a una credencial DSpace ni a otro secreto del proyecto, y
-no es aceptado por ninguna ruta FastAPI. Puede presentarse transitoriamente para
-obtener una sesión de reporte, pero no se expone en bundles, variables
+`CATALOG_REVIEW_TOKEN` y no es aceptado por ninguna ruta FastAPI. Puede
+presentarse transitoriamente para obtener una sesión de reporte, pero no se
+expone en bundles, variables
 `NEXT_PUBLIC_*`, HTML, URLs, logs, errores, localStorage o sessionStorage.
 
 `CATALOG_REVIEW_TOKEN` permanece exclusivamente server-side. El operador nunca
@@ -146,10 +146,14 @@ evolución.
 
 ## Manejo de errores y abuso
 
-- Se exige que `CATALOG_REPORT_ACCESS_TOKEN` tenga al menos 32 bytes aleatorios y
-  sea distinto de los demás secretos; también se exige el
-  `CATALOG_REVIEW_TOKEN` interno. Una configuración ausente, débil o reutilizada
-  hace que la ruta de acceso y el proxy fallen con 503 antes de DSpace.
+- Next.js exige que `CATALOG_REPORT_ACCESS_TOKEN` tenga al menos 32 bytes y sea
+  distinto del `CATALOG_REVIEW_TOKEN` interno, los dos secretos de despliegue que
+  este proceso recibe. Una configuración ausente, débil o igual hace que la ruta
+  de acceso y el proxy fallen con 503 antes de DSpace.
+- La generación y distribución operativa del token del reporte debe usar
+  aleatoriedad criptográfica y no reutilizar credenciales DSpace o de proveedores,
+  pero Next.js no recibe esos secretos ni intenta compararlos. Verificarlos en
+  runtime ampliaría innecesariamente su distribución y queda fuera de esta ADR.
 - Cada descarga exige `Sec-Fetch-Site: same-origin`; `same-site`, `cross-site`,
   `none` o ausencia del encabezado fallan cerrados. Si `Origin` está presente,
   también debe coincidir exactamente con el origen configurado.
@@ -246,8 +250,8 @@ que la ADR figure como Aceptada en `main`.
 
 La implementación debe demostrar mediante tests:
 
-1. `CATALOG_REPORT_ACCESS_TOKEN` ausente, débil, reutilizado o incorrecto no emite
-   cookie;
+1. `CATALOG_REPORT_ACCESS_TOKEN` ausente, menor de 32 bytes, igual a
+   `CATALOG_REVIEW_TOKEN` o incorrecto no emite cookie;
 2. comparación del token y de firmas no usa igualdad ingenua;
 3. `Origin` ausente o distinto se rechaza al emitir la cookie;
 4. cada descarga rechaza Fetch Metadata ausente, `same-site` o `cross-site`, y
