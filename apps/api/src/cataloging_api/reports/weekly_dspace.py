@@ -257,7 +257,12 @@ class WeeklyDSpaceReportService:
         page_number = 0
         while True:
             page = await self._client.get_items_page(page=page_number, size=self._page_size)
-            _require_requested_page(page, requested_page=page_number, endpoint="/core/items")
+            _require_requested_page(
+                page,
+                requested_page=page_number,
+                requested_size=self._page_size,
+                endpoint="/core/items",
+            )
             source_ref = await self._record_page(
                 page,
                 surface="weekly_core_items",
@@ -290,7 +295,12 @@ class WeeklyDSpaceReportService:
         page_number = 0
         while True:
             page = await loader(page=page_number, size=self._page_size)
-            _require_requested_page(page, requested_page=page_number, endpoint=endpoint)
+            _require_requested_page(
+                page,
+                requested_page=page_number,
+                requested_size=self._page_size,
+                endpoint=endpoint,
+            )
             page_ref = await self._record_page(
                 page,
                 surface=f"weekly_{source_surface.replace('/', '_')}",
@@ -308,9 +318,7 @@ class WeeklyDSpaceReportService:
                     item = None
                 if item is not None:
                     item_ref = await self._evidence.record(
-                        surface=(
-                            f"weekly_{source_surface.replace('/', '_')}_item:{submission_id}"
-                        ),
+                        surface=(f"weekly_{source_surface.replace('/', '_')}_item:{submission_id}"),
                         endpoint=f"/{source_surface}/{submission_id}/item",
                         page_number=0,
                         request_params={},
@@ -664,6 +672,7 @@ def _require_requested_page(
     page: HalCollectionPage,
     *,
     requested_page: int,
+    requested_size: int,
     endpoint: str,
 ) -> None:
     raw_page = page.raw_payload.get("page")
@@ -692,6 +701,19 @@ def _require_requested_page(
             "invalid_hal",
             f"DSpace returned page {page.page} for requested page {requested_page} at {endpoint}",
         )
+    raw_size = raw_page.get("size", requested_size)
+    if isinstance(raw_size, bool) or not isinstance(raw_size, int) or raw_size <= 0:
+        raise DSpaceError("invalid_hal", f"Expected positive page size at {endpoint}")
+    if raw_size != requested_size:
+        raise DSpaceError("invalid_hal", f"Unexpected page size at {endpoint}")
+
+    expected_total_pages = (
+        (raw_total_elements + requested_size - 1) // requested_size if raw_total_elements else 0
+    )
+    remaining_elements = max(raw_total_elements - raw_number * requested_size, 0)
+    expected_item_count = min(requested_size, remaining_elements)
+    if raw_total_pages != expected_total_pages or len(page.items) != expected_item_count:
+        raise DSpaceError("invalid_hal", f"Inconsistent pagination totals at {endpoint}")
 
 
 def _item_uuid(item: dict[str, Any] | None) -> str | None:

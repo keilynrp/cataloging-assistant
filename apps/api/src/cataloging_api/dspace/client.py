@@ -117,9 +117,23 @@ class DSpaceClient:
         if not isinstance(page_info, dict):
             raise DSpaceError("invalid_hal", f"Expected page metadata at {path}")
 
-        returned_page = int(page_info.get("number", page))
-        total_pages = int(page_info.get("totalPages", 0))
-        total_elements = int(page_info.get("totalElements", 0))
+        required_fields = ("number", "totalPages", "totalElements")
+        if any(field not in page_info for field in required_fields):
+            raise DSpaceError("invalid_hal", f"Expected pagination metadata at {path}")
+        pagination_values = tuple(page_info[field] for field in required_fields)
+        if any(
+            isinstance(value, bool) or not isinstance(value, int) for value in pagination_values
+        ):
+            raise DSpaceError("invalid_hal", f"Expected integer pagination at {path}")
+        returned_page, total_pages, total_elements = pagination_values
+        if (
+            returned_page < 0
+            or total_pages < 0
+            or total_elements < 0
+            or (total_elements == 0 and total_pages != 0)
+            or (total_elements > 0 and total_pages <= returned_page)
+        ):
+            raise DSpaceError("invalid_hal", f"Invalid pagination values at {path}")
         embedded = payload.get("_embedded")
 
         # Spring HATEOAS may omit `_embedded` entirely for a proven-empty
@@ -134,9 +148,7 @@ class DSpaceClient:
             if not isinstance(embedded, dict) or relation not in embedded:
                 raise DSpaceError("invalid_hal", f"Expected HAL relation {relation} at {path}")
             values = embedded[relation]
-            if not isinstance(values, list) or any(
-                not isinstance(value, dict) for value in values
-            ):
+            if not isinstance(values, list) or any(not isinstance(value, dict) for value in values):
                 raise DSpaceError(
                     "invalid_hal",
                     f"Expected object list for HAL relation {relation} at {path}",
@@ -167,9 +179,7 @@ class DSpaceClient:
             size=size,
         )
 
-    async def get_workspace_items_page(
-        self, *, page: int, size: int = 100
-    ) -> HalCollectionPage:
+    async def get_workspace_items_page(self, *, page: int, size: int = 100) -> HalCollectionPage:
         return await self._get_collection_page(
             "/submission/workspaceitems",
             "workspaceitems",
@@ -180,9 +190,7 @@ class DSpaceClient:
     async def get_workspace_item_item(self, workspace_item_id: str | int) -> dict[str, Any]:
         return await self._get(f"/submission/workspaceitems/{workspace_item_id}/item")
 
-    async def get_workflow_items_page(
-        self, *, page: int, size: int = 100
-    ) -> HalCollectionPage:
+    async def get_workflow_items_page(self, *, page: int, size: int = 100) -> HalCollectionPage:
         return await self._get_collection_page(
             "/workflow/workflowitems",
             "workflowitems",
@@ -204,9 +212,7 @@ class DSpaceClient:
         )
         return _embedded_list(payload, "bitstreams")
 
-    async def get_metadata_schemas_page(
-        self, *, page: int, size: int = 100
-    ) -> HalCollectionPage:
+    async def get_metadata_schemas_page(self, *, page: int, size: int = 100) -> HalCollectionPage:
         return await self._get_collection_page(
             "/core/metadataschemas",
             "metadataschemas",
@@ -214,9 +220,7 @@ class DSpaceClient:
             size=size,
         )
 
-    async def get_metadata_fields_page(
-        self, *, page: int, size: int = 100
-    ) -> HalCollectionPage:
+    async def get_metadata_fields_page(self, *, page: int, size: int = 100) -> HalCollectionPage:
         return await self._get_collection_page(
             "/core/metadatafields",
             "metadatafields",
@@ -259,9 +263,7 @@ class DSpaceClient:
             size=size,
         )
 
-    async def get_submission_forms_page(
-        self, *, page: int, size: int = 100
-    ) -> HalCollectionPage:
+    async def get_submission_forms_page(self, *, page: int, size: int = 100) -> HalCollectionPage:
         return await self._get_collection_page(
             "/config/submissionforms",
             "submissionforms",
