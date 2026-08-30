@@ -255,12 +255,18 @@ class WeeklyDSpaceReportService:
         to_date: date,
     ) -> None:
         page_number = 0
+        expected_totals: tuple[int, int] | None = None
         while True:
             page = await self._client.get_items_page(page=page_number, size=self._page_size)
             _require_requested_page(
                 page,
                 requested_page=page_number,
                 requested_size=self._page_size,
+                endpoint="/core/items",
+            )
+            expected_totals = _require_stable_page_totals(
+                page,
+                expected_totals=expected_totals,
                 endpoint="/core/items",
             )
             source_ref = await self._record_page(
@@ -293,12 +299,18 @@ class WeeklyDSpaceReportService:
         to_date: date,
     ) -> None:
         page_number = 0
+        expected_totals: tuple[int, int] | None = None
         while True:
             page = await loader(page=page_number, size=self._page_size)
             _require_requested_page(
                 page,
                 requested_page=page_number,
                 requested_size=self._page_size,
+                endpoint=endpoint,
+            )
+            expected_totals = _require_stable_page_totals(
+                page,
+                expected_totals=expected_totals,
                 endpoint=endpoint,
             )
             page_ref = await self._record_page(
@@ -527,7 +539,10 @@ def _require_metadata(
         if (
             not isinstance(field, str)
             or not isinstance(entries, list)
-            or any(not isinstance(entry, dict) for entry in entries)
+            or any(
+                not isinstance(entry, dict) or not isinstance(entry.get("value"), str)
+                for entry in entries
+            )
         ):
             raise DSpaceError("invalid_hal", f"Expected metadata lists at {endpoint}")
     return _coerce_metadata(value)
@@ -561,7 +576,8 @@ def _metadata_from_sections(
                 )
                 if is_metadata_key:
                     if not isinstance(child, list) or any(
-                        not isinstance(entry, dict) for entry in child
+                        not isinstance(entry, dict) or not isinstance(entry.get("value"), str)
+                        for entry in child
                     ):
                         raise DSpaceError(
                             "invalid_hal",
@@ -714,6 +730,21 @@ def _require_requested_page(
     expected_item_count = min(requested_size, remaining_elements)
     if raw_total_pages != expected_total_pages or len(page.items) != expected_item_count:
         raise DSpaceError("invalid_hal", f"Inconsistent pagination totals at {endpoint}")
+
+
+def _require_stable_page_totals(
+    page: HalCollectionPage,
+    *,
+    expected_totals: tuple[int, int] | None,
+    endpoint: str,
+) -> tuple[int, int]:
+    page_totals = (page.total_pages, page.total_elements)
+    if expected_totals is not None and page_totals != expected_totals:
+        raise DSpaceError(
+            "invalid_hal",
+            f"Pagination totals changed between pages at {endpoint}",
+        )
+    return page_totals
 
 
 def _item_uuid(item: dict[str, Any] | None) -> str | None:
