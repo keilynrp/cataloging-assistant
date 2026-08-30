@@ -292,6 +292,60 @@ async def test_missing_pagination_totals_interrupt_instead_of_truncating_report(
 
 
 @pytest.mark.parametrize(
+    "invalid_total_pages",
+    [None, "1", True, [], {}],
+    ids=["null", "string", "boolean", "list", "object"],
+)
+@pytest.mark.asyncio
+async def test_non_integer_pagination_is_rejected_as_invalid_hal(
+    invalid_total_pages: object,
+) -> None:
+    payload = _fixture("archived-page.json")
+    payload["page"]["totalPages"] = invalid_total_pages
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=payload)
+
+    async with DSpaceClient(
+        "http://dspace.test/server/api",
+        transport=httpx.MockTransport(handler),
+        max_retries=0,
+    ) as client:
+        with pytest.raises(DSpaceError) as raised:
+            await client.get_items_page(page=0, size=100)
+
+    assert raised.value.code == "invalid_hal"
+    assert str(raised.value) == "Expected integer pagination at /core/items"
+
+
+@pytest.mark.asyncio
+async def test_inconsistent_pagination_totals_interrupt_instead_of_truncating_report() -> None:
+    payload = _fixture("archived-page.json")
+    payload["page"].update({"size": 100, "totalPages": 1, "totalElements": 101})
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json=payload)
+
+    evidence = MemoryEvidence()
+    async with DSpaceClient(
+        "http://dspace.test/server/api",
+        transport=httpx.MockTransport(handler),
+        max_retries=0,
+    ) as client:
+        with pytest.raises(DSpaceError) as raised:
+            await WeeklyDSpaceReportService(
+                client,
+                evidence,
+                ui_base_url="http://dspace-ui.test",
+            ).generate(from_date=date(2026, 8, 24), to_date=date(2026, 8, 26))
+
+    assert raised.value.code == "invalid_hal"
+    assert str(raised.value) == "Inconsistent pagination totals at /core/items"
+    assert evidence.completed is False
+    assert evidence.failure == (True, "invalid_hal", str(raised.value))
+
+
+@pytest.mark.parametrize(
     "malformed_title",
     ["Título no listado", [{"value": "Título"}, "entrada corrupta"]],
     ids=["scalar", "mixed-list"],
@@ -398,9 +452,7 @@ async def test_database_evidence_adapter_persists_every_report_reference_immutab
         run = await session.get(DSpaceContractSyncRun, run_id)
         pages = list(
             await session.scalars(
-                select(DSpaceContractRawPage).where(
-                    DSpaceContractRawPage.run_id == run_id
-                )
+                select(DSpaceContractRawPage).where(DSpaceContractRawPage.run_id == run_id)
             )
         )
         expected_refs = {
@@ -564,8 +616,7 @@ async def test_csv_xlsx_and_pdf_preserve_canonical_dataset_order() -> None:
     pdf = PdfReader(io.BytesIO(export_pdf(report)))
     pdf_text = "\n".join(page.extract_text() or "" for page in pdf.pages)
     id_matches = [
-        re.search(rf"(?m)^{re.escape(identifier)}$", pdf_text)
-        for identifier in expected_ids
+        re.search(rf"(?m)^{re.escape(identifier)}$", pdf_text) for identifier in expected_ids
     ]
     assert all(match is not None for match in id_matches)
     positions = [match.start() for match in id_matches if match is not None]
@@ -590,8 +641,7 @@ def test_pdf_is_landscape_and_repeats_seven_column_header() -> None:
         raw_source_refs=("raw:1",),
     )
     rows = tuple(
-        replace(base, number=index, identifier=f"HANDLE-{index:03d}")
-        for index in range(1, 91)
+        replace(base, number=index, identifier=f"HANDLE-{index:03d}") for index in range(1, 91)
     )
     report = WeeklyReport(
         from_date=date(2026, 8, 24),
