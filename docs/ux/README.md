@@ -42,5 +42,6 @@ Execution evidence should record the target tool/project, prototype route or art
 10. `UX-PROMPT-005` — Inspector provenance focus. Status: `EXECUTED — AUDITED — ACCEPTED`; `UX004-DEBT-001` closed.
 11. `UX-PROMPT-006` — Inspector accessibility and density refinement. Status: `EXECUTED — AUDITED — ACCEPTED`; Lovable commit `9301e649fca3f789e16777f96ea88efd7e920fac`.
 12. `UX-ACCESSIBILITY-AUDIT-001` — public keyboard, focus and observable contrast audit. Status: `COMPLETED — PASS WITH ONE CORRECTIVE DEBT`; `UX006-DEBT-001` opened for CopyReviewDialog focus restoration.
+13. `UX-PROMPT-007` — CopyReviewDialog focus restoration corrective patch. Status: `PROPOSED — NOT YET EXECUTED`; baseline `9301e649fca3f789e16777f96ea88efd7e920fac`.
 
 The historical order is intentional: the first exploration is preserved as evidence that informed the later governance contract rather than being retrospectively presented as if it had been governed from the start. The three-region workspace topology and pane responsibilities remain frozen; subsequent iterations must continue to respect the governance contract.
