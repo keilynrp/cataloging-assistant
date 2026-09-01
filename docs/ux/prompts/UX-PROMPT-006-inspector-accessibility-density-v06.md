@@ -1,6 +1,6 @@
 # UX-PROMPT-006 — Inspector Accessibility & Density Refinement v0.6
 
-Status: PROPOSED — NOT YET EXECUTED
+Status: EXECUTED — AUDITED — ACCEPTED
 
 Target: Lovable
 Project: Evidence Navigator
@@ -255,6 +255,14 @@ UX-PROMPT-006 se considera exitoso únicamente si:
 
 ## Execution policy
 
-DO NOT execute this prompt in Lovable until credits are sufficient and execution is explicitly authorized.
+Execution was explicitly authorized and completed in Lovable on 2026-09-01.
 
-Current state: specification saved only; no Lovable message, edit, execution commit or credit consumption exists for UX-PROMPT-006.
+- Resulting Lovable commit: `9301e649fca3f789e16777f96ea88efd7e920fac`
+- Edit ID: `edt-9addfe65-8794-4ccc-a262-75fc52abf169`
+- Typecheck/build: PASS
+- Public audit: PASS WITH MINOR OBSERVATIONS
+- Acceptance evidence: `docs/ux/evidence/UX-PROMPT-006-EXECUTION-2026-09-01.md`
+- Public route: https://cat-assistant.lovable.app/evidence/session-demo
+- Exact credit cost: not returned because the initiating MCP request timed out while Lovable continued and completed the accepted message.
+
+Current state: `EXECUTED — AUDITED — ACCEPTED`.
