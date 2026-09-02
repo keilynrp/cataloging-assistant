@@ -1,8 +1,10 @@
 # UX-ACCESSIBILITY-AUDIT-002 — Evidence Navigator v0.6.1
 
-Status: PROPOSED — NOT YET EXECUTED
+Status: BLOCKED — INSUFFICIENT TEST ENVIRONMENT
 
 Prepared: 2026-09-02
+
+Attempted: 2026-09-02
 
 Target: public Evidence Navigator v0.6.1
 
@@ -197,3 +199,62 @@ Permitted final statuses:
 This document authorizes no application changes and no Lovable execution.
 
 Current state: audit plan saved only. No audit run, defect conclusion, UX-PROMPT-008 specification or credit consumption exists.
+
+
+## 13. Attempted execution
+
+Environment observed:
+
+- cloud Chrome;
+- viewport: `1363 × 936` CSS pixels;
+- `devicePixelRatio: 1`;
+- `visualViewport.scale: 1`;
+- public URL verified;
+- baseline labels `Workspace · v0.2` and `Inspector · v0.6` present.
+
+### Evidence captured
+
+1. [Desktop light mode](assets/UX-ACCESSIBILITY-AUDIT-002-01-desktop-light.jpg)
+2. [Desktop dark mode](assets/UX-ACCESSIBILITY-AUDIT-002-02-desktop-dark.jpg)
+
+Both images were captured from the public deployment and inspected before inclusion.
+
+### Valid partial results
+
+| Test | Result |
+| --- | --- |
+| Public route and baseline labels | PASS |
+| Frozen desktop three-region structure | PASS |
+| Zero-selection CTA disabled | PASS |
+| Light/dark theme control changes state | PASS |
+| Public page loads without an application error state | PASS |
+| Real 200% zoom | NOT VERIFIED |
+| Tablet landscape | NOT VERIFIED |
+| Tablet portrait | NOT VERIFIED |
+| Mobile viewport | NOT VERIFIED |
+| Text-spacing override | NOT VERIFIED |
+| Screen-reader speech output | NOT VERIFIED |
+| Full responsive keyboard matrix | NOT VERIFIED |
+| Measured light/dark contrast matrix | NOT COMPLETED |
+
+The browser zoom attempt used five `Ctrl++` invocations. Before and after, the environment remained at `1363 × 936`, DPR 1 and visual scale 1. The captured “zoom” state was therefore rejected as 200% evidence.
+
+The environment exposes no supported viewport-resize control for the required tablet and mobile profiles and no screen-reader speech surface.
+
+## 14. Decision
+
+The required matrix cannot be completed in this environment. Per the audit decision rules, unverified responsive, zoom and assistive-technology checks cannot be converted into PASS.
+
+Final status:
+
+`BLOCKED — INSUFFICIENT TEST ENVIRONMENT`
+
+Consequences:
+
+- v0.6.1 remains accepted for the already verified desktop interaction and UX-PROMPT-007 focus correction;
+- responsive/accessibility acceptance is not frozen;
+- no new defect is asserted from missing evidence;
+- UX-PROMPT-008 is not justified or specified from this incomplete run;
+- no Lovable execution or credit consumption occurred.
+
+To resume, use a test surface that supports actual viewport sizing, real browser zoom, documented contrast measurement and a screen-reader smoke test.
