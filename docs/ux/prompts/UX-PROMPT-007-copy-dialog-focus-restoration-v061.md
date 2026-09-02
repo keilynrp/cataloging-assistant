@@ -1,6 +1,6 @@
 # UX-PROMPT-007 — CopyReviewDialog Focus Restoration v0.6.1
 
-Status: PROPOSED — NOT YET EXECUTED
+Status: EXECUTED — AUDITED — ACCEPTED
 
 Target: Lovable
 
@@ -190,6 +190,6 @@ UX-PROMPT-007 se considera exitoso únicamente si las cuatro vías de cierre res
 
 ## Execution policy
 
-DO NOT execute this prompt in Lovable until execution is explicitly authorized.
+Execution was explicitly authorized and completed in Lovable on 2026-09-02.
 
-Current state: specification saved only; no Lovable message, edit, execution commit or credit consumption exists for UX-PROMPT-007.
+Current state: executed, published, publicly audited and accepted. Lovable commit: `e74f22ebaffc9464f459a9d2282e4bf04eb4118c`. `UX006-DEBT-001` is closed.
