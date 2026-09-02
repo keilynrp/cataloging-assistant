@@ -46,6 +46,25 @@ Cada ejecución produce un reporte machine-readable y un resumen humano. Como m�
 
 El reporte no contiene secretos ni raw credentials.
 
+### 3.1 Compatibilidad y estados no evaluables
+
+La implementación offline conserva `score_case(expected_doc, proposed_doc)` y amplía
+`score_run(cases, run_metadata=None)` sin exigir metadatos inventados a los callers existentes.
+
+Cada tasa autoritativa se representa además como un objeto con:
+
+- `value`;
+- `numerator`;
+- `denominator`;
+- `status=EVALUABLE|NOT_EVALUABLE`.
+
+Un denominador vacío produce `value=null` y `status=NOT_EVALUABLE`; nunca se sustituye por
+`0`, `1`, `PASS` o `FAIL`. La comparación con `PROVISIONAL_TARGETS` es exclusivamente
+`INFORMATIONAL_NON_GATING` y el reporte conserva `gate_assessment=ASSESSMENT_ONLY`.
+
+La ausencia de provenance requerida tampoco se rellena con valores fabricados: el reporte
+declara `provenance.status=INCOMPLETE` y enumera `missing_required_fields`.
+
 ## 4. Dos superficies de matching
 
 El scorer mantiene dos superficies distintas y nunca las confunde.
@@ -207,6 +226,10 @@ false_proposal_rate = cases_with_false_proposal / abstention_cases
 
 Para `partial-evidence-selective-abstention`, se evalúa por binding/oportunidad y no sólo a nivel de caso completo.
 
+Cuando exista `opportunity_id`, debe coincidir en el matching autoritativo. Una propuesta que
+intersecta el scope de una abstención por binding, `opportunity_id` y `source_refs` no puede ser
+simultáneamente TP. El error conserva el índice y tipo de la abstención pertinente.
+
 Las razones de abstención provienen del gold adjudicado y no se infieren semánticamente durante scoring.
 
 ## 12. Controlled vocabulary exact-match
@@ -253,11 +276,19 @@ Esta métrica no se infiere automáticamente del matching. Proviene de anotació
 - `RESEARCH_REQUIRED`;
 - `REJECT`.
 
+El scorer consume únicamente adjudicaciones versionadas con `adjudication_status=FINAL`, unidas
+al mismo `case_id`, binding y versiones del run, y que preserven el hash del snapshot. Revisiones
+individuales, artefactos de otro caso y adjudicaciones duplicadas no entran en el denominador.
+
 Se reportan proporciones globales y por estrato/binding. No forma parte de un PASS automático mientras los targets permanezcan provisionales.
 
 ## 16. Sample sufficiency
 
 El scorer calcula oportunidades evaluables por estrato, binding y métrica.
+
+Un caso que declare varios bindings aporta `opportunity_count_by_binding`. Si esa distribución
+no está materializada, el scorer deriva únicamente oportunidades estructuradas del gold y nunca
+copia el total agregado completo a cada binding.
 
 Para Estrato A se requieren simultáneamente:
 

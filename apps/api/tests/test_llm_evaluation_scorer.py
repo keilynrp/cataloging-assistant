@@ -7,7 +7,6 @@ from jsonschema import Draft202012Validator
 
 from cataloging_api.evaluation.scorer import score_case, score_run
 
-
 GOLDEN_ROOT = Path(__file__).parent / "golden" / "llm-evidence"
 
 
@@ -97,8 +96,9 @@ def test_diagnostic_wrong_binding_is_one_to_one() -> None:
     wrong_binding = [error for error in result["errors"] if error["code"] == "WRONG_BINDING"]
     unsupported = [error for error in result["errors"] if error["code"] == "UNSUPPORTED_VALUE"]
     assert len(wrong_binding) == 1
-    assert len(unsupported) == 1
+    assert len(unsupported) == 0
     assert result["binding_accuracy"] == 0.0
+    assert result["hallucination_rate"] == 0.0
 
 
 def test_grounding_uses_closed_range_policy() -> None:
@@ -106,9 +106,7 @@ def test_grounding_uses_closed_range_policy() -> None:
     candidate = gold["expected_candidates"][0]
     candidate["grounding_required"] = True
     candidate["grounding_policy"] = "exact_range"
-    candidate["accepted_grounding_ranges"] = [
-        {"source_id": "source-1", "start": 4, "end": 10}
-    ]
+    candidate["accepted_grounding_ranges"] = [{"source_id": "source-1", "start": 4, "end": 10}]
     result = score_case(
         gold,
         {
@@ -118,9 +116,7 @@ def test_grounding_uses_closed_range_policy() -> None:
                     "candidate_intent": "INFERRED_VALUE",
                     "value": "Tarasca",
                     "source_refs": ["source-1"],
-                    "grounding_ranges": [
-                        {"source_id": "source-1", "start": 4, "end": 10}
-                    ],
+                    "grounding_ranges": [{"source_id": "source-1", "start": 4, "end": 10}],
                 }
             ]
         },
@@ -134,9 +130,7 @@ def test_wrong_binding_and_grounding_are_independent_diagnostics() -> None:
     expected = gold["expected_candidates"][0]
     expected["grounding_required"] = True
     expected["grounding_policy"] = "exact_range"
-    expected["accepted_grounding_ranges"] = [
-        {"source_id": "source-1", "start": 4, "end": 10}
-    ]
+    expected["accepted_grounding_ranges"] = [{"source_id": "source-1", "start": 4, "end": 10}]
     result = score_case(
         gold,
         {
@@ -146,9 +140,7 @@ def test_wrong_binding_and_grounding_are_independent_diagnostics() -> None:
                     "candidate_intent": "INFERRED_VALUE",
                     "value": "Tarasca",
                     "source_refs": ["source-1"],
-                    "grounding_ranges": [
-                        {"source_id": "source-1", "start": 4, "end": 10}
-                    ],
+                    "grounding_ranges": [{"source_id": "source-1", "start": 4, "end": 10}],
                 }
             ]
         },
@@ -248,15 +240,16 @@ def test_materialized_seed_fixtures_score_end_to_end() -> None:
                     "candidate_intent": expected_candidate["candidate_intent"],
                     "value": expected_candidate["accepted_values"][0],
                     "source_refs": [source_ref],
-                    "grounding_ranges": expected_candidate.get(
-                        "accepted_grounding_ranges", []
-                    ),
+                    "grounding_ranges": expected_candidate.get("accepted_grounding_ranges", []),
                 }
             ]
         }
         per_case = score_case(expected, proposed)
         assert per_case["tp"] == 1
         assert per_case["fp"] == 0
+        assert per_case["hallucination_rate"] == 0.0
+        if expected["expected_abstentions"]:
+            assert per_case["false_proposal_rate_on_abstention"] == 0.0
 
         cases.append(
             {
@@ -270,5 +263,5 @@ def test_materialized_seed_fixtures_score_end_to_end() -> None:
     run = score_run(cases)
     assert run["overall"]["tp"] == len(manifest["cases"])
     assert run["overall"]["fp"] == 0
-    assert run["sample_sufficiency"]["status"] == "INSUFFICIENT_SAMPLE"
+    assert run["sample_sufficiency"]["status"] == "SUFFICIENT"
     assert run["gate_assessment"] == "ASSESSMENT_ONLY"
