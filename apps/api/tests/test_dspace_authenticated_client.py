@@ -46,3 +46,45 @@ async def test_read_authenticated_client_requires_credentials() -> None:
     async with ReadAuthenticatedDSpaceClient("http://dspace.test/server/api") as client:
         with pytest.raises(DSpaceError, match="read credentials are required"):
             await client.authenticate("", "")
+
+
+@pytest.mark.asyncio
+async def test_read_authenticated_client_translates_initial_status_timeout() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ReadTimeout("timed out", request=request)
+
+    async with ReadAuthenticatedDSpaceClient(
+        "http://dspace.test/server/api",
+        transport=httpx.MockTransport(handler),
+        max_retries=0,
+    ) as client:
+        with pytest.raises(DSpaceError) as raised:
+            await client.authenticate("reader@example.org", "secret-password")
+
+    assert raised.value.code == "timeout"
+    assert str(raised.value) == "DSpace timed out at /authn/status"
+    assert "secret-password" not in str(raised.value)
+
+
+@pytest.mark.asyncio
+async def test_read_authenticated_client_translates_login_network_error() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.endswith("/authn/status"):
+            return httpx.Response(
+                200,
+                json={"authenticated": False},
+                headers={"Set-Cookie": "DSPACE-XSRF-COOKIE=csrf-token; Path=/"},
+            )
+        raise httpx.ConnectError("connection failed", request=request)
+
+    async with ReadAuthenticatedDSpaceClient(
+        "http://dspace.test/server/api",
+        transport=httpx.MockTransport(handler),
+        max_retries=0,
+    ) as client:
+        with pytest.raises(DSpaceError) as raised:
+            await client.authenticate("reader@example.org", "secret-password")
+
+    assert raised.value.code == "network_error"
+    assert str(raised.value) == "DSpace request failed at /authn/login"
+    assert "secret-password" not in str(raised.value)

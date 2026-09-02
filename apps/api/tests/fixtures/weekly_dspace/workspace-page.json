@@ -1,0 +1,28 @@
+{
+  "_embedded": {
+    "workspaceitems": [
+      {
+        "id": 55,
+        "lastModified": "2026-08-01T12:00:00Z",
+        "sections": {
+          "traditional-page1": {
+            "dc.title": [{"value": "Título de sections no preferido"}],
+            "dcterms.provenance": [{"value": "YCT-20260801"}]
+          }
+        }
+      },
+      {
+        "id": 56,
+        "lastModified": "2026-07-01T12:00:00Z",
+        "sections": {
+          "traditional-page1": {
+            "dc.title": [{"value": "Título desde sections"}],
+            "dc.contributor.editor": [{"value": "Editora, Eva"}],
+            "dcterms.provenance": [{"value": "YCT-20260825"}]
+          }
+        }
+      }
+    ]
+  },
+  "page": {"number": 0, "size": 100, "totalPages": 1, "totalElements": 2}
+}

@@ -17,6 +17,7 @@ from cataloging_api.notifications.routes import router as notifications_router
 from cataloging_api.notifications.routes import ws_router as notifications_ws_router
 from cataloging_api.notifications.worker import run_publisher_loop
 from cataloging_api.provenance.routes import router as provenance_audit_router
+from cataloging_api.reports.routes import router as reports_router
 from cataloging_api.vocabularies.dspace_routes import router as dspace_vocabulary_router
 from cataloging_api.vocabularies.promotion_routes import router as vocabulary_promotion_router
 
@@ -49,6 +50,7 @@ app.include_router(cataloging_contract_router)
 app.include_router(dspace_contract_router)
 app.include_router(evidence_router)
 app.include_router(provenance_audit_router)
+app.include_router(reports_router)
 app.include_router(dspace_vocabulary_router)
 app.include_router(vocabulary_promotion_router)
 app.include_router(notifications_router)

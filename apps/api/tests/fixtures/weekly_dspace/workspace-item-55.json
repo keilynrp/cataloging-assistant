@@ -1,0 +1,12 @@
+{
+  "uuid": "20000000-0000-4000-8000-000000000055",
+  "name": "Workspace backend item",
+  "inArchive": false,
+  "withdrawn": false,
+  "lastModified": "2026-08-26T05:30:00Z",
+  "metadata": {
+    "dc.title": [{"value": "Título del Item asociado"}],
+    "dc.contributor.editor": [{"value": "P´erez, María"}],
+    "dcterms.provenance": [{"value": "YCT-sin-fecha"}]
+  }
+}
