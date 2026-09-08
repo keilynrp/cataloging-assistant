@@ -14,11 +14,18 @@ type ReportFormat = (typeof FORMATS)[number]["value"];
 export function WeeklyReportForm() {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [accessToken, setAccessToken] = useState("");
+  const [accessGranted, setAccessGranted] = useState(false);
+  const [authorizing, setAuthorizing] = useState(false);
   const [loading, setLoading] = useState<ReportFormat | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function download(format: ReportFormat) {
     setError(null);
+    if (!accessGranted) {
+      setError("Ingresa la clave de acceso al reporte antes de descargarlo.");
+      return;
+    }
     if (!DATE_PATTERN.test(fromDate) || !DATE_PATTERN.test(toDate)) {
       setError("Selecciona las fechas inicial y final.");
       return;
@@ -33,7 +40,7 @@ export function WeeklyReportForm() {
       const query = new URLSearchParams({ from: fromDate, to: toDate });
       const response = await fetch(
         `/api/reports/dspace-weekly/${format}?${query.toString()}`,
-        { cache: "no-store" },
+        { cache: "no-store", credentials: "same-origin" },
       );
       if (!response.ok) {
         setError(
@@ -61,6 +68,41 @@ export function WeeklyReportForm() {
     }
   }
 
+  async function authorize() {
+    setError(null);
+    if (!accessToken) {
+      setError("Ingresa la clave de acceso al reporte.");
+      return;
+    }
+    setAuthorizing(true);
+    try {
+      const response = await fetch("/api/reports/dspace-weekly/access", {
+        method: "POST",
+        credentials: "same-origin",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: accessToken }),
+      });
+      setAccessToken("");
+      if (!response.ok) {
+        setAccessGranted(false);
+        setError(
+          response.status === 503
+            ? "El acceso al reporte no está configurado."
+            : "No fue posible habilitar las descargas con esa clave.",
+        );
+        return;
+      }
+      setAccessGranted(true);
+    } catch {
+      setAccessToken("");
+      setAccessGranted(false);
+      setError("No fue posible conectar con el servicio de reportes.");
+    } finally {
+      setAuthorizing(false);
+    }
+  }
+
   return (
     <form className="vocabulary-form report-form" onSubmit={(event) => event.preventDefault()}>
       <label>
@@ -85,6 +127,21 @@ export function WeeklyReportForm() {
           onChange={(event) => setToDate(event.target.value)}
         />
       </label>
+      <label className="vocabulary-wide">
+        Clave de acceso al reporte
+        <input
+          type="password"
+          autoComplete="off"
+          value={accessToken}
+          disabled={accessGranted || authorizing}
+          onChange={(event) => setAccessToken(event.target.value)}
+        />
+      </label>
+      <div className="report-actions vocabulary-wide">
+        <button type="button" disabled={accessGranted || authorizing} onClick={authorize}>
+          {accessGranted ? "Descargas habilitadas" : authorizing ? "Verificando…" : "Habilitar descargas"}
+        </button>
+      </div>
 
       {error ? (
         <div className="review-status error vocabulary-wide" role="alert">
@@ -97,7 +154,7 @@ export function WeeklyReportForm() {
           <button
             type="button"
             key={format.value}
-            disabled={loading !== null}
+            disabled={!accessGranted || loading !== null || authorizing}
             onClick={() => download(format.value)}
           >
             {loading === format.value ? "Generando…" : format.label}
