@@ -1,6 +1,6 @@
 # UX-PROMPT-008 — Tablet Reflow 768 px v0.6.2
 
-Status: PROPOSED
+Status: IMPLEMENTED — PUBLICLY VERIFIED WITH OBSERVATIONS
 
 Target: Lovable
 
@@ -106,3 +106,12 @@ UX-PROMPT-008 sólo se acepta cuando el overflow de página medido a `768 × 102
 ## Execution policy
 
 This document authorizes no execution, Lovable action, credit consumption, deployment or publication. A separate explicit authorization is required before implementation.
+
+## Execution record — 2026-09-08
+
+Implementation was explicitly authorized after this prompt was approved. Lovable applied the minimal presentation patch in commit `466ecc4090048dc23d104d8657f0ecc3799381f2`:
+
+- `src/components/app-shell.tsx`: `PageHeader` actions now reflow (`min-w-0`, wrapping and responsive basis) instead of retaining the overflowing `shrink-0` behavior;
+- `docs/ux/UX-PROMPT-008.md`: implementation record in the Lovable project.
+
+The inspected diff contains no backend, route, dependency, data, semantic-contract, DSpace or copy-to-draft change. A direct public Chrome verification subsequently measured no horizontal overflow at CSS `768 × 1024` and `390 × 844`; see `UX-ACCESSIBILITY-AUDIT-002.md`, section 16. No deploy action was initiated by this workflow.

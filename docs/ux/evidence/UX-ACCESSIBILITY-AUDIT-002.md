@@ -1,6 +1,6 @@
 # UX-ACCESSIBILITY-AUDIT-002 — Evidence Navigator v0.6.1
 
-Status: COMPLETED — CORRECTIVE PROMPT REQUIRED
+Status: COMPLETED — PASS WITH OBSERVATIONS
 
 Prepared: 2026-09-02
 
@@ -275,6 +275,28 @@ Authorized temporary runner: Playwright `1.58.2`, Chromium `145.0.7632.6`, headl
 | Screen reader | NOT VERIFIED | No real speech output was tested. |
 
 The tablet overflow is actionable. Do not implement it in this audit. If authorized later, UX-PROMPT-008 should be limited to eliminating the `768px` horizontal overflow while preserving the three frozen workspace responsibilities, technical values, eligibility and focus/selection semantics; it must include a tablet reflow regression capture. No other application change is proposed.
+
+## 16. Post-correction public verification — 2026-09-08
+
+`UX-PROMPT-008` was subsequently implemented in the Evidence Navigator Lovable project as commit `466ecc4090048dc23d104d8657f0ecc3799381f2`. Its inspected diff is confined to the responsive presentation classes of `PageHeader` and the implementation note; it does not alter data, routes, metadata bindings, candidate states, DSpace presentation, or review semantics.
+
+The public route was then checked in Chrome at `https://cat-assistant.lovable.app/evidence/session-demo`.
+
+| Profile | Observed result | Classification |
+| --- | --- | --- |
+| Tablet portrait, CSS viewport `768 × 1024` | `window.innerWidth: 768`; `scrollWidth: 753`; `clientWidth: 753`. The 15px difference from the requested viewport is the visible vertical scrollbar; there is no horizontal page overflow. Sources, Proposal and Inspector were present. The zero-selection copy CTA remained disabled. | PASS |
+| Mobile, CSS viewport `390 × 844` | `window.innerWidth: 390`; `scrollWidth: 375`; `clientWidth: 375`, again accounting for the vertical scrollbar. No horizontal page overflow. | PASS |
+| Application console | No error-level console entries during the public checks. | PASS |
+
+This closes defect `UXA002-REFLOW-001`; the earlier `768 × 1024` measurement of `808 / 768` is superseded by the public post-correction evidence above. The existing assets remain the audit-run evidence for the original defect and responsive captures; this verification did not fabricate replacement screenshots.
+
+### Residual limitations
+
+- `axe-core` contrast automation remains BLOCKED: no executable local axe-core report was produced and no dependency was added.
+- Screen-reader compatibility remains NOT VERIFIED: no NVDA (or other speech-output) session was run. DOM, ARIA and browser automation checks are not substitutes for voiced output.
+- The full dialog keyboard lifecycle (`Enter`/`Space` open, `Escape` close and focus return) was not rerun after this presentation-only correction. The correction did not touch `CopyReviewDialog`; retain it as a targeted follow-up verification rather than infer it from the reflow result.
+
+Final decision: `COMPLETED — PASS WITH OBSERVATIONS`. The responsive MAJOR is resolved publicly; the three residual checks above remain explicit and do not constitute claims of formal WCAG or screen-reader conformance.
 
 
 ## 13. Attempted execution
