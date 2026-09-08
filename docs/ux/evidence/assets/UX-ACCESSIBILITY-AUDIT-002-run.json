@@ -1,0 +1,329 @@
+{
+  "environment": {
+    "playwright": "1.58.2",
+    "chromium": "145.0.7632.6"
+  },
+  "profiles": {
+    "desktop": {
+      "innerWidth": 1440,
+      "innerHeight": 900,
+      "dpr": 1,
+      "scale": 1,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "title": "Evidence Workspace v0.2 — Cataloging Assistant UX Lab"
+    },
+    "tablet": {
+      "innerWidth": 768,
+      "innerHeight": 1024,
+      "dpr": 1,
+      "scale": 1,
+      "scrollWidth": 808,
+      "clientWidth": 768,
+      "title": "Evidence Workspace v0.2 — Cataloging Assistant UX Lab"
+    },
+    "mobile": {
+      "innerWidth": 431,
+      "innerHeight": 933,
+      "dpr": 2,
+      "scale": 1,
+      "scrollWidth": 431,
+      "clientWidth": 390,
+      "title": "Evidence Workspace v0.2 — Cataloging Assistant UX Lab"
+    }
+  },
+  "keyboard": [
+    {
+      "tag": "A",
+      "id": null,
+      "text": "Cola de trabajo24",
+      "ariaLabel": null,
+      "disabled": false
+    },
+    {
+      "tag": "A",
+      "id": null,
+      "text": "Registros",
+      "ariaLabel": null,
+      "disabled": false
+    },
+    {
+      "tag": "A",
+      "id": null,
+      "text": "Pospuestos3",
+      "ariaLabel": null,
+      "disabled": false
+    },
+    {
+      "tag": "A",
+      "id": null,
+      "text": "Evidencias",
+      "ariaLabel": null,
+      "disabled": false
+    },
+    {
+      "tag": "A",
+      "id": null,
+      "text": "Borradores",
+      "ariaLabel": null,
+      "disabled": false
+    },
+    {
+      "tag": "A",
+      "id": null,
+      "text": "Vocabularios",
+      "ariaLabel": null,
+      "disabled": false
+    },
+    {
+      "tag": "A",
+      "id": null,
+      "text": "Asistente",
+      "ariaLabel": null,
+      "disabled": false
+    },
+    {
+      "tag": "A",
+      "id": null,
+      "text": "Diagnóstico",
+      "ariaLabel": null,
+      "disabled": false
+    },
+    {
+      "tag": "A",
+      "id": null,
+      "text": "Perfil de colección",
+      "ariaLabel": null,
+      "disabled": false
+    },
+    {
+      "tag": "A",
+      "id": null,
+      "text": "Notificaciones2",
+      "ariaLabel": null,
+      "disabled": false
+    },
+    {
+      "tag": "A",
+      "id": null,
+      "text": "Configuración",
+      "ariaLabel": null,
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "id": null,
+      "text": "Toggle Sidebar",
+      "ariaLabel": null,
+      "disabled": false
+    },
+    {
+      "tag": "INPUT",
+      "id": null,
+      "text": null,
+      "ariaLabel": "Búsqueda global",
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "id": null,
+      "text": null,
+      "ariaLabel": "Notificaciones",
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "id": null,
+      "text": null,
+      "ariaLabel": "Cambiar a tema oscuro",
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "id": "radix-_R_7maq_",
+      "text": "MCM. Cardona",
+      "ariaLabel": null,
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "id": null,
+      "text": "Extracción completada",
+      "ariaLabel": "Escenario de prototipo",
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "id": null,
+      "text": null,
+      "ariaLabel": "Ocultar inspector",
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "id": null,
+      "text": "Añadir evidencia",
+      "ariaLabel": null,
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "id": null,
+      "text": "informe_documentacion_qeqchi_2025.pdfExtraídopdf · 48 págs. · 6.2 MBsha256 9f2ac41b7d0e…2026-08-14 08:41 UTC",
+      "ariaLabel": null,
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "id": null,
+      "text": "lamina_epigrafica_escaneada.pdfSin texto extraíblepdf · 12 págs. · 17.4 MBsha256 1b4dd9c0a25f…2026-08-14 08:47 UTCSin te",
+      "ariaLabel": null,
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "id": null,
+      "text": "iidh.org/registro-lenguas/qeqchi-petenExtraídourl · text/html · 112.2 KB · 2 redirección(es)final: https://www.iidh.org/",
+      "ariaLabel": null,
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "id": null,
+      "text": "notas_campo_transcripcion.txtExtraídotext · Texto · 18.0 KBsha256 aa10bd54c9f2…2026-08-14 08:52 UTC",
+      "ariaLabel": null,
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "id": null,
+      "text": "anexo_glosario.docxFormato no soportadotext · Texto · 340.0 KBsha256 —2026-08-14 08:55 UTCFormato no soportado por el ex",
+      "ariaLabel": null,
+      "disabled": false
+    },
+    {
+      "tag": "INPUT",
+      "id": null,
+      "text": null,
+      "ariaLabel": "Filtrar candidatos",
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "id": null,
+      "text": "Todos los estados",
+      "ariaLabel": "Filtrar por estado de evidencia",
+      "disabled": false
+    },
+    {
+      "tag": "DIV",
+      "id": null,
+      "text": "Títulodc.titlebinding: titleDocumentación fonológica y léxica del maya q'eqchi' en el Petén: evidencia arqueológica y te",
+      "ariaLabel": null,
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "id": null,
+      "text": null,
+      "ariaLabel": "Seleccionar Título para copiar al borrador",
+      "disabled": false
+    },
+    {
+      "tag": "DIV",
+      "id": null,
+      "text": "Autordc.contributor.authorbinding: authorCardona Xol, María BeatrizEXTRAÍDOCoincidencia exactainforme_documentacion_qeqc",
+      "ariaLabel": null,
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "id": null,
+      "text": null,
+      "ariaLabel": "Seleccionar Autor para copiar al borrador",
+      "disabled": false
+    },
+    {
+      "tag": "DIV",
+      "id": null,
+      "text": "[2]Tzul Poou, JacintoEXTRAÍDOSin validarinforme_documentacion_qeqc · p. 1pdf-text@3.4",
+      "ariaLabel": null,
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "id": null,
+      "text": null,
+      "ariaLabel": "Seleccionar Autor para copiar al borrador",
+      "disabled": false
+    },
+    {
+      "tag": "DIV",
+      "id": null,
+      "text": "Fecha de publicacióndc.date.issuedbinding: date-issued2025-11EXTRAÍDOCoincidencia exactainforme_documentacion_qeqc · p. ",
+      "ariaLabel": null,
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "id": null,
+      "text": null,
+      "ariaLabel": "Seleccionar Fecha de publicación para copiar al borrador",
+      "disabled": false
+    },
+    {
+      "tag": "DIV",
+      "id": null,
+      "text": "[2]noviembre de 2025 (aprox.)EXTRAÍDOValor inválidoiidh.org/registro-lenguas/ · sección «Ficha»html-readability@2.1Valor",
+      "ariaLabel": null,
+      "disabled": false
+    },
+    {
+      "tag": "DIV",
+      "id": null,
+      "text": "Lengua de registrodc.description.registeredLanguagebinding: registered-languageEspañolEXTRAÍDOCoincidencia exactainforme",
+      "ariaLabel": null,
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "id": null,
+      "text": null,
+      "ariaLabel": "Seleccionar Lengua de registro para copiar al borrador",
+      "disabled": false
+    },
+    {
+      "tag": "DIV",
+      "id": null,
+      "text": "Familia lingüísticadc.subject.linguisticFamilybinding: linguistic-familyMayaEXTRAÍDOCoincidencia exactainforme_documenta",
+      "ariaLabel": null,
+      "disabled": false
+    },
+    {
+      "tag": "BUTTON",
+      "id": null,
+      "text": null,
+      "ariaLabel": "Seleccionar Familia lingüística para copiar al borrador",
+      "disabled": false
+    },
+    {
+      "tag": "DIV",
+      "id": null,
+      "text": "Rama lingüísticadc.subject.linguisticBranchbinding: linguistic-branchK'iche'ana orientalEXTRAÍDORevisión requeridainform",
+      "ariaLabel": null,
+      "disabled": false
+    }
+  ],
+  "aria": "- paragraph: Cataloging Assistant\n- paragraph: UX Lab · Workspace · v0.2\n- paragraph: Inspector · v0.6\n- text: Trabajo\n- list:\n  - listitem:\n    - link \"Cola de trabajo 24\":\n      - /url: /\n  - listitem:\n    - link \"Registros\":\n      - /url: /\n  - listitem:\n    - link \"Pospuestos 3\":\n      - /url: /\n- text: Catalogación\n- list:\n  - listitem:\n    - link \"Evidencias\":\n      - /url: /evidence/session-demo\n  - listitem:\n    - link \"Borradores\":\n      - /url: /\n  - listitem:\n    - link \"Vocabularios\":\n      - /url: /\n- text: Inteligencia\n- list:\n  - listitem:\n    - link \"Asistente\":\n      - /url: /\n  - listitem:\n    - link \"Diagnóstico\":\n      - /url: /\n  - listitem:\n    - link \"Perfil de colección\":\n      - /url: /\n- text: Sistema\n- list:\n  - listitem:\n    - link \"Notificaciones 2\":\n      - /url: /\n  - listitem:\n    - link \"Configuración\":\n      - /url: /\n- main:\n  - button \"Toggle Sidebar\"\n  - textbox \"Búsqueda global\":\n    - /placeholder: Buscar registros, handles, campos…  ⌘K\n  - button \"Notificaciones\"\n  - button \"Cambiar a tema oscuro\"\n  - button \"MC M. Cardona\"\n  - text: Catalogación Evidencias session-demo\n  - 'heading \"Documentación fonológica y léxica del maya q''eqchi'' en el Petén: evidencia arqueológica y testimonios comunitarios\" [level=1]'\n  - text: uuid b7e1f0d2-3c48-4a11-9f52-0c8a6d1e77ab handle 10361/48291 Colección de Lenguas Originarias — Mesoamérica Sesión abierta 2026-08-14 09:12 UTC DSpace · SOLO LECTURA\n  - combobox \"Escenario de prototipo\": Extracción completada\n  - text: 0 seleccionados · 13 elegibles\n  - button \"Copiar selección al borrador\" [disabled]\n  - button \"Ocultar inspector\"\n  - text: Runtime actual\n  - paragraph: \"Sesión nominal: cuatro fuentes procesadas, candidatos deterministas con vocabulario exacto, revisión requerida, valores repetibles y candidatos no copiables.\"\n  - complementary:\n    - heading \"Fuentes de evidencia (5)\" [level=3]\n    - button \"Añadir evidencia\"\n    - button \"informe_documentacion_qeqchi_2025.pdf Extraído pdf · 48 págs. · 6.2 MB sha256 9f2ac41b7d0e… 2026-08-14 08:41 UTC\":\n      - paragraph: informe_documentacion_qeqchi_2025.pdf\n      - text: Extraído\n      - paragraph: pdf · 48 págs. · 6.2 MB\n      - text: sha256 9f2ac41b7d0e… 2026-08-14 08:41 UTC\n    - button \"lamina_epigrafica_escaneada.pdf Sin texto extraíble pdf · 12 págs. · 17.4 MB sha256 1b4dd9c0a25f… 2026-08-14 08:47 UTC Sin texto extraíble · OCR no soportado.\":\n      - paragraph: lamina_epigrafica_escaneada.pdf\n      - text: Sin texto extraíble\n      - paragraph: pdf · 12 págs. · 17.4 MB\n      - text: sha256 1b4dd9c0a25f… 2026-08-14 08:47 UTC\n      - paragraph: Sin texto extraíble · OCR no soportado.\n    - 'button \"iidh.org/registro-lenguas/qeqchi-peten Extraído url · text/html · 112.2 KB · 2 redirección(es) final: https://www.iidh.org/registro-lenguas/qeqchi-peten/ sha256 3c88e0aa5417… 2026-08-14 08:44 UTC\"':\n      - paragraph: iidh.org/registro-lenguas/qeqchi-peten\n      - text: Extraído\n      - paragraph: url · text/html · 112.2 KB · 2 redirección(es)\n      - paragraph: \"final: https://www.iidh.org/registro-lenguas/qeqchi-peten/\"\n      - text: sha256 3c88e0aa5417… 2026-08-14 08:44 UTC\n    - button \"notas_campo_transcripcion.txt Extraído text · Texto · 18.0 KB sha256 aa10bd54c9f2… 2026-08-14 08:52 UTC\":\n      - paragraph: notas_campo_transcripcion.txt\n      - text: Extraído\n      - paragraph: text · Texto · 18.0 KB\n      - text: sha256 aa10bd54c9f2… 2026-08-14 08:52 UTC\n    - button \"anexo_glosario.docx Formato no soportado text · Texto · 340.0 KB sha256 — 2026-08-14 08:55 UTC Formato no soportado por el extractor.\":\n      - paragraph: anexo_glosario.docx\n      - text: Formato no soportado\n      - paragraph: text · Texto · 340.0 KB\n      - text: sha256 — 2026-08-14 08:55 UTC\n      - paragraph: Formato no soportado por el extractor.\n  - main:\n    - heading \"Propuesta de catálogo\" [level=2]\n    - textbox \"Filtrar candidatos\":\n      - /placeholder: Filtrar por campo, binding o valor\n    - combobox \"Filtrar por estado de evidencia\": Todos los estados\n    - text: 16/16 candidatos\n    - heading \"Identificación\" [level=3]\n    - text: \"5\"\n    - 'button \"Seleccionar Título para copiar al borrador Título dc.title binding: title Documentación fonológica y léxica del maya q''eqchi'' en el Petén: evidencia arqueológica y testimonios comunitarios EXTRAÍDO Sin validar informe_documentacion_qeqc · p. 1 pdf-text@3.4\"':\n      - checkbox \"Seleccionar Título para copiar al borrador\"\n      - text: \"Título dc.title binding: title\"\n      - paragraph: \"Documentación fonológica y léxica del maya q'eqchi' en el Petén: evidencia arqueológica y testimonios comunitarios\"\n      - text: EXTRAÍDO Sin validar informe_documentacion_qeqc · p. 1 pdf-text@3.4\n    - 'button \"Seleccionar Autor para copiar al borrador Autor dc.contributor.author binding: author Cardona Xol, María Beatriz EXTRAÍDO Coincidencia exacta informe_documentacion_qeqc · p. 1 pdf-text@3.4\"':\n      - checkbox \"Seleccionar Autor para copiar al borrador\"\n      - text: \"Autor dc.contributor.author binding: author\"\n      - paragraph: Cardona Xol, María Beatriz\n      - text: EXTRAÍDO Coincidencia exacta informe_documentacion_qeqc · p. 1 pdf-text@3.4\n    - button \"Seleccionar Autor para copiar al borrador [2] Tzul Poou, Jacinto EXTRAÍDO Sin validar informe_documentacion_qeqc · p. 1 pdf-text@3.4\":\n      - checkbox \"Seleccionar Autor para copiar al borrador\"\n      - text: \"[2]\"\n      - paragraph: Tzul Poou, Jacinto\n      - text: EXTRAÍDO Sin validar informe_documentacion_qeqc · p. 1 pdf-text@3.4\n    - 'button \"Seleccionar Fecha de publicación para copiar al borrador Fecha de publicación dc.date.issued binding: date-issued 2025-11 EXTRAÍDO Coincidencia exacta informe_documentacion_qeqc · p. 2 (colofón) pdf-text@3.4\"':\n      - checkbox \"Seleccionar Fecha de publicación para copiar al borrador\"\n      - text: \"Fecha de publicación dc.date.issued binding: date-issued\"\n      - paragraph: 2025-11\n      - text: EXTRAÍDO Coincidencia exacta informe_documentacion_qeqc · p. 2 (colofón) pdf-text@3.4\n    - 'button \"Fecha de publicación: no elegible para copiar al borrador. Valor inválido para el perfil: no elegible para copiar al borrador. [2] noviembre de 2025 (aprox.) EXTRAÍDO Valor inválido iidh.org/registro-lenguas/ · sección «Ficha» html-readability@2.1 Valor inválido para el perfil: no elegible para copiar al borrador.\"':\n      - 'checkbox \"Fecha de publicación: no elegible para copiar al borrador. Valor inválido para el perfil: no elegible para copiar al borrador.\" [disabled]'\n      - text: \"[2]\"\n      - paragraph: noviembre de 2025 (aprox.)\n      - text: \"EXTRAÍDO Valor inválido iidh.org/registro-lenguas/ · sección «Ficha» html-readability@2.1 Valor inválido para el perfil: no elegible para copiar al borrador.\"\n    - heading \"Descripción lingüística\" [level=3]\n    - text: \"5\"\n    - paragraph: \"Relación semántica: Familia → Agrupación → Variante. La Rama es una autoridad genealógica secundaria opcional y un campo runtime independiente. El orden de presentación es independiente de esa jerarquía.\"\n    - 'button \"Seleccionar Lengua de registro para copiar al borrador Lengua de registro dc.description.registeredLanguage binding: registered-language Español EXTRAÍDO Coincidencia exacta informe_documentacion_qeqc · p. 1 pdf-text@3.4\"':\n      - checkbox \"Seleccionar Lengua de registro para copiar al borrador\"\n      - text: \"Lengua de registro dc.description.registeredLanguage binding: registered-language\"\n      - paragraph: Español\n      - text: EXTRAÍDO Coincidencia exacta informe_documentacion_qeqc · p. 1 pdf-text@3.4\n    - 'button \"Seleccionar Familia lingüística para copiar al borrador Familia lingüística dc.subject.linguisticFamily binding: linguistic-family Maya EXTRAÍDO Coincidencia exacta informe_documentacion_qeqc · p. 7 pdf-text@3.4\"':\n      - checkbox \"Seleccionar Familia lingüística para copiar al borrador\"\n      - text: \"Familia lingüística dc.subject.linguisticFamily binding: linguistic-family\"\n      - paragraph: Maya\n      - text: EXTRAÍDO Coincidencia exacta informe_documentacion_qeqc · p. 7 pdf-text@3.4\n    - 'button \"Seleccionar Rama lingüística para copiar al borrador Rama lingüística dc.subject.linguisticBranch binding: linguistic-branch K''iche''ana oriental EXTRAÍDO Revisión requerida informe_documentacion_qeqc · p. 7 pdf-text@3.4\"':\n      - checkbox \"Seleccionar Rama lingüística para copiar al borrador\"\n      - text: \"Rama lingüística dc.subject.linguisticBranch binding: linguistic-branch\"\n      - paragraph: K'iche'ana oriental\n      - text: EXTRAÍDO Revisión requerida informe_documentacion_qeqc · p. 7 pdf-text@3.4\n    - 'button \"Seleccionar Agrupación lingüística para copiar al borrador Agrupación lingüística dc.subject.linguiscgroup binding: linguistic-group Q''eqchi'' EXTRAÍDO Coincidencia exacta notas_campo_transcripcion. · línea 42 plain-text@1.0\"':\n      - checkbox \"Seleccionar Agrupación lingüística para copiar al borrador\"\n      - text: \"Agrupación lingüística dc.subject.linguiscgroup binding: linguistic-group\"\n      - paragraph: Q'eqchi'\n      - text: EXTRAÍDO Coincidencia exacta notas_campo_transcripcion. · línea 42 plain-text@1.0\n    - 'button \"Variante lingüística: no elegible para copiar al borrador. Valor fuera del vocabulario controlado: no elegible para copiar al borrador (solo revisión). Variante lingüística dc.subject.linguisticVariant binding: linguistic-variant Q''eqchi'' del Petén occidental EXTRAÍDO Fuera de vocabulario iidh.org/registro-lenguas/ · sección «Distribución» html-readability@2.1 Valor fuera del vocabulario controlado: no elegible para copiar al borrador (solo revisión).\"':\n      - 'checkbox \"Variante lingüística: no elegible para copiar al borrador. Valor fuera del vocabulario controlado: no elegible para copiar al borrador (solo revisión).\" [disabled]'\n      - text: \"Variante lingüística dc.subject.linguisticVariant binding: linguistic-variant\"\n      - paragraph: Q'eqchi' del Petén occidental\n      - text: \"EXTRAÍDO Fuera de vocabulario iidh.org/registro-lenguas/ · sección «Distribución» html-readability@2.1 Valor fuera del vocabulario controlado: no elegible para copiar al borrador (solo revisión).\"\n    - heading \"Materia y cobertura\" [level=3]\n    - text: \"5\"\n    - 'button \"Seleccionar Materia para copiar al borrador Materia dc.subject binding: subject Documentación lingüística EXTRAÍDO Coincidencia exacta informe_documentacion_qeqc · p. 3 pdf-text@3.4\"':\n      - checkbox \"Seleccionar Materia para copiar al borrador\"\n      - text: \"Materia dc.subject binding: subject\"\n      - paragraph: Documentación lingüística\n      - text: EXTRAÍDO Coincidencia exacta informe_documentacion_qeqc · p. 3 pdf-text@3.4\n    - button \"Seleccionar Materia para copiar al borrador [2] Arqueología maya EXTRAÍDO Coincidencia exacta informe_documentacion_qeqc · p. 3 pdf-text@3.4\":\n      - checkbox \"Seleccionar Materia para copiar al borrador\"\n      - text: \"[2]\"\n      - paragraph: Arqueología maya\n      - text: EXTRAÍDO Coincidencia exacta informe_documentacion_qeqc · p. 3 pdf-text@3.4\n    - button \"Seleccionar Materia para copiar al borrador [3] Epigrafía EXTRAÍDO Revisión requerida notas_campo_transcripcion. · línea 61 plain-text@1.0\":\n      - checkbox \"Seleccionar Materia para copiar al borrador\"\n      - text: \"[3]\"\n      - paragraph: Epigrafía\n      - text: EXTRAÍDO Revisión requerida notas_campo_transcripcion. · línea 61 plain-text@1.0\n    - button \"Seleccionar Materia para copiar al borrador [4] Lenguas mayas VERIFICADO Coincidencia exacta informe_documentacion_qeqc · p. 3 pdf-text@3.4\":\n      - checkbox \"Seleccionar Materia para copiar al borrador\"\n      - text: \"[4]\"\n      - paragraph: Lenguas mayas\n      - text: VERIFICADO Coincidencia exacta informe_documentacion_qeqc · p. 3 pdf-text@3.4\n    - 'button \"Seleccionar Cobertura espacial para copiar al borrador Cobertura espacial dc.coverage.spatial binding: coverage-spatial Petén, Guatemala EXTRAÍDO Coincidencia exacta notas_campo_transcripcion. · línea 8 plain-text@1.0\"':\n      - checkbox \"Seleccionar Cobertura espacial para copiar al borrador\"\n      - text: \"Cobertura espacial dc.coverage.spatial binding: coverage-spatial\"\n      - paragraph: Petén, Guatemala\n      - text: EXTRAÍDO Coincidencia exacta notas_campo_transcripcion. · línea 8 plain-text@1.0\n    - heading \"Técnico y derechos\" [level=3]\n    - text: \"1\"\n    - 'button \"Derechos de acceso: no elegible para copiar al borrador. Sin valor extraído: no hay nada que copiar al borrador. Derechos de acceso dc.rights.accessRights binding: access-rights — PENDIENTE Sin validar anexo_glosario.docx Sin valor extraído: no hay nada que copiar al borrador.\"':\n      - 'checkbox \"Derechos de acceso: no elegible para copiar al borrador. Sin valor extraído: no hay nada que copiar al borrador.\" [disabled]'\n      - text: \"Derechos de acceso dc.rights.accessRights binding: access-rights\"\n      - paragraph: —\n      - text: \"PENDIENTE Sin validar anexo_glosario.docx Sin valor extraído: no hay nada que copiar al borrador.\"\n    - text: \"Ninguna acción se publica sin aprobación humana explícita. Prototipo con datos simulados: sin backend, sin LLM, sin OCR y sin escritura en DSpace.\"\n  - complementary \"Contexto y QA — Inspector\":\n    - heading \"Contexto y QA\" [level=3]\n    - text: Inspector · v0.6\n    - paragraph: Sin candidato enfocado\n    - paragraph: Enfoca un candidato en la propuesta de catálogo para inspeccionar su identidad técnica, procedencia, validación y hallazgos de QA.\n- complementary \"Edit with Lovable\":\n  - link \"Edit with Lovable\":\n    - /url: https://lovable.dev/projects/lovp_26b17jyptx8qybp5wmpaej0njc?utm_source=lovable-badge\n    - text: Edit with\n    - img\n  - button \"Dismiss\"",
+  "axe": null,
+  "errors": [
+    {
+      "axe": "Error: page.addScriptTag: Error: Failed to load script at https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.13.0/axe.min.js\n    at script.onerror (eval at evaluate (:290:30), <anonymous>:8:76)"
+    }
+  ],
+  "zoom200": {
+    "scale": 2,
+    "width": 1440,
+    "visualWidth": 720
+  }
+}
