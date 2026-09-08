@@ -1,6 +1,6 @@
 # ADR-019: Autorización web acotada para el reporte DSpace
 
-**Estado:** Propuesta.
+**Estado:** Aceptada el 8 de septiembre de 2026.
 
 ## Contexto
 
