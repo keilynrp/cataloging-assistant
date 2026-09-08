@@ -13,6 +13,10 @@ The normative authority remains `UX-GOVERNANCE-CONTRACT.md`. Design prompts, pro
 
 ## Traceability model
 
+Production implementation mapping and acceptance checks:
+[UX-RUNTIME-002 — Evidence Workspace](specs/UX-RUNTIME-002-evidence-workspace.md).
+This increment targets the real /evidence/[sessionId] route under the existing freeze.
+
 `UX-GOVERNANCE-CONTRACT -> UX-DECISION -> UX-SPEC -> UX-PROMPT -> PROTOTYPE -> UX-ALIGNMENT -> UX CONTRACT FREEZE`
 
 A durable UX decision may freeze a narrow architectural invariant before the complete prototype increment is frozen. A later domain capability may start only after the relevant UX increment has passed its alignment gate when the UX contract requires it.
