@@ -47,6 +47,14 @@ function IconChart(props: IconProps) {
     </IconBase>
   );
 }
+function IconReport(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M6 3h9l3 3v15H6z" />
+      <path d="M14 3v4h4M9 11h6M9 15h6M9 19h4" />
+    </IconBase>
+  );
+}
 function IconTag(props: IconProps) {
   return (
     <IconBase {...props}>
@@ -91,6 +99,7 @@ const NAV_ITEMS: Array<{ href: string; label: string; icon: (props: IconProps) =
   { href: "/", label: "Registros", icon: IconHome },
   { href: "/work-queue", label: "Cola de trabajo", icon: IconQueue },
   { href: "/catalog-profile", label: "Evidencia", icon: IconChart },
+  { href: "/reports/dspace-weekly", label: "Reporte semanal", icon: IconReport },
   { href: "/controlled-terms", label: "Vocabularios", icon: IconTag },
   { href: "/deferred-drafts", label: "Pospuestos", icon: IconClock },
   { href: "/notifications", label: "Notificaciones", icon: IconBell },

@@ -14,6 +14,14 @@ class Settings(BaseSettings):
         default="http://132.248.101.240:8080/server/api",
         validation_alias="DSpace_BASE_URL",
     )
+    dspace_ui_base_url: str = Field(
+        default="http://132.248.101.240:4000",
+        validation_alias="DSpace_UI_BASE_URL",
+    )
+    dspace_workflow_ui_url: str = Field(
+        default="",
+        validation_alias="DSpace_WORKFLOW_UI_URL",
+    )
     dspace_pilot_collection_uuid: str = Field(
         default="e9a8f44f-a8d3-4d22-b02a-cf590285bac6",
         validation_alias="DSpace_PILOT_COLLECTION_UUID",
@@ -40,6 +48,7 @@ class Settings(BaseSettings):
     evidence_remote_fetch_max_redirects: int = Field(default=3, ge=0, le=10)
     evidence_remote_fetch_user_agent: str = "CatalogingAssistantEvidenceFetcher/1.0"
     readiness_database_timeout_seconds: float = Field(default=2, gt=0, le=5)
+    report_pdf_font_path: str = ""
 
     @property
     def required_fields(self) -> tuple[str, ...]:
