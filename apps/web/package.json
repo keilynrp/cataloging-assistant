@@ -6,7 +6,7 @@
     "dev": "next dev --hostname 0.0.0.0",
     "build": "next build",
     "start": "next start --hostname 0.0.0.0",
-    "test": "node --experimental-strip-types --test lib/report-access.test.mts",
+    "test": "node --experimental-strip-types --test lib/report-access.test.mts lib/server-actions-config.test.mts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },
