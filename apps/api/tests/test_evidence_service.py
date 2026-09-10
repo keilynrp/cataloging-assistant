@@ -111,3 +111,23 @@ def test_doi_issn_and_isbn_are_extracted_deterministically() -> None:
     assert ("dc.identifier.doi", "10.1234/example.55") in pairs
     assert ("dc.identifier.issn", "1853-1393") in pairs
     assert ("dc.identifier.isbn", "978-0-306-40615-7") in pairs
+
+
+def test_orcid_suffix_is_not_misclassified_as_an_issn() -> None:
+    rows = list(
+        _candidate_rows(
+            source(
+                kind="text",
+                text=(
+                    "orCiD.orG/0000-0002-7563-437X "
+                    "ISSN 1853-1393"
+                ),
+            )
+        )
+    )
+
+    issn_rows = [row for row in rows if row[1] == "dc.identifier.issn"]
+    assert [(row[1], row[2]) for row in issn_rows] == [
+        ("dc.identifier.issn", "1853-1393")
+    ]
+    assert issn_rows[0][3]["identifier_type"] == "issn"
