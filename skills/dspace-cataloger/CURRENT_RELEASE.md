@@ -2,9 +2,15 @@
 
 ## `dspace-cataloger v3.9.1`
 
-Status: **CURRENT / REPOSITORY-PRESERVED**
+Status: **PRESERVATION INTEGRITY FAILURE / RECOVERY REQUIRED**
 
-Canonical release directory:
+The version directory remains preserved as historical evidence, but its Base64
+reconstruction no longer matches the SHA-256 recorded in its manifest. It must not
+be treated as the adopted canonical skill until a complete source artifact is
+recovered and independently verified. See
+[`dspace-cataloger-v3.9.1-integrity-recheck-2026-09-09.md`](audits/dspace-cataloger-v3.9.1-integrity-recheck-2026-09-09.md).
+
+Preserved artifact directory under recovery:
 
 `skills/dspace-cataloger/versions/v3.9.1/`
 

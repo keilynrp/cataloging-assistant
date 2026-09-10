@@ -2,6 +2,9 @@
 
 Status: **GOVERNED — REPOSITORY SOURCE OF TRUTH**
 
+The last designated current artifact (`v3.9.1`) is under an open preservation
+integrity incident and is not adoptable until recovery verification completes.
+
 Canonical root: `skills/dspace-cataloger/`
 
 Governed by: [`docs/governance/PROJECT-GOVERNANCE-CONTRACT-v1.1-SKILL-VERSIONING-AMENDMENT.md`](../../docs/governance/PROJECT-GOVERNANCE-CONTRACT-v1.1-SKILL-VERSIONING-AMENDMENT.md)
@@ -25,7 +28,7 @@ skills/dspace-cataloger/
 
 ## Current repository-preserved version
 
-**3.9.1 — CURRENT / CANONICAL / REPOSITORY-PRESERVED**
+**3.9.1 — PRESERVED HISTORICAL ARTIFACT / RECOVERY REQUIRED**
 
 Canonical preservation representation:
 
@@ -52,7 +55,11 @@ Canonical evidence:
 - [`versions/v3.9.1/RELEASE-NOTES.md`](versions/v3.9.1/RELEASE-NOTES.md)
 - [`audits/dspace-cataloger-v3.9.1-audit.json`](audits/dspace-cataloger-v3.9.1-audit.json)
 
-The v3.9.1 repository representation reconstructs the artifact identified by the SHA-256 above. The manifest defines the canonical reconstruction order, including two explicit continuation segments that restore `7097` Base64 characters lost during the original connector upload. GitHub-observed segment sizes total exactly `174212` characters.
+The v3.9.1 representation is retained for recovery evidence. Its manifest defines
+the intended reconstruction order, including two explicit continuation segments.
+The current reconstructed bytes do not match the manifest SHA-256; do not adopt
+the release until recovery verification completes. See
+[`audits/dspace-cataloger-v3.9.1-integrity-recheck-2026-09-09.md`](audits/dspace-cataloger-v3.9.1-integrity-recheck-2026-09-09.md).
 
 ## Preserved versions
 
@@ -62,7 +69,7 @@ The v3.9.1 repository representation reconstructs the artifact identified by the
 | 3.6 | `dspace-cataloger-v3.6.skill` | `PENDING_MIGRATION` |
 | 3.8 | `dspace-cataloger-v3.8.skill` | `PENDING_MIGRATION` |
 | 3.9 | `dspace-cataloger-v3.9.skill` | `SUPERSEDED / REPOSITORY-PRESERVED` |
-| 3.9.1 | `dspace-cataloger-v3.9.1.skill` | `CURRENT / CANONICAL / REPOSITORY-PRESERVED` |
+| 3.9.1 | `dspace-cataloger-v3.9.1.skill` | `PRESERVED / INTEGRITY FAILURE / RECOVERY REQUIRED` |
 
 The v3.9.1 audit records `SOURCE_VARIANCE_RECORDED`: the local v3.9 artifact used as the direct patch base and the repository-preserved v3.9 artifact do not share the same SHA-256. The repository does not claim byte-identical lineage between those two v3.9 artifacts.
 
