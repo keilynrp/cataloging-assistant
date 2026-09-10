@@ -270,5 +270,8 @@ def test_materialized_seed_fixtures_score_end_to_end() -> None:
     run = score_run(cases)
     assert run["overall"]["tp"] == len(manifest["cases"])
     assert run["overall"]["fp"] == 0
-    assert run["sample_sufficiency"]["status"] == "INSUFFICIENT_SAMPLE"
+    # The manifest's declared status is STRATUM_A_SAMPLE_FLOOR_MET_SYNTHETIC_ONLY
+    # (>=20 Stratum A opportunities, >=3 per critical binding); the scorer's
+    # sufficiency computation must agree with that declared floor.
+    assert run["sample_sufficiency"]["status"] == "SUFFICIENT"
     assert run["gate_assessment"] == "ASSESSMENT_ONLY"
