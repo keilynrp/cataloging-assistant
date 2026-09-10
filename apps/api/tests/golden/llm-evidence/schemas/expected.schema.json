@@ -1,1 +1,112 @@
-{"$schema":"https://json-schema.org/draft/2020-12/schema","type":"object","required":["case_id","expected_candidates","expected_abstentions","recall_applicable"],"properties":{"case_id":{"type":"string"},"expected_candidates":{"type":"array","items":{"type":"object","required":["binding_id","metadata_field","candidate_intent","derived_evidence_state","accepted_values","normalization_rule","source_refs_allowed","grounding_required","cardinality","severity"],"properties":{"binding_id":{"type":"string"},"metadata_field":{"type":"string"},"candidate_intent":{"enum":["INFERRED_VALUE","GENERATED_CONTENT"]},"derived_evidence_state":{"enum":["INFERIDO","GENERADO"]},"accepted_values":{"type":"array","items":{"type":"string"},"minItems":1},"normalization_rule":{"enum":["none","unicode_whitespace","casefold_if_contract_allows","closed_alias_set"]},"source_refs_allowed":{"type":"array","items":{"type":"string"}},"grounding_required":{"type":"boolean"},"grounding_policy":{"enum":["exact_range","range_within_gold"]},"accepted_grounding_ranges":{"type":"array"},"cardinality":{"enum":["single","repeatable"]},"order_significant":{"type":"boolean"},"severity":{"enum":["critical","major","minor"]}},"additionalProperties":true}},"expected_abstentions":{"type":"array"},"recall_applicable":{"type":"boolean"},"hallucination_annotations":{"type":"object"}},"additionalProperties":true}
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "case_id",
+    "expected_candidates",
+    "expected_abstentions",
+    "recall_applicable"
+  ],
+  "properties": {
+    "case_id": {"type": "string"},
+    "expected_candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "binding_id",
+          "metadata_field",
+          "candidate_intent",
+          "derived_evidence_state",
+          "accepted_values",
+          "normalization_rule",
+          "source_refs_allowed",
+          "grounding_required",
+          "cardinality",
+          "severity"
+        ],
+        "properties": {
+          "binding_id": {"type": "string"},
+          "opportunity_id": {"type": "string", "minLength": 1},
+          "metadata_field": {"type": "string"},
+          "candidate_intent": {
+            "enum": ["INFERRED_VALUE", "GENERATED_CONTENT"]
+          },
+          "derived_evidence_state": {"enum": ["INFERIDO", "GENERADO"]},
+          "accepted_values": {
+            "type": "array",
+            "items": {"type": "string"},
+            "minItems": 1
+          },
+          "normalization_rule": {
+            "enum": [
+              "none",
+              "unicode_whitespace",
+              "casefold_if_contract_allows",
+              "closed_alias_set"
+            ]
+          },
+          "source_refs_allowed": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "grounding_required": {"type": "boolean"},
+          "grounding_policy": {"enum": ["exact_range", "range_within_gold"]},
+          "accepted_grounding_ranges": {"type": "array"},
+          "cardinality": {"enum": ["single", "repeatable"]},
+          "order_significant": {"type": "boolean"},
+          "controlled_vocabulary": {
+            "type": "object",
+            "required": ["vocabulary_id", "version", "hash"],
+            "properties": {
+              "vocabulary_id": {"type": "string", "minLength": 1},
+              "version": {"type": "string", "minLength": 1},
+              "hash": {"type": "string", "minLength": 1}
+            },
+            "additionalProperties": false
+          },
+          "controlled_vocabulary_id": {"type": "string", "minLength": 1},
+          "controlled_vocabulary_version": {"type": "string", "minLength": 1},
+          "controlled_vocabulary_hash": {"type": "string", "minLength": 1},
+          "severity": {"enum": ["critical", "major", "minor"]}
+        },
+        "dependentRequired": {
+          "controlled_vocabulary_id": [
+            "controlled_vocabulary_version",
+            "controlled_vocabulary_hash"
+          ],
+          "controlled_vocabulary_version": [
+            "controlled_vocabulary_id",
+            "controlled_vocabulary_hash"
+          ],
+          "controlled_vocabulary_hash": [
+            "controlled_vocabulary_id",
+            "controlled_vocabulary_version"
+          ]
+        },
+        "additionalProperties": true
+      }
+    },
+    "expected_abstentions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["reason"],
+        "properties": {
+          "binding_id": {"type": "string"},
+          "opportunity_id": {"type": "string", "minLength": 1},
+          "source_refs": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "reason": {"type": "string", "minLength": 1},
+          "severity": {"enum": ["critical", "major", "minor"]}
+        },
+        "additionalProperties": true
+      }
+    },
+    "recall_applicable": {"type": "boolean"},
+    "hallucination_annotations": {"type": "object"}
+  },
+  "additionalProperties": true
+}
