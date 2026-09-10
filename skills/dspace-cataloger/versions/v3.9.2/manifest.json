@@ -1,0 +1,41 @@
+{
+  "skill": "dspace-cataloger",
+  "version": "3.9.2",
+  "artifact": "dspace-cataloger-v3.9.2.skill",
+  "representation": "lossless-base64-multipart",
+  "sizeBytes": 118470,
+  "base64Length": 157960,
+  "sha256": "b6c435a28f8bb1a8faab237258161edf0233b2ce3608ff4e025a8ae2a11acede",
+  "partsInReconstructionOrder": [
+    "dspace-cataloger-v3.9.2.skill.b64.part01",
+    "dspace-cataloger-v3.9.2.skill.b64.part02",
+    "dspace-cataloger-v3.9.2.skill.b64.part03",
+    "dspace-cataloger-v3.9.2.skill.b64.part04",
+    "dspace-cataloger-v3.9.2.skill.b64.part05",
+    "dspace-cataloger-v3.9.2.skill.b64.part06",
+    "dspace-cataloger-v3.9.2.skill.b64.part07",
+    "dspace-cataloger-v3.9.2.skill.b64.part08",
+    "dspace-cataloger-v3.9.2.skill.b64.part09",
+    "dspace-cataloger-v3.9.2.skill.b64.part10"
+  ],
+  "validation": {
+    "zipIntegrity": "PASS",
+    "jsonValidation": "PASS",
+    "jsonFileCount": 36,
+    "packageFileCount": 86,
+    "formBindingCount": 56,
+    "goldenSetCount": 23,
+    "humanApprovalRequired": true,
+    "runtimeOcr": false,
+    "runtimeDspaceWrite": false,
+    "runtimeAgentMutations": false
+  },
+  "lineage": {
+    "status": "RE_DERIVED_FROM_VERIFIED_V39_AFTER_V391_INTEGRITY_FAILURE",
+    "verifiedSource": {
+      "release": "v3.9",
+      "sha256": "76fdc4674ef6b58474d224742005fbf6d4e885db80545ab1d9aa7a3e4e01c06c"
+    },
+    "v391": "Semantic carry-forward only; no binary-parent claim."
+  }
+}

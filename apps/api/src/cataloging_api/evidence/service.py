@@ -66,6 +66,15 @@ FIELD_LINE = re.compile(r"^\s*([A-Za-z0-9_.-]+)\s*:\s*(.+?)\s*$")
 DOI_RE = re.compile(r"\b10\.\d{4,9}/[-._;()/:A-Z0-9]+\b", re.IGNORECASE)
 ISSN_RE = re.compile(r"\b\d{4}-\d{3}[\dXx]\b")
 ISBN_RE = re.compile(r"\b(?:97[89][- ]?)?(?:\d[- ]?){9}[\dXx]\b")
+# The full ORCID range is classified before ISSN matching. Its final eight
+# characters have the same shape as an ISSN, so they must never be emitted as
+# an ISSN candidate. ORCID remains evidence-only until a governed DSpace
+# metadata binding explicitly authorizes it.
+ORCID_RE = re.compile(
+    r"\b(?:(?:https?://)?(?:www\.)?orcid\.org/|orcid\s*[:.]?\s*)"
+    r"\d{4}-\d{4}-\d{4}-\d{3}[\dXx]\b",
+    re.IGNORECASE,
+)
 BINDINGS_BY_ID = {field.binding_id: field for field in FIELDS}
 BINDINGS_BY_METADATA: dict[str, list[CatalogField]] = defaultdict(list)
 for contract_field in FIELDS:
@@ -656,14 +665,20 @@ def _candidate_rows(
                     yield binding.binding_id, binding.metadata_field, value, evidence
         offset += len(raw_line)
 
+    orcid_spans = tuple(match.span() for match in ORCID_RE.finditer(text))
     detectors = (
-        ("dc.identifier.doi", DOI_RE),
-        ("dc.identifier.issn", ISSN_RE),
-        ("dc.identifier.isbn", ISBN_RE),
+        ("dc.identifier.doi", DOI_RE, "doi"),
+        ("dc.identifier.issn", ISSN_RE, "issn"),
+        ("dc.identifier.isbn", ISBN_RE, "isbn"),
     )
-    for metadata_field, pattern in detectors:
+    for metadata_field, pattern, identifier_type in detectors:
         binding = _binding_for_unique_metadata(metadata_field)
         for match in pattern.finditer(text):
+            if metadata_field == "dc.identifier.issn" and any(
+                start <= match.start() and match.end() <= end
+                for start, end in orcid_spans
+            ):
+                continue
             value = match.group(0).rstrip(".,;)")
             key = (binding.binding_id, value)
             if key in seen:
@@ -673,6 +688,7 @@ def _candidate_rows(
                 "kind": "deterministic_pattern",
                 "start": match.start(),
                 "end": match.end(),
+                "identifier_type": identifier_type,
                 "quote": text[
                     max(0, match.start() - 80) : min(len(text), match.end() + 80)
                 ],
