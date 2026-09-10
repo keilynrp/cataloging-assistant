@@ -1,38 +1,39 @@
 # Current repository-preserved release
 
-## `dspace-cataloger v3.9.1`
+## `dspace-cataloger v3.9.2`
 
-Status: **PRESERVATION INTEGRITY FAILURE / RECOVERY REQUIRED**
+Status: **CURRENT / REPOSITORY-PRESERVED / VERIFIED RE-DERIVATION**
 
-The version directory remains preserved as historical evidence, but its Base64
-reconstruction no longer matches the SHA-256 recorded in its manifest. It must not
-be treated as the adopted canonical skill until a complete source artifact is
-recovered and independently verified. See
-[`dspace-cataloger-v3.9.1-integrity-recheck-2026-09-09.md`](audits/dspace-cataloger-v3.9.1-integrity-recheck-2026-09-09.md).
+This release is derived from the user-provided, checksum-verified v3.9 artifact
+after the v3.9.1 preservation incident. It carries v3.9.1's documented semantic
+rules forward without claiming v3.9.1 binary lineage, and adds the ORCID
+identifier-classification guardrail.
 
-Preserved artifact directory under recovery:
+Canonical release directory:
 
-`skills/dspace-cataloger/versions/v3.9.1/`
+`skills/dspace-cataloger/versions/v3.9.2/`
 
 Artifact identity:
 
-- SHA-256: `b099ff6e3e15cf6f033b36ea9d3e2f265cff3811c092a31e6f9e7d74d1e483e9`
-- Decoded size: `130657` bytes
+- SHA-256: `b6c435a28f8bb1a8faab237258161edf0233b2ce3608ff4e025a8ae2a11acede`
+- Decoded size: `118470` bytes
 - ZIP integrity: `PASS`
-- JSON validation: `PASS` (`35` JSON files)
-- Package files: `82`
+- JSON validation: `PASS` (`36` JSON files)
+- Package files: `86`
 - DSpace form bindings: `56`
-- Golden Set: `GR01–GR22`
+- Golden Set: `GR01–GR23`
 
-Semantic patch additions:
+Semantic additions:
 
-- `GR21` — linguistic relevance for indexing.
-- `GR22` — no genealogical propagation from secondary language mentions.
-- Evidence roles: `PRIMARY_SUBJECT_LANGUAGE`, `SECONDARY_LANGUAGE_MENTION`, `VARIANT_EVIDENCE`.
-- QA rules: `CAT-LING-REL-001` through `CAT-LING-REL-004`.
+- GR21/GR22 — carried-forward linguistic relevance and no-propagation rules.
+- GR23 — ORCID is evidence-only; its fragments cannot become ISSN candidates.
+- Identifier types: `doi`, `issn`, `isbn`, `orcid`.
 
-See `versions/v3.9.1/manifest.json`, `versions/v3.9.1/RECONSTRUCT.md`, and `audits/dspace-cataloger-v3.9.1-audit.json` for reproducibility and lineage evidence.
+See `versions/v3.9.2/manifest.json`, `versions/v3.9.2/RECONSTRUCT.md`, and
+`audits/dspace-cataloger-v3.9.2-audit.md` for reproducibility and lineage
+evidence.
 
-### Lineage disclosure
+### v3.9.1 preservation incident
 
-The direct local v3.9 patch base (`76fdc467…e01c06c`) is not byte-identical to the repository-preserved v3.9 artifact (`81e20a04…15679e`). This variance is explicitly recorded; no false byte-identical predecessor claim is made.
+`v3.9.1` remains historical recovery evidence and is not an adoptable binary
+parent. See [`dspace-cataloger-v3.9.1-integrity-recheck-2026-09-09.md`](audits/dspace-cataloger-v3.9.1-integrity-recheck-2026-09-09.md).

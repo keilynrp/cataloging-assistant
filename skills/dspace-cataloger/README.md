@@ -2,8 +2,9 @@
 
 Status: **GOVERNED — REPOSITORY SOURCE OF TRUTH**
 
-The last designated current artifact (`v3.9.1`) is under an open preservation
-integrity incident and is not adoptable until recovery verification completes.
+`v3.9.2` is the current verified re-derivation. The failed `v3.9.1` package
+remains preserved as historical recovery evidence and is not an adoptable binary
+parent.
 
 Canonical root: `skills/dspace-cataloger/`
 
@@ -28,38 +29,37 @@ skills/dspace-cataloger/
 
 ## Current repository-preserved version
 
-**3.9.1 — PRESERVED HISTORICAL ARTIFACT / RECOVERY REQUIRED**
+**3.9.2 — CURRENT / CANONICAL / REPOSITORY-PRESERVED**
 
 Canonical preservation representation:
 
-`skills/dspace-cataloger/versions/v3.9.1/`
+`skills/dspace-cataloger/versions/v3.9.2/`
 
 Artifact identity:
 
-- canonical artifact name: `dspace-cataloger-v3.9.1.skill`;
-- representation: lossless Base64 multipart with repaired explicit continuations;
-- original size: `130657` bytes;
-- Base64 representation length: `174212` characters;
-- SHA-256: `b099ff6e3e15cf6f033b36ea9d3e2f265cff3811c092a31e6f9e7d74d1e483e9`;
+- canonical artifact name: `dspace-cataloger-v3.9.2.skill`;
+- representation: lossless Base64 multipart;
+- decoded size: `118470` bytes;
+- Base64 representation length: `157988` characters;
+- SHA-256: `b6c435a28f8bb1a8faab237258161edf0233b2ce3608ff4e025a8ae2a11acede`;
 - ZIP integrity: `PASS`;
-- JSON validation: `PASS` (`35` JSON members);
-- package files: `82`;
+- JSON validation: `PASS` (`36` JSON members);
+- package files: `86`;
 - form bindings: `56`;
-- Golden Set: `GR01–GR22` present.
+- Golden Set: `GR01–GR23` present.
 
 Canonical evidence:
 
 - [`CURRENT_RELEASE.md`](CURRENT_RELEASE.md)
-- [`versions/v3.9.1/manifest.json`](versions/v3.9.1/manifest.json)
-- [`versions/v3.9.1/RECONSTRUCT.md`](versions/v3.9.1/RECONSTRUCT.md)
-- [`versions/v3.9.1/RELEASE-NOTES.md`](versions/v3.9.1/RELEASE-NOTES.md)
-- [`audits/dspace-cataloger-v3.9.1-audit.json`](audits/dspace-cataloger-v3.9.1-audit.json)
+- [`versions/v3.9.2/manifest.json`](versions/v3.9.2/manifest.json)
+- [`versions/v3.9.2/RECONSTRUCT.md`](versions/v3.9.2/RECONSTRUCT.md)
+- [`versions/v3.9.2/RELEASE-NOTES.md`](versions/v3.9.2/RELEASE-NOTES.md)
+- [`audits/dspace-cataloger-v3.9.2-audit.md`](audits/dspace-cataloger-v3.9.2-audit.md)
 
-The v3.9.1 representation is retained for recovery evidence. Its manifest defines
-the intended reconstruction order, including two explicit continuation segments.
-The current reconstructed bytes do not match the manifest SHA-256; do not adopt
-the release until recovery verification completes. See
-[`audits/dspace-cataloger-v3.9.1-integrity-recheck-2026-09-09.md`](audits/dspace-cataloger-v3.9.1-integrity-recheck-2026-09-09.md).
+v3.9.2 is a verified re-derivation from the user-provided v3.9 artifact
+(`76fdc467…e01c06c`). It carries the documented v3.9.1 semantics forward but
+does not claim that the v3.9.1 binary is valid. The preservation incident remains
+recorded in [`audits/dspace-cataloger-v3.9.1-integrity-recheck-2026-09-09.md`](audits/dspace-cataloger-v3.9.1-integrity-recheck-2026-09-09.md).
 
 ## Preserved versions
 
@@ -70,6 +70,7 @@ the release until recovery verification completes. See
 | 3.8 | `dspace-cataloger-v3.8.skill` | `PENDING_MIGRATION` |
 | 3.9 | `dspace-cataloger-v3.9.skill` | `SUPERSEDED / REPOSITORY-PRESERVED` |
 | 3.9.1 | `dspace-cataloger-v3.9.1.skill` | `PRESERVED / INTEGRITY FAILURE / RECOVERY REQUIRED` |
+| 3.9.2 | `dspace-cataloger-v3.9.2.skill` | `CURRENT / VERIFIED RE-DERIVATION / REPOSITORY-PRESERVED` |
 
 The v3.9.1 audit records `SOURCE_VARIANCE_RECORDED`: the local v3.9 artifact used as the direct patch base and the repository-preserved v3.9 artifact do not share the same SHA-256. The repository does not claim byte-identical lineage between those two v3.9 artifacts.
 
