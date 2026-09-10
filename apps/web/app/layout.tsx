@@ -34,7 +34,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <div className="flex min-h-screen">
           <Sidebar />
-          <div className="flex min-h-screen flex-1 flex-col">
+          <div className="flex min-h-screen min-w-0 flex-1 flex-col">
             <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-line bg-surface px-4 py-3 md:px-8">
               <form
                 action="/"
